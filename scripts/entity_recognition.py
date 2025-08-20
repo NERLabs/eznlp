@@ -612,16 +612,24 @@ def process_IE_data(train_data, dev_data, test_data, args, config):
                 test_data, doc_key=doc_key
             )
 
-        if args.dataset in ("SIGHAN2006", "yidu_s4k", "cmeee"):
-            train_data = preprocessor.segment_sentences_for_data(
-                train_data, update_raw_idx=True
-            )
-            dev_data = preprocessor.segment_sentences_for_data(
-                dev_data, update_raw_idx=True
-            )
-            test_data = preprocessor.segment_sentences_for_data(
-                test_data, update_raw_idx=True
-            )
+        # ... existing code ...
+        if args.dataset in ("MSRA", "yidu_s4k", "cmeee"):
+            if len(train_data) > 0:
+                train_data = preprocessor.segment_sentences_for_data(
+                    train_data, update_raw_idx=True
+                )
+            if len(dev_data) > 0:
+                dev_data = preprocessor.segment_sentences_for_data(
+                    dev_data, update_raw_idx=True
+                )
+            if len(test_data) > 0:
+                test_data = preprocessor.segment_sentences_for_data(
+                    test_data, update_raw_idx=True
+                )
+            
+        # Remove the duplicate filtering code we added earlier since segmenting already handles long sequences
+# ... existing code ...
+            
 
         if args.pre_subtokenize:
             train_data = preprocessor.subtokenize_for_data(train_data)

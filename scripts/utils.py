@@ -220,10 +220,21 @@ def parse_to_args(parser: argparse.ArgumentParser):
     return args
 
 
-spacy.cli.download("en_core_web_sm")
-spacy_nlp_en = spacy.load("en_core_web_sm", disable=["tagger", "parser", "ner"])
-spacy.cli.download("de_core_news_sm")
-spacy_nlp_de = spacy.load("de_core_news_sm", disable=["tagger", "parser", "ner"])
+# ... existing code ...
+
+try:
+    spacy_nlp_en = spacy.load("en_core_web_sm", disable=["tagger", "parser", "ner"])
+except OSError:
+    spacy_nlp_en = None
+    logger.warning("en_core_web_sm not found. Some functionality may be limited.")
+
+try:
+    spacy_nlp_de = spacy.load("de_core_news_sm", disable=["tagger", "parser", "ner"])
+except OSError:
+    spacy_nlp_de = None
+    logger.warning("de_core_news_sm not found. Some functionality may be limited.")
+
+# ... existing code ...
 
 
 dataset2language = {
@@ -264,6 +275,7 @@ dataset2language = {
     "flickr8k": "English",
     "flickr30k": "English",
     "mscoco": "English",
+    "MSRA": "Chinese",
 }
 dataset2language.update({f"ADE_cv{k}": "English" for k in range(10)})
 dataset2language.update({f"ace2004_rel_cv{k}": "English" for k in range(5)})
@@ -582,6 +594,19 @@ def load_data(args: argparse.Namespace):
         dev_data = conll_io.read("data/SIGHAN2006/test.txt")
         test_data = conll_io.read("data/SIGHAN2006/test.txt")
 
+    elif args.dataset == "MSRA":
+        conll_io = ConllIO(
+            text_col_id=0,
+            tag_col_id=1,
+            scheme="BMES",
+            encoding="utf-8",
+            token_sep="",
+            pad_token="",
+        )
+        train_data = conll_io.read("data/MSRA/hz_train.bmes")
+        dev_data = conll_io.read("data/MSRA/hz_dev.bmes")
+        test_data = conll_io.read("data/MSRA/hz_test.bmes")
+    
     elif args.dataset == "conll2012_zh":
         conll_io = ConllIO(
             text_col_id=3,
