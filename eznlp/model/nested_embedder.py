@@ -194,7 +194,7 @@ class SoftLexiconConfig(NestedOneHotConfig):
 
         inner_freqs_list = []
         for inner_seq in self._inner_sequences(tokens):
-            inner_freqs_list.append(torch.tensor([self.freqs[x] for x in inner_seq]))
+            inner_freqs_list.append(torch.tensor([self.freqs.get(x, 0) for x in inner_seq]))
 
         example["inner_freqs"] = inner_freqs_list
         return example

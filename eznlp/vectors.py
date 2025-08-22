@@ -70,15 +70,19 @@ def _load_from_file(
 
 class Vectors(object):
     def __init__(self, itos: List[str], vectors: torch.FloatTensor, unk_init=None):
+        # 处理词汇表大小和向量数量不匹配的问题
         if len(itos) != vectors.size(0):
-            raise ValueError(
-                f"Vocaburaly size {len(itos)} does not match vector size {vectors.size(0)}"
+            logger.warning(
+                f"Vocabulary size {len(itos)} does not match vector size {vectors.size(0)}. "
+                f"Truncating to match the smaller size."
             )
+            min_size = min(len(itos), vectors.size(0))
+            itos = itos[:min_size]
+            vectors = vectors[:min_size]
 
         self.itos = itos
         self.vectors = vectors
         self.unk_init = torch.zeros if unk_init is None else unk_init
-
     @property
     def itos(self):
         return self._itos

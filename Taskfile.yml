@@ -1,0 +1,44 @@
+version: '3'
+
+tasks:
+  train:msra:softlexicon:
+    desc: 在MSRA数据集上训练SoftLexicon模型
+    cmds:
+      - python scripts/entity_recognition.py --dataset MSRA --use_softlexicon --ck_decoder sequence_tagging --enc_arch LSTM --hid_dim 256 --num_layers 1 --batch_size 64 --lr 0.001 --num_epochs 50 --emb_dim 0
+    silent: false
+
+  train:msra:softlexicon+bert:
+    desc: 在MSRA数据集上训练SoftLexicon+BERT模型
+    cmds:
+      - python scripts/entity_recognition.py --dataset MSRA --use_softlexicon --bert_arch MacBERT_base --ck_decoder sequence_tagging --batch_size 16 --lr 2e-3 --finetune_lr 2e-5 --num_epochs 3 --use_interm2
+    silent: false
+
+  train:msra:lstm+crf:
+    desc: 在MSRA数据集上训练LSTM+CRF基线模型
+    cmds:
+      - python scripts/entity_recognition.py --dataset MSRA --ck_decoder sequence_tagging --no_crf --enc_arch LSTM --hid_dim 256 --num_layers 2 --batch_size 64 --lr 0.01 --num_epochs 100 --emb_dim 0
+    silent: false
+
+  train:msra:flat-like:
+    desc: 在MSRA数据集上训练类似FLAT的模型
+    cmds:
+      - python scripts/entity_recognition.py --dataset MSRA --use_softlexicon --use_bigram --ck_decoder sequence_tagging --no_crf --enc_arch LSTM --hid_dim 256 --num_layers 2 --batch_size 32 --lr 0.005 --num_epochs 75 --emb_dim 0
+    silent: false
+
+  monitor:gpu:
+    desc: 监视GPU使用情况
+    cmds:
+      - watch -n 1 nvidia-smi
+    silent: false
+
+  monitor:gpu:detail:
+    desc: 详细监视GPU使用情况
+    cmds:
+      - watch -n 1 'nvidia-smi --query-gpu=index,name,utilization.gpu,memory.used,memory.total,temperature.gpu --format=csv'
+    silent: false
+
+  monitor:processes:
+    desc: 监视GPU上的进程
+    cmds:
+      - watch -n 2 'nvidia-smi pmon -i 0'
+    silent: false

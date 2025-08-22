@@ -603,9 +603,9 @@ def load_data(args: argparse.Namespace):
             token_sep="",
             pad_token="",
         )
-        train_data = conll_io.read("data/MSRA/hz_train.bmes")
-        dev_data = conll_io.read("data/MSRA/hz_dev.bmes")
-        test_data = conll_io.read("data/MSRA/hz_test.bmes")
+        train_data = conll_io.read("data/MSRA/train.char.bmes")
+        dev_data = conll_io.read("data/MSRA/dev.char.bmes")
+        test_data = conll_io.read("data/MSRA/test.char.bmes")
     
     elif args.dataset == "conll2012_zh":
         conll_io = ConllIO(
