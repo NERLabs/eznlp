@@ -16,13 +16,37 @@ tasks:
   train:msra:lstm+crf:
     desc: 在MSRA数据集上训练LSTM+CRF基线模型
     cmds:
-      - python scripts/entity_recognition.py --dataset MSRA --ck_decoder sequence_tagging --no_crf --enc_arch LSTM --hid_dim 256 --num_layers 2 --batch_size 64 --lr 0.01 --num_epochs 100 --emb_dim 0
+      - python scripts/entity_recognition.py --dataset MSRA --ck_decoder sequence_tagging --enc_arch LSTM --hid_dim 256 --num_layers 2 --batch_size 64 --lr 0.01 --num_epochs 100 --emb_dim 100
     silent: false
 
   train:msra:flat-like:
     desc: 在MSRA数据集上训练类似FLAT的模型
     cmds:
       - python scripts/entity_recognition.py --dataset MSRA --use_softlexicon --use_bigram --ck_decoder sequence_tagging --no_crf --enc_arch LSTM --hid_dim 256 --num_layers 2 --batch_size 32 --lr 0.005 --num_epochs 75 --emb_dim 0
+    silent: false
+
+  train:msra:bert-base:
+    desc: 在MSRA数据集上训练基础BERT模型
+    cmds:
+      - python scripts/entity_recognition.py --dataset MSRA --bert_arch MacBERT_base --ck_decoder sequence_tagging --batch_size 16 --lr 2e-3 --finetune_lr 2e-5 --num_epochs 10
+    silent: false
+
+  train:msra:bert+lstm:
+    desc: 在MSRA数据集上训练BERT+LSTM模型
+    cmds:
+      - python scripts/entity_recognition.py --dataset MSRA --bert_arch MacBERT_base --enc_arch LSTM --hid_dim 256 --num_layers 1 --ck_decoder sequence_tagging --batch_size 16 --lr 2e-3 --finetune_lr 2e-5 --num_epochs 10
+    silent: false
+
+  train:msra:bert+softlexicon:
+    desc: 在MSRA数据集上训练BERT+SoftLexicon模型
+    cmds:
+      - python scripts/entity_recognition.py --dataset MSRA --use_softlexicon --bert_arch MacBERT_base --ck_decoder sequence_tagging --batch_size 16 --lr 2e-3 --finetune_lr 2e-5 --num_epochs 10 --use_interm2
+    silent: false
+
+  train:msra:bert+interm2:
+    desc: 在MSRA数据集上训练BERT+Interm2模型
+    cmds:
+      - python scripts/entity_recognition.py --dataset MSRA --bert_arch MacBERT_base --ck_decoder sequence_tagging --use_interm2 --batch_size 16 --lr 2e-3 --finetune_lr 2e-5 --num_epochs 10
     silent: false
 
   monitor:gpu:
