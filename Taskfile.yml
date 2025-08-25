@@ -49,6 +49,18 @@ tasks:
       - python scripts/entity_recognition.py --dataset MSRA --bert_arch MacBERT_base --ck_decoder sequence_tagging --use_interm2 --batch_size 16 --lr 2e-3 --finetune_lr 2e-5 --num_epochs 10
     silent: false
 
+  collect:msra:
+    desc: 收集MSRA数据集上的实验结果
+    cmds:
+      - python scripts/exp_results_collector.py --dataset MSRA
+    silent: false
+
+  collect:msra:zip:
+    desc: 收集MSRA数据集上的实验结果并打包为zip文件
+    cmds:
+      - python scripts/exp_results_collector.py --dataset MSRA --format zip
+    silent: false
+
   monitor:gpu:
     desc: 监视GPU使用情况
     cmds:
