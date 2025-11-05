@@ -13,6 +13,8 @@ import spacy
 # "".join([chr(i) for i in range(8211, 8232)])
 # "".join([chr(i) for i in range(12289, 12352)])
 # "".join([chr(i) for i in range(65091, 65511)])
+
+# 中文标点符号定义
 zh_punctuation = (
     "–—―‖‗‘’‚‛“”„‟†‡•‣․‥…‧"
     + "、。〃〄々〆〇〈〉《》「」『』【】〒〓〔〕〖〗〘〙〚〛〜〝〞〟〠〡〢〣〤〥〦〧〨〩〪〭〮〯〫〬〰〱〲〳〴〵〶〷〸〹〺〻〼〽〾〿"
@@ -22,57 +24,66 @@ zh_punctuation = (
 )
 
 # Full-width characters
+# 全角字符定义
 fw_digits = "０１２３４５６７８９"
 fw_uppercase = "ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ"
 fw_lowercase = "ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ"
 
+# 校验为非ASCII字符
 assert not any(
     c.isascii() for c in zh_punctuation + fw_digits + fw_uppercase + fw_lowercase
 )
 
-
-ascii_re = re.compile("[\x00-\xff]")
-lower_re = re.compile("[a-z]")
-upper_re = re.compile("[A-Z]")
-digit_re = re.compile("\d")
-punct_re = re.compile("[" + "".join("\\" + p for p in string.punctuation) + "]")
-non_ascii_re = re.compile("[^\x00-\xff]")
+# 字符类型正则表达式
+ascii_re = re.compile("[\x00-\xff]")                                                #ASCII字符
+lower_re = re.compile("[a-z]")                                                      #小写字符
+upper_re = re.compile("[A-Z]")                                                      #大写字符
+digit_re = re.compile("\d")                                                         #数字   
+punct_re = re.compile("[" + "".join("\\" + p for p in string.punctuation) + "]")    #标点符号
+non_ascii_re = re.compile("[^\x00-\xff]")                                           #非ASCII字符
 
 # CJK Unified Ideographs
 # https://zh.wikipedia.org/wiki/%E4%B8%AD%E6%97%A5%E9%9F%93%E7%B5%B1%E4%B8%80%E8%A1%A8%E6%84%8F%E6%96%87%E5%AD%97
-unihan93_re = re.compile("[\u4e00-\u9fa5〇﨎﨏﨑﨓﨔﨟﨡﨣﨤﨧﨨﨩]")
+unihan93_re = re.compile("[\u4e00-\u9fa5〇﨎﨏﨑﨓﨔﨟﨡﨣﨤﨧﨨﨩]")                  # CJK 兼容字符
 
-zh_char_re = re.compile("[\u4e00-\u9fa5]")
-zh_punct_re = re.compile("[" + zh_punctuation + "]")
-fw_lower_re = re.compile("[" + fw_lowercase + "]")
-fw_upper_re = re.compile("[" + fw_uppercase + "]")
-fw_digit_re = re.compile("[" + fw_digits + "]")
+zh_char_re = re.compile("[\u4e00-\u9fa5]")                                              # 中文汉字匹配
+zh_punct_re = re.compile("[" + zh_punctuation + "]")                                    # 中文标点符号
+fw_lower_re = re.compile("[" + fw_lowercase + "]")                                      # 全角小写字母
+fw_upper_re = re.compile("[" + fw_uppercase + "]")                                      # 全角大写字母
+fw_digit_re = re.compile("[" + fw_digits + "]")                                         # 全角数字
 
 
+# 英文标题格式单词匹配（首字母大写其余小写）
 en_title_word_re = re.compile("[A-Z]{1}[a-z]{1,}")
+# 英文全大写单词匹配
 en_upper_word_re = re.compile("[A-Z]{2,}")
+# 英文全小写单词匹配
 en_lower_word_re = re.compile("[a-z]{2,}")
 
+# 定义英文单词形态特征及其判断条件的映射表
+# 每个元素是一个元组，包含特征名称和对应的判断函数
+# 判断函数接受一个字符串参数，返回布尔值表示是否符合该特征
 en_shape2criterion = [
-    ("any_ascii", lambda x: ascii_re.search(x) is not None),
-    ("any_non_ascii", lambda x: non_ascii_re.search(x) is not None),
-    ("any_upper", lambda x: upper_re.search(x) is not None),
-    ("any_lower", lambda x: lower_re.search(x) is not None),
-    ("any_digit", lambda x: digit_re.search(x) is not None),
-    ("any_punct", lambda x: punct_re.search(x) is not None),
-    ("init_upper", lambda x: upper_re.search(x[0]) is not None),
-    ("init_lower", lambda x: lower_re.search(x[0]) is not None),
-    ("init_digit", lambda x: digit_re.search(x[0]) is not None),
-    ("init_punct", lambda x: punct_re.search(x[0]) is not None),
-    ("any_noninit_upper", lambda x: upper_re.search(x[1:]) is not None),
-    ("any_noninit_lower", lambda x: lower_re.search(x[1:]) is not None),
-    ("any_noninit_digit", lambda x: digit_re.search(x[1:]) is not None),
-    ("any_noninit_punct", lambda x: punct_re.search(x[1:]) is not None),
-    ("typical_title", lambda x: en_title_word_re.fullmatch(x) is not None),
-    ("typical_upper", lambda x: en_upper_word_re.fullmatch(x) is not None),
-    ("typical_lower", lambda x: en_lower_word_re.fullmatch(x) is not None),
-    ("apostrophe_end", lambda x: x[-1] == "'" or x[-2:].lower() == "'s"),
+    ("any_ascii", lambda x: ascii_re.search(x) is not None),           # 包含任意ASCII字符
+    ("any_non_ascii", lambda x: non_ascii_re.search(x) is not None),   # 包含任意非ASCII字符
+    ("any_upper", lambda x: upper_re.search(x) is not None),           # 包含任意大写字母
+    ("any_lower", lambda x: lower_re.search(x) is not None),           # 包含任意小写字母
+    ("any_digit", lambda x: digit_re.search(x) is not None),           # 包含任意数字
+    ("any_punct", lambda x: punct_re.search(x) is not None),           # 包含任意标点符号
+    ("init_upper", lambda x: upper_re.search(x[0]) is not None),       # 首字符为大写字母
+    ("init_lower", lambda x: lower_re.search(x[0]) is not None),       # 首字符为小写字母
+    ("init_digit", lambda x: digit_re.search(x[0]) is not None),       # 首字符为数字
+    ("init_punct", lambda x: punct_re.search(x[0]) is not None),       # 首字符为标点符号
+    ("any_noninit_upper", lambda x: upper_re.search(x[1:]) is not None),   # 非首字符中包含大写字母
+    ("any_noninit_lower", lambda x: lower_re.search(x[1:]) is not None),   # 非首字符中包含小写字母
+    ("any_noninit_digit", lambda x: digit_re.search(x[1:]) is not None),   # 非首字符中包含数字
+    ("any_noninit_punct", lambda x: punct_re.search(x[1:]) is not None),   # 非首字符中包含标点符号
+    ("typical_title", lambda x: en_title_word_re.fullmatch(x) is not None),  # 典型标题格式(首字母大写其余小写)
+    ("typical_upper", lambda x: en_upper_word_re.fullmatch(x) is not None),  # 典型全大写格式
+    ("typical_lower", lambda x: en_lower_word_re.fullmatch(x) is not None),  # 典型全小写格式
+    ("apostrophe_end", lambda x: x[-1] == "'" or x[-2:].lower() == "'s"),    # 以撇号或's结尾
 ]
+# 转换为有序字典便于按顺序访问
 en_shape2criterion = OrderedDict(en_shape2criterion)
 
 stopwords = {
@@ -252,7 +263,7 @@ stopwords = {
     "yourselves",
 }
 
-
+# 全角半角字符转换器
 class Full2Half(object):
     """Translate full-width characters to half-widths"""
 
