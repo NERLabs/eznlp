@@ -307,6 +307,26 @@ def parse_arguments(parser: argparse.ArgumentParser):
         action="store_true",
         help="whether to use initial span size embeddings",
     )
+
+    # Expert dictionary features
+    group_decoder.add_argument(
+        "--use_expert_dict",
+        default=False,
+        action="store_true",
+        help="whether to use expert dictionary features",
+    )
+    group_decoder.add_argument(
+        "--expert_dict_path",
+        type=str,
+        default="",
+        help="path to expert dictionary (one term per line)",
+    )
+    group_decoder.add_argument(
+        "--expert_dict_dim",
+        type=int,
+        default=50,
+        help="embedding dimension of expert dictionary features",
+    )
     return parse_to_args(parser)
 
 
@@ -356,6 +376,17 @@ def collect_IE_assembly_config(args: argparse.Namespace):
             {
                 "softlexicon": SoftLexiconConfig(
                     vectors=vectors, emb_dim=50, freeze=args.emb_freeze
+                )
+            }
+        )
+    elif args.language.lower() == "chinese" and args.use_expert_dict:
+        from eznlp.model import ExpertDictConfig
+
+        nested_ohots_config = ConfigDict(
+            {
+                "expert_dict": ExpertDictConfig(
+                    emb_dim=args.expert_dict_dim,
+                    agg_mode="wtd_mean_pooling",
                 )
             }
         )
@@ -752,12 +783,37 @@ if __name__ == "__main__":
         train_data, dev_data, test_data, args, config
     )
 
+    # Optional: add expert dictionary tags (after processing/segmenting data)
+    if args.use_expert_dict and args.expert_dict_path:
+        from eznlp.token import LexiconTokenizer
+
+        print(f"[ExpertDict] Loading expert lexicon from {args.expert_dict_path} ...")
+        lexicon = []
+        with open(args.expert_dict_path, "r", encoding="utf-8") as f:
+            for line in f:
+                word = line.strip().split("\t")[0]
+                if word:
+                    lexicon.append(word)
+        print(f"[ExpertDict] Loaded {len(lexicon)} lexicon entries")
+
+        tokenizer = LexiconTokenizer(lexicon, max_len=10)
+        for data in (train_data, dev_data, test_data):
+            for entry in data:
+                entry["tokens"].build_expert_dict_tags(tokenizer.tokenize)
+
     train_set = Dataset(train_data, config, training=True)
     # You may also include `test_data` here.
     # In particular, when using static word embeddings (e.g., GloVe), this can include some words appearing in `test_data`, but missing in `train_data` and `dev_data`.
     # This will not result in information leak, because these word embeddings will remain unchanged during the whole training phase.
     # In general, `build_vocabs_and_dims` only collects meta information, which can alternatively be hard-coded.
     train_set.build_vocabs_and_dims(dev_data)
+
+    # Build frequency statistics for nested one-hot features such as ExpertDict
+    if hasattr(config, "nested_ohots") and config.nested_ohots is not None:
+        for c in config.nested_ohots.values():
+            if hasattr(c, "build_freqs"):
+                c.build_freqs(train_data, dev_data)
+
     dev_set = Dataset(dev_data, train_set.config, training=False)
     test_set = Dataset(test_data, train_set.config, training=False)
     logger.info(train_set.summary)
