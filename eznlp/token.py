@@ -627,6 +627,49 @@ class TokenSequence(object):
                 if len(word_set) == 0:
                     word_set.append(self.none_token)
 
+    def build_expert_dict_tags(self, tokenize_callback, **kwargs):
+        """Build expert dictionary matching tags for each token (BMES format).
+        
+        This method is similar to build_softlexicons but designed for domain-specific
+        expert dictionaries (e.g., medical terms, legal entities).
+        
+        Parameters
+        ----------
+        tokenize_callback : callable
+            A tokenizer with a tokenize method (e.g., LexiconTokenizer.tokenize)
+            that yields (word_text, word_start, word_end) tuples.
+        **kwargs : dict
+            Additional arguments passed to the tokenize callback.
+        """
+        self._assert_for_softwords(tokenize_callback)
+
+        self.expert_dict = [
+            [[] for t in self._softword_idx2tag] for tok in self.token_list
+        ]
+
+        for word_text, word_start, word_end in tokenize_callback(
+            self.token_sep.join(self.raw_text), **kwargs
+        ):
+            if word_end - word_start == 1:
+                self.expert_dict[word_start][self._softword_tag2idx["S"]].append(
+                    word_text
+                )
+            else:
+                self.expert_dict[word_start][self._softword_tag2idx["B"]].append(
+                    word_text
+                )
+                self.expert_dict[word_end - 1][self._softword_tag2idx["E"]].append(
+                    word_text
+                )
+                for k in range(word_start + 1, word_end - 1):
+                    self.expert_dict[k][self._softword_tag2idx["M"]].append(word_text)
+
+        # Add a special token to empty word sets
+        for word_sets in self.expert_dict:
+            for word_set in word_sets:
+                if len(word_set) == 0:
+                    word_set.append(self.none_token)
+
     @cached_property
     def bigram(self):
         unigram = self.text

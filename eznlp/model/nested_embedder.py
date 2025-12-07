@@ -236,3 +236,73 @@ class CharConfig(NestedOneHotConfig):
     @property
     def name(self):
         return f"Char{self.encoder.arch}"
+
+
+class ExpertDictConfig(NestedOneHotConfig):
+    """Config of an expert dictionary embedder.
+    
+    This embedder is designed for domain-specific expert dictionaries
+    (e.g., medical terms, legal entities) to enhance NER performance
+    by providing additional boundary and semantic information.
+    
+    Similar to SoftLexiconConfig but focused on expert-curated lexicons
+    rather than general word segmentation lexicons.
+    
+    References
+    ----------
+    Inspired by Ma et al. (2020). Simplify the usage of lexicon in Chinese NER. ACL 2020.
+    """
+
+    def __init__(self, **kwargs):
+        kwargs["field"] = kwargs.pop("field", "expert_dict")
+        kwargs["num_channels"] = kwargs.pop("num_channels", 4)
+        kwargs["squeeze"] = kwargs.pop("squeeze", False)
+
+        kwargs["emb_dim"] = kwargs.pop("emb_dim", 50)
+        kwargs["agg_mode"] = kwargs.pop("agg_mode", "wtd_mean_pooling")
+        super().__init__(**kwargs)
+
+    def __repr__(self):
+        repr_attr_dict = {
+            key: getattr(self, key) for key in self.__dict__.keys() if key != "freqs"
+        }
+        return self._repr_non_config_attrs(repr_attr_dict)
+
+    def build_freqs(self, *partitions):
+        """Build frequency statistics for expert dictionary terms.
+        
+        The statistical data set is constructed from a combination
+        of training and developing data of the task.
+        """
+        counter = Counter()
+        for data in partitions:
+            for data_entry in data:
+                for inner_seq in self._inner_sequences(data_entry[self.tokens_key]):
+                    counter.update(inner_seq)
+
+        # NOTE: Set the minimum frequency as 1, to avoid OOV tokens being ignored
+        self.freqs = {tok: 1 for tok in self.vocab.itos}
+        self.freqs.update(counter)
+        self.freqs["<pad>"] = 0
+
+    def exemplify(self, tokens: TokenSequence):
+        example = super().exemplify(tokens)
+
+        inner_freqs_list = []
+        for inner_seq in self._inner_sequences(tokens):
+            inner_freqs_list.append(torch.tensor([self.freqs.get(x, 0) for x in inner_seq]))
+
+        example["inner_freqs"] = inner_freqs_list
+        return example
+
+    def batchify(self, batch_ex: List[dict]):
+        batch = super().batchify(batch_ex)
+
+        batch_inner_freqs = [
+            inner_freqs for ex in batch_ex for inner_freqs in ex["inner_freqs"]
+        ]
+        batch_inner_freqs = torch.nn.utils.rnn.pad_sequence(
+            batch_inner_freqs, batch_first=True, padding_value=0
+        )
+        batch["inner_weight"] = batch_inner_freqs
+        return batch

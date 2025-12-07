@@ -122,6 +122,24 @@ class ChunksTagsTranslator(object):
                     for k in range(chunk_start + 1, chunk_end - 1):
                         tags[k] = f"I{self.sep}{chunk_type}"
 
+            elif self.scheme == "BMES":
+                if chunk_end - chunk_start == 1:
+                    tags[chunk_start] = f"S{self.sep}{chunk_type}"
+                else:
+                    tags[chunk_start] = f"B{self.sep}{chunk_type}"
+                    tags[chunk_end - 1] = f"E{self.sep}{chunk_type}"
+                    for k in range(chunk_start + 1, chunk_end - 1):
+                        tags[k] = f"M{self.sep}{chunk_type}"
+
+            elif self.scheme == "BILOU":
+                if chunk_end - chunk_start == 1:
+                    tags[chunk_start] = f"U{self.sep}{chunk_type}"
+                else:
+                    tags[chunk_start] = f"B{self.sep}{chunk_type}"
+                    tags[chunk_end - 1] = f"L{self.sep}{chunk_type}"
+                    for k in range(chunk_start + 1, chunk_end - 1):
+                        tags[k] = f"I{self.sep}{chunk_type}"
+
             elif self.scheme == "OntoNotes":
                 if chunk_end - chunk_start == 1:
                     tags[chunk_start] = f"({chunk_type})"

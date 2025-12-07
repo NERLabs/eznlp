@@ -8,7 +8,7 @@ from .flair import FlairConfig
 from .image_encoder import ImageEncoderConfig
 from .masked_span_bert_like import MaskedSpanBertLikeConfig
 from .model import *  # noqa
-from .nested_embedder import CharConfig, NestedOneHotConfig, SoftLexiconConfig
+from .nested_embedder import CharConfig, NestedOneHotConfig, SoftLexiconConfig, ExpertDictConfig
 from .span_bert_like import SpanBertLikeConfig
 
 __all__ = [
@@ -17,6 +17,7 @@ __all__ = [
     "NestedOneHotConfig",
     "CharConfig",
     "SoftLexiconConfig",
+    "ExpertDictConfig",
     "EncoderConfig",
     "ImageEncoderConfig",
     "ELMoConfig",

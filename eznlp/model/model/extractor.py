@@ -97,11 +97,14 @@ class ExtractorConfig(ModelConfigBase):
 
     @property
     def full_emb_dim(self):
-        return sum(
-            getattr(self, name).out_dim
-            for name in self._embedder_names
-            if getattr(self, name) is not None
-        )
+        emb_dim = 0
+        if self.ohots is not None:
+            emb_dim += sum(c.out_dim for c in self.ohots.values())
+        if self.mhots is not None:
+            emb_dim += sum(c.out_dim for c in self.mhots.values())
+        if self.nested_ohots is not None:
+            emb_dim += sum(c.out_dim for c in self.nested_ohots.values())
+        return emb_dim
 
     @property
     def full_hid_dim(self):

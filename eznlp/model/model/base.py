@@ -20,18 +20,30 @@ class ModelConfigBase(Config):
 
     @property
     def valid(self):
-        return all(
-            getattr(self, name) is None or getattr(self, name).valid
-            for name in self._all_names
-        )
+        for name in self._all_names:
+            attr = getattr(self, name)
+            if attr is None:
+                continue
+            # Handle dict attributes (e.g., ohots, mhots, nested_ohots)
+            if isinstance(attr, dict):
+                if not all(c.valid for c in attr.values()):
+                    return False
+            elif not attr.valid:
+                return False
+        return True
 
     @property
     def name(self):
-        return self._name_sep.join(
-            getattr(self, name).name
-            for name in self._all_names
-            if getattr(self, name) is not None
-        )
+        names = []
+        for name in self._all_names:
+            attr = getattr(self, name)
+            if attr is not None:
+                # Handle dict attributes (e.g., ohots, mhots, nested_ohots)
+                if isinstance(attr, dict):
+                    names.extend(c.name for c in attr.values())
+                else:
+                    names.append(attr.name)
+        return self._name_sep.join(names)
 
     def __repr__(self):
         return self._repr_config_attrs(self.__dict__)
@@ -53,8 +65,15 @@ class ModelBase(torch.nn.Module):
     def __init__(self, config: ModelConfigBase):
         super().__init__()
         for name in config._all_names:
-            if (c := getattr(config, name)) is not None:
-                setattr(self, name, c.instantiate())
+            attr = getattr(config, name)
+            if attr is not None:
+                # Handle dict attributes (e.g., ohots, mhots, nested_ohots)
+                if isinstance(attr, dict):
+                    setattr(self, name, torch.nn.ModuleDict({
+                        k: c.instantiate() for k, c in attr.items()
+                    }))
+                else:
+                    setattr(self, name, attr.instantiate())
 
     def pretrained_parameters(self):
         raise NotImplementedError("Not Implemented `pretrained_parameters`")

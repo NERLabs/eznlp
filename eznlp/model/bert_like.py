@@ -48,17 +48,17 @@ _ABBREV = {"'m", "'re", "'s", "'ll", "'ve", "'d", "'t", "n't", "'", "''"}
 
 
 def _subtokenize_word(word: str, tokenizer: transformers.PreTrainedTokenizer):
-    if isinstance(tokenizer, transformers.BertTokenizer):
+    if isinstance(tokenizer, (transformers.BertTokenizer, transformers.BertTokenizerFast)):
         return tokenizer.tokenize(word)
 
-    elif isinstance(tokenizer, transformers.RobertaTokenizer):
+    elif isinstance(tokenizer, (transformers.RobertaTokenizer, transformers.RobertaTokenizerFast)):
         # All punctuations are assumed without prefix space
         if (len(word) == 1 and _is_punctuation(word)) or word.lower() in _ABBREV:
             return tokenizer.tokenize(word, add_prefix_space=False)
         else:
             return tokenizer.tokenize(word, add_prefix_space=True)
 
-    elif isinstance(tokenizer, transformers.AlbertTokenizer):
+    elif isinstance(tokenizer, (transformers.AlbertTokenizer, transformers.AlbertTokenizerFast)):
         sub_tokens = tokenizer.tokenize(word)
         if len(word) == 1 or word.lower() in _ABBREV:
             if len(sub_tokens) == 1:
