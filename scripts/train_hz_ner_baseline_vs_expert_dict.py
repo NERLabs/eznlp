@@ -27,12 +27,14 @@ from eznlp.model import (
     ExpertDictConfig,
     EncoderConfig,
     ExtractorConfig,
+    SoftLexiconConfig,
 )
 from eznlp.model.decoder import SequenceTaggingDecoderConfig
 from eznlp.token import LexiconTokenizer
 from eznlp.dataset import Dataset
 from eznlp.training import Trainer
 from eznlp.config import ConfigDict
+from utils import load_vectors
 
 
 def setup_logger(save_dir):
@@ -157,6 +159,50 @@ def build_expert_dict_config(args):
     return config
 
 
+def build_softlexicon_config(args, vectors):
+    """构建 SoftLexicon 模型配置"""
+    # 加载 BERT 模型和 tokenizer
+    bert_model = transformers.AutoModel.from_pretrained(args.bert_arch)
+    tokenizer = transformers.AutoTokenizer.from_pretrained(args.bert_arch)
+    
+    bert_config = BertLikeConfig(
+        tokenizer=tokenizer,
+        bert_like=bert_model,
+        freeze=False,
+        mix_layers="top"
+    )
+    
+    softlexicon_config = SoftLexiconConfig(
+        vectors=vectors,
+        emb_dim=50,
+        agg_mode="wtd_mean_pooling",
+    )
+    
+    encoder_config = EncoderConfig(
+        arch="LSTM",
+        hid_dim=args.hid_dim,
+        num_layers=args.num_layers,
+        in_drop_rates=(args.dropout, 0.0, 0.0)
+    )
+    
+    decoder_config = SequenceTaggingDecoderConfig(
+        scheme="BMES",
+        use_crf=True,
+        in_drop_rates=(args.dropout,)
+    )
+    
+    config = ExtractorConfig(
+        bert_like=bert_config,
+        nested_ohots={
+            "softlexicon": softlexicon_config
+        },
+        encoder=encoder_config,
+        decoder=decoder_config
+    )
+    
+    return config
+
+
 def build_optimizer_and_scheduler(model, num_train_batches, args):
     """构建优化器和调度器"""
     # 分组参数：预训练模型用小学习率，其他用大学习率
@@ -200,10 +246,10 @@ def build_optimizer_and_scheduler(model, num_train_batches, args):
     return optimizer, scheduler
 
 
-def train_model(config, train_data, dev_data, test_data, args, logger, save_dir, use_expert_dict=False):
+def train_model(config, train_data, dev_data, test_data, args, logger, save_dir, model_name="Baseline", use_expert_dict=False):
     """训练模型"""
     logger.info(f"\n{'='*70}")
-    logger.info(f"{'开始训练: ' + ('Baseline' if not use_expert_dict else '+ExpertDict')}")
+    logger.info(f"开始训练: {model_name}")
     logger.info(f"{'='*70}\n")
     
     # 构建数据集
@@ -298,7 +344,7 @@ def train_model(config, train_data, dev_data, test_data, args, logger, save_dir,
     test_loss, *test_metrics = trainer.eval_epoch(test_loader)
     
     logger.info(f"\n{'='*70}")
-    logger.info(f"测试集结果:")
+    logger.info("测试集结果:")
     logger.info(f"  Loss: {test_loss:.4f}")
     if test_metrics:
         for i, metric in enumerate(test_metrics):
@@ -307,7 +353,7 @@ def train_model(config, train_data, dev_data, test_data, args, logger, save_dir,
     
     # 保存结果
     results = {
-        'model_type': 'ExpertDict' if use_expert_dict else 'Baseline',
+        'model_type': model_name,
         'test_loss': float(test_loss),
         'test_metrics': [float(m) for m in test_metrics] if test_metrics else [],
         'total_params': total_params,
@@ -375,8 +421,14 @@ def main():
                         help='运行 Baseline 实验')
     parser.add_argument('--run_expert_dict', action='store_true',
                         help='运行 +ExpertDict 实验')
+    parser.add_argument('--run_softlexicon', action='store_true',
+                        help='运行 SoftLexicon 实验')
+    parser.add_argument('--run_softlexicon_trainlex', action='store_true',
+                        help='运行 SoftLexicon (训练集词表) 实验')
+    parser.add_argument('--softlex_train_path', type=str, default='data/HZ/softlexicon_train.txt',
+                        help='SoftLexicon 训练集词表路径')
     parser.add_argument('--run_both', action='store_true',
-                        help='运行两个实验')
+                        help='运行 Baseline 和 +ExpertDict 两个实验')
     parser.add_argument('--seed', type=int, default=42,
                         help='随机种子')
     
@@ -413,7 +465,7 @@ def main():
         logger.info("="*70)
         
         config = build_baseline_config(args)
-        results = train_model(config, train_data, dev_data, test_data, args, logger, baseline_dir, use_expert_dict=False)
+        results = train_model(config, train_data, dev_data, test_data, args, logger, baseline_dir, model_name="Baseline", use_expert_dict=False)
         results_summary['baseline'] = results
     
     # 运行 +ExpertDict 实验
@@ -445,8 +497,76 @@ def main():
         logger.info("="*70)
         
         config = build_expert_dict_config(args)
-        results = train_model(config, train_data, dev_data, test_data, args, logger, expert_dict_dir, use_expert_dict=True)
+        results = train_model(config, train_data, dev_data, test_data, args, logger, expert_dict_dir, model_name="+ExpertDict", use_expert_dict=True)
         results_summary['expert_dict'] = results
+    
+    # 运行 SoftLexicon 实验
+    if args.run_softlexicon:
+        print(f"\n{'='*70}")
+        print("加载 SoftLexicon 词典向量...")
+        print(f"{'='*70}\n")
+
+        vectors = load_vectors("chinese", 50)
+        if vectors is None:
+            raise ValueError("无法加载中文 50 维词向量，请检查 assets/vectors 下是否存在相应文件。")
+
+        tokenizer = LexiconTokenizer(vectors.itos)
+
+        print("为数据添加 SoftLexicon 特征...")
+        for data in (train_data, dev_data, test_data):
+            for entry in data:
+                entry["tokens"].build_softwords(tokenizer.tokenize)
+                entry["tokens"].build_softlexicons(tokenizer.tokenize)
+        print("✅ 完成\n")
+
+        softlexicon_dir = f"{args.save_dir}/softlexicon_{timestamp}"
+        logger = setup_logger(softlexicon_dir)
+
+        logger.info("="*70)
+        logger.info("实验 3: SoftLexicon (MacBERT + BiLSTM + CRF + SoftLexicon)")
+        logger.info("="*70)
+
+        config = build_softlexicon_config(args, vectors)
+        results = train_model(config, train_data, dev_data, test_data, args, logger, softlexicon_dir, model_name="SoftLexicon", use_expert_dict=False)
+        results_summary['softlexicon'] = results
+    
+    # 运行 SoftLexicon (训练集词表) 实验
+    if args.run_softlexicon_trainlex:
+        print(f"\n{'='*70}")
+        print("加载 SoftLexicon 词典向量（用于初始化）...")
+        print(f"{'='*70}\n")
+
+        vectors = load_vectors("chinese", 50)
+        if vectors is None:
+            raise ValueError("无法加载中文 50 维词向量，请检查 assets/vectors 下是否存在相应文件。")
+
+        print(f"\n{'='*70}")
+        print("从训练集加载 SoftLexicon 候选词表...")
+        print(f"{'='*70}\n")
+        
+        # 加载训练集词表
+        train_lexicon = load_expert_lexicon(args.softlex_train_path)
+        print(f"训练集词表大小: {len(train_lexicon):,} 个词\n")
+        
+        tokenizer = LexiconTokenizer(train_lexicon, max_len=10)
+
+        print("为数据添加 SoftLexicon (训练集词表) 特征...")
+        for data in (train_data, dev_data, test_data):
+            for entry in data:
+                entry["tokens"].build_softwords(tokenizer.tokenize)
+                entry["tokens"].build_softlexicons(tokenizer.tokenize)
+        print("✅ 完成\n")
+
+        softlexicon_trainlex_dir = f"{args.save_dir}/softlexicon_trainlex_{timestamp}"
+        logger = setup_logger(softlexicon_trainlex_dir)
+
+        logger.info("="*70)
+        logger.info("实验 4: SoftLexicon-TrainLex (MacBERT + BiLSTM + CRF + SoftLexicon[训练集词表])")
+        logger.info("="*70)
+
+        config = build_softlexicon_config(args, vectors)
+        results = train_model(config, train_data, dev_data, test_data, args, logger, softlexicon_trainlex_dir, model_name="SoftLexicon-TrainLex", use_expert_dict=False)
+        results_summary['softlexicon_trainlex'] = results
     
     # 打印对比结果
     if args.run_both and len(results_summary) == 2:
