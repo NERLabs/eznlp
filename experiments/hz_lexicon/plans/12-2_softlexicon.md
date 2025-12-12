@@ -131,9 +131,9 @@ python scripts/extract_softlexicon_from_training.py \
 
 ---
 
-### 任务 4：SoftLexicon (训练集词表) 实验 🔄
+### 任务 4：SoftLexicon (训练集词表) 实验 ✅
 
-**执行时间**: 2025-12-10 (进行中)
+**执行时间**: 2025-12-10 (已完成)
 
 **实验配置**:
 - 模型: MacBERT + BiLSTM + CRF + SoftLexicon
@@ -162,13 +162,13 @@ python scripts/train_hz_ner_baseline_vs_expert_dict.py \
   --run_softlexicon_trainlex
 ```
 
-**当前进度** (2025-12-10 20:25):
-- 训练中: Epoch ?/30
-- 实验目录: `cache/hz_softlexicon/softlexicon_trainlex_20251210-195715/`
+**实验结果** (2025-12-10 20:36):
+- 测试集 F1: **96.57%** (Metric 0 = 0.9657)
+- 实验目录: `cache/hz_softlexicon/softlexicon_trainlex_20251210-195654/`
 
 **待分析**:
-- [ ] 最终测试集 F1
-- [ ] 与 CTB 词表的性能对比
+- [x] 最终测试集 F1：**96.57%**
+- [x] 与 CTB 词表的性能对比：TrainLex 96.57% vs CTB 95.88%（+0.69%）
 - [ ] 词表覆盖率分析
 - [ ] 训练曲线对比
 
@@ -185,14 +185,14 @@ python scripts/train_hz_ner_baseline_vs_expert_dict.py \
    |------|----------|---------|---------|------|
    | Baseline | 95.618% | - | - | - |
    | SoftLexicon (CTB) | 95.88% | 280,930 | CTB 50d | +0.262% |
-   | SoftLexicon (TrainLex) | TBD | 197,972 | 训练集 | TBD |
+   | SoftLexicon (TrainLex) | 96.57% | 197,972 | 训练集 | +0.952% |
    | ExpertDict (手工) | 97.941% | 2,371 | 手工标注 | +2.323% |
 
 2. **关键发现总结**
-   - SoftLexicon vs Baseline
-   - SoftLexicon vs ExpertDict
-   - CTB词表 vs 训练集词表
-   - 数据泄露问题分析
+   - **SoftLexicon vs Baseline**: SoftLexicon(CTB 95.88%) 和 SoftLexicon(TrainLex 96.57%) 均优于 Baseline(95.618%)，其中 TrainLex 相比 Baseline 提升约 **+0.95%**。
+   - **SoftLexicon vs ExpertDict（公平对比）**: 以自动 ExpertDict(97.050%) 为主，对比 SoftLexicon(TrainLex 96.57%) 时差距约 **-0.48%**；手工 ExpertDict(97.941%) 可能包含测试集信息，仅作上界参考。
+   - **CTB 词表 vs 训练集词表**: TrainLex 在测试集上比 CTB 高约 **+0.69%** (96.57% vs 95.88%)，且词表规模更小、更聚焦于训练数据。
+   - **数据泄露问题分析**: CTB 词表可能包含测试集词汇，存在潜在数据泄露风险；TrainLex 词表严格来源训练集，更符合数据规范，并且性能略优于 CTB。
 
 3. **更新实验记录**
    - 更新 `experiments/hz_lexicon/results/README.md`
@@ -206,7 +206,7 @@ python scripts/train_hz_ner_baseline_vs_expert_dict.py \
 
 1. **成功实现 SoftLexicon 方法**
    - ✅ CTB 词表版本完成（F1: 95.88%）
-   - 🔄 训练集词表版本进行中
+   - ✅ 训练集词表版本完成（F1: 96.57%）
 
 2. **开发了词表提取工具**
    - ✅ `extract_softlexicon_from_training.py`
@@ -216,14 +216,16 @@ python scripts/train_hz_ner_baseline_vs_expert_dict.py \
 3. **建立了对比基线**
    - Baseline: 95.618%
    - SoftLexicon (CTB): 95.88%
-   - ExpertDict (手工): 97.941%
+   - SoftLexicon (TrainLex): 96.57%
+   - ExpertDict (自动): 97.050%（训练集自动抽取，作为公平对比主参照）
+   - ExpertDict (手工): 97.941%（可能包含测试集信息，仅作上界参考）
 
 ### 初步结论
 
-1. **SoftLexicon 在医疗领域效果有限**
-   - 提升幅度: +0.262% (vs Baseline)
-   - 远低于 ExpertDict: +2.323%
-   - 可能原因: 医疗领域需要精准的专业术语
+1. **SoftLexicon 在医疗领域的效果**
+   - SoftLexicon(CTB) 提升幅度: +0.262% (vs Baseline)，TrainLex 版本约 +0.95%。
+   - 在公平对比下，SoftLexicon(TrainLex 96.57%) 仍低于自动 ExpertDict(97.050%)。
+   - 手工 ExpertDict(+2.323%) 因可能包含测试集信息，仅作参考上界。
 
 2. **CTB 大词表的利弊**
    - 优势: 词表全面，覆盖广
@@ -233,13 +235,13 @@ python scripts/train_hz_ner_baseline_vs_expert_dict.py \
 3. **训练集词表策略的价值**
    - 目的: 避免数据泄露
    - 词表规模: 197,972词（更合理）
-   - 性能: 待验证
+   - 性能: 测试集 F1 = 96.57%，略高于 CTB (95.88%)
 
 ### 待解决问题
 
 1. **训练集词表实验结果**
-   - ⏳ 等待训练完成
-   - ⏳ 性能对比分析
+   - ✅ 训练完成，测试集 F1 = 96.57%
+   - ✅ 与 CTB 词表的性能对比完成（TrainLex +0.69%）
    - ⏳ 覆盖率对比
 
 2. **方法选择建议**

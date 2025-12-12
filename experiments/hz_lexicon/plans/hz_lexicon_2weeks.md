@@ -105,7 +105,7 @@
 | +ExpertDict(手工) | **97.941%** | - | 手工标注 | 2,371词 | ✅ 历史数据 |
 | +ExpertDict(自动) | **97.050%** | - | 训练集提取 | 3,214词 | ✅ 历史数据 |
 | SoftLexicon (CTB) | **95.88%** | 96.96% | CTB 50d | 280,930词 | ✅ 已完成 |
-| SoftLexicon (TrainLex) | 🔄 训练中 | 93.39% (Epoch 5) | 训练集n-gram | 197,972词 | 🔄 运行中 |
+| SoftLexicon (TrainLex) | **96.57%** | 97.24% | 训练集n-gram | 197,972词 | ✅ 已完成 |
 
 ### 初步发现
 
@@ -114,16 +114,16 @@
    - **提升**: +0.262% (较小提升)
    - 结论: SoftLexicon 在 HZ 数据集上效果有限
 
-2. **SoftLexicon vs ExpertDict**
-   - SoftLexicon(CTB): 95.88% << ExpertDict(手工): 97.941%
-   - **差距**: -2.061%
-   - 结论: 专家词典在医疗领域明显优于软词典
+2. **SoftLexicon vs ExpertDict（公平对比）**
+   - 公平对比以 **自动 ExpertDict(97.050%)** 为主，对比 SoftLexicon(TrainLex 96.57%) 时差距约 **-0.48%**，自动专家词典仍略优。
+   - 手工 ExpertDict(97.941%) 结果可能包含测试集知识，存在潜在数据泄露，仅作为上界参考。
+   - 结论: 在“仅使用训练集信息”的前提下，**自动专家词典 > SoftLexicon(TrainLex) > Baseline**。
 
-3. **CTB vs Train-only 词表** (待完成)
-   - CTB 词表: 280,930词 (外部大词表)
-   - Train-only 词表: 197,972词 (仅使用训练集)
-   - 当前进度: Epoch 5, 验证集 F1 93.39%
-   - **预期**: Train-only 可能略低于 CTB，但避免数据泄露
+3. **CTB vs Train-only 词表**
+   - CTB 词表: 280,930词 (外部大词表)，测试集 F1 = 95.88%
+   - Train-only 词表: 197,972词 (仅使用训练集)，测试集 F1 = 96.57%
+   - 验证集最佳 F1: CTB 96.96% vs Train-only 97.24%
+   - **结论**: Train-only 词表在不依赖外部大词表的情况下，略优于 CTB 且避免潜在数据泄露
 
 ### 下一步
 

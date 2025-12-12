@@ -1,0 +1,37 @@
+{
+  "model_type": "SoftLexicon-TrainLex",
+  "test_loss": 10.356366089412145,
+  "test_metrics": [
+    0.9621512605042015
+  ],
+  "total_params": 110072858,
+  "trainable_params": 110072858,
+  "args": {
+    "data_dir": "data/HZ",
+    "expert_dict_path": "data/HZ/expert_lexicon.txt",
+    "save_dir": "cache/hz_softlexicon",
+    "bert_arch": "hfl/chinese-macbert-base",
+    "bert_drop_rate": 0.2,
+    "hid_dim": 256,
+    "num_layers": 1,
+    "dropout": 0.5,
+    "expert_dict_dim": 50,
+    "num_epochs": 30,
+    "batch_size": 16,
+    "lr": 0.002,
+    "finetune_lr": 2e-05,
+    "weight_decay": 0.0001,
+    "grad_clip": 5.0,
+    "num_grad_acc_steps": 1,
+    "use_amp": false,
+    "disp_every_steps": 50,
+    "eval_every_steps": 200,
+    "run_baseline": false,
+    "run_expert_dict": false,
+    "run_softlexicon": false,
+    "run_softlexicon_trainlex": true,
+    "softlex_train_path": "data/HZ/softlexicon_train_filtered.txt",
+    "run_both": false,
+    "seed": 42
+  }
+}

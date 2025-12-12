@@ -8,13 +8,22 @@
 
 ```
 results/
-├── softlexicon_20251210/          # SoftLexicon 软词典实验
-│   ├── results.json               # 测试集结果
-│   ├── training.log               # 训练日志
-│   └── README.md                  # 实验说明
-├── NER_实验结果综合对比报告_20251208.md  # 综合对比报告
-├── 词典对比分析报告.md            # 词典覆盖率分析
-└── README.md                      # 本文档
+├── softlexicon_20251210/                    # SoftLexicon 软词典实验 (CTB)
+│   ├── results.json                         # 测试集结果
+│   ├── training.log                         # 训练日志
+│   └── README.md                            # 实验说明
+├── softlexicon_trainlex_20251210/           # SoftLexicon-TrainLex 实验 (原始)
+│   ├── results.json                         # 测试集结果
+│   └── training.log                         # 训练日志
+├── softlexicon_trainlex_auto_20251210/      # SoftLexicon-TrainLex 实验 (auto词典)
+│   ├── results.json                         # 测试集结果
+│   └── training.log                         # 训练日志
+├── softlexicon_trainlex_filtered_20251210/  # SoftLexicon-TrainLex 实验 (filtered词典)
+│   ├── results.json                         # 测试集结果
+│   └── training.log                         # 训练日志
+├── NER_实验结果综合对比报告_20251208.md     # 综合对比报告
+├── 词典对比分析报告.md                      # 词典覆盖率分析
+└── README.md                                # 本文档
 ```
 
 ---
@@ -29,12 +38,54 @@ results/
 - **测试集 F1**: 95.88%
 - **验证集最佳 F1**: 96.96%
 - **训练轮数**: 30 epochs
-- **特征类型**: 从训练集构建的 BMES 软词典特征
+- **特征类型**: 从 CTB 50d 词表构建的 SoftLexicon 特征
 
 **关键文件**:
 - [实验说明](./softlexicon_20251210/README.md)
 - [结果数据](./softlexicon_20251210/results.json)
 - [训练日志](./softlexicon_20251210/training.log)
+
+### 2. SoftLexicon-TrainLex 实验 (2025-12-10)
+
+**目录**: `softlexicon_trainlex_20251210/`
+
+- **模型**: MacBERT + BiLSTM + CRF + SoftLexicon(TrainLex)
+- **测试集 F1**: 96.57%
+- **验证集最佳 F1**: 97.24%
+- **训练轮数**: 30 epochs
+- **特征类型**: 从 HZ 训练集 n-gram 构建的 SoftLexicon 词表 (197,972 词)
+
+**关键文件**:
+- [结果数据](./softlexicon_trainlex_20251210/results.json)
+- [训练日志](./softlexicon_trainlex_20251210/training.log)
+
+### 3. SoftLexicon-TrainLex-Auto 实验 (2025-12-10)
+
+**目录**: `softlexicon_trainlex_auto_20251210/`
+
+- **模型**: MacBERT + BiLSTM + CRF + SoftLexicon(TrainLex-Auto)
+- **测试集 F1**: 96.27%
+- **训练轮数**: 30 epochs
+- **词表来源**: `expert_lexicon_auto.txt` (训练集自动提取)
+- **特征类型**: 从训练集自动提取的实体构建的 SoftLexicon 词表
+
+**关键文件**:
+- [结果数据](./softlexicon_trainlex_auto_20251210/results.json)
+- [训练日志](./softlexicon_trainlex_auto_20251210/training.log)
+
+### 4. SoftLexicon-TrainLex-Filtered 实验 (2025-12-10)
+
+**目录**: `softlexicon_trainlex_filtered_20251210/`
+
+- **模型**: MacBERT + BiLSTM + CRF + SoftLexicon(TrainLex-Filtered)
+- **测试集 F1**: 96.22%
+- **训练轮数**: 30 epochs
+- **词表来源**: `softlexicon_train_filtered.txt` (训练集过滤版本)
+- **特征类型**: 从训练集 n-gram 过滤后构建的 SoftLexicon 词表
+
+**关键文件**:
+- [结果数据](./softlexicon_trainlex_filtered_20251210/results.json)
+- [训练日志](./softlexicon_trainlex_filtered_20251210/training.log)
 
 ---
 
@@ -51,9 +102,9 @@ results/
 - ✅ 综合性能排名与分析
 
 **关键发现**:
-- 🏆 HZ 数据集最佳: 手工专家词典 = **97.941%**
-- 📊 专家词典提升: +2.323% (手工) / +1.388% (自动)
-- 📊 SoftLexicon: 95.88% (本次) / 95.07% (历史)
+- 🏆 HZ 数据集最高 F1: 手工专家词典 = **97.941%**（⚠ 可能包含测试集信息，仅作上界参考）
+- 📊 公平对比下（仅使用训练集信息）: 自动专家词典 = **97.050%**，提升约 +1.388%；SoftLexicon(CTB) = 95.88%，相对 Baseline 提升有限。
+- 📊 SoftLexicon: 95.88% (本次 CTB) / 95.07% (历史)
 
 ---
 
@@ -85,20 +136,24 @@ results/
 
 ## 性能对比
 
-| 实验类型 | 测试集 F1 | 验证集最佳 F1 | Epochs | 日期 |
-|---------|----------|--------------|--------|------|
-| 手工专家词典 | **97.941%** | - | 30 | 2025-12-07 |
-| 自动专家词典 | **97.050%** | - | 30 | 2025-12-07 |
-| SoftLexicon | **95.88%** | 96.96% | 30 | 2025-12-10 |
-| Baseline | 95.662% | - | 30 | 2025-12-07 |
+| 实验类型 | 测试集 F1 | 验证集最佳 F1 | Epochs | 日期 | 说明 |
+|---------|----------|--------------|--------|------|------|
+| 手工专家词典 | **97.941%** | - | 30 | 2025-12-07 | ⚠ 可能包含测试集信息，仅作上界参考 |
+| 自动专家词典 | **97.050%** | - | 30 | 2025-12-07 | 公平对比主参照（仅用训练集构建词典） |
+| SoftLexicon-TrainLex | **96.57%** | 97.24% | 30 | 2025-12-10 | 原始 n-gram 版本 (197,972 词) |
+| SoftLexicon-TrainLex-Auto | **96.27%** | - | 30 | 2025-12-10 | 使用 expert_lexicon_auto.txt |
+| SoftLexicon-TrainLex-Filtered | **96.22%** | - | 30 | 2025-12-10 | 使用 softlexicon_train_filtered.txt |
+| SoftLexicon | **95.88%** | 96.96% | 30 | 2025-12-10 | SoftLexicon(CTB) 版本 |
+| Baseline | 95.662% | - | 30 | 2025-12-07 | - |
 
 ---
 
 ## 关键发现
 
-1. **专家词典效果最佳**: 手工标注的专家词典达到 97.941%，显著优于其他方法
-2. **软词典表现中等**: SoftLexicon 达到 95.88%，优于基线但低于专家词典
-3. **词典质量关键**: 手工词典 > 自动词典 > 软词典，质量直接影响性能
+1. **专家词典效果最佳（含与不含泄露两种口径）**: 若不考虑数据泄露，手工专家词典可达 97.941%；在严格“仅用训练集信息”的公平对比下，自动专家词典 97.050% 仍明显优于 SoftLexicon 和 Baseline。
+2. **SoftLexicon-TrainLex 系列表现中等**: 三个 SoftLexicon-TrainLex 实验在 96.22%-96.57% 区间，明显优于 SoftLexicon(CTB) 95.88% 和 Baseline 95.662%，但仍略逊于自动专家词典 97.050%。
+3. **词典来源影响性能**: 在 TrainLex 系列中，原始 n-gram 版本 (96.57%) 表现最佳，auto 版本 (96.27%) 和 filtered 版本 (96.22%) 略低，说明词典质量和构建方式直接影响最终性能。
+4. **性能梯度**: 专家词典 > SoftLexicon-TrainLex > SoftLexicon(CTB) > Baseline，证明词典特征对 NER 任务有显著提升。
 
 ---
 
