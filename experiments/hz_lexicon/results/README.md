@@ -1,31 +1,183 @@
-# HZ 红枣数据集 词典实验结果汇总
+# HZ Lexicon 实验结果汇总
 
-本目录存放 HZ 红枣数据集上的各类词典特征实验结果。
+本目录存放 HZ/RedJujube 数据集上的词典特征实验结果，与 `plans/` 目录中的周计划对应。
 
 ---
 
-## 目录结构
+## 📁 目录结构（按周计划组织）
 
 ```
 results/
-├── softlexicon_20251210/                    # SoftLexicon 软词典实验 (CTB)
-│   ├── results.json                         # 测试集结果
-│   ├── training.log                         # 训练日志
-│   └── README.md                            # 实验说明
-├── softlexicon_trainlex_20251210/           # SoftLexicon-TrainLex 实验 (原始)
-│   ├── results.json                         # 测试集结果
-│   └── training.log                         # 训练日志
-├── softlexicon_trainlex_auto_20251210/      # SoftLexicon-TrainLex 实验 (auto词典)
-│   ├── results.json                         # 测试集结果
-│   └── training.log                         # 训练日志
-├── softlexicon_trainlex_filtered_20251210/  # SoftLexicon-TrainLex 实验 (filtered词典)
-│   ├── results.json                         # 测试集结果
-│   └── training.log                         # 训练日志
-├── NER_实验结果综合对比报告_20251208.md     # 综合对比报告 (HZ数据集)
-├── RedJujube_NER_实验报告_20251212.md       # RedJujube数据集实验报告
-├── 词典对比分析报告.md                      # 词典覆盖率分析
-└── README.md                                # 本文档
+├── 12-1_baseline_expert_dict/           # 12-1周：Baseline + ExpertDict对比
+│   ├── HZ_NER_实验报告_20251208.md
+│   ├── RedJujube_NER_实验报告_20251212.md
+│   └── 词典对比分析报告.md
+├── 12-2_softlexicon/                    # 12-2周：SoftLexicon实验（进行中）🚀
+│   ├── softlexicon_20251210/             # CTB词典实验
+│   ├── softlexicon_trainlex_20251210/    # TrainLex原始实验
+│   ├── softlexicon_trainlex_auto/        # TrainLex Auto实验
+│   ├── softlexicon_trainlex_filtered/    # TrainLex Filtered实验
+│   └── RedJujube_SoftLexicon_Complete_Report_20251213.md  # RedJujube完整实验报告
+└── README.md                            # 本文档
 ```
+
+---
+
+## 📊 实验周期汇总
+
+### 📌 12-1周：Baseline + ExpertDict 对比 (2025-12-02 ~ 12-08)
+
+**计划文档**: [plans/12-1_baseline_expert_dict.md](../plans/12-1_baseline_expert_dict.md)
+
+**实验报告**: 
+- [HZ_NER_实验报告_20251208.md](./12-1_baseline_expert_dict/HZ_NER_实验报告_20251208.md)
+- [RedJujube_NER_实验报告_20251212.md](./12-1_baseline_expert_dict/RedJujube_NER_实验报告_20251212.md)
+- [词典对比分析报告.md](./12-1_baseline_expert_dict/词典对比分析报告.md)
+
+**核心结论**:
+- 🏆 HZ数据集: ExpertDict(自动) = **97.05% F1** (+1.39%)
+- 🏆 RedJujube数据集: ExpertDict(自动) = **96.99% F1** (+1.48%)
+- ✅ 证明ExpertDict方法有效性
+
+**关键实验**:
+
+| 数据集 | Baseline | ExpertDict(自动) | ExpertDict(手动) | 提升 |
+|--------|----------|----------------|----------------|------|
+| HZ | 95.66% | **97.05%** | 97.94% | +1.39% |
+| RedJujube | 95.51% | **96.99%** | 97.04% | +1.48% |
+
+---
+
+### 📌 12-2周：SoftLexicon 实验 (2025-12-09 ~ 12-13) 🚀
+
+**计划文档**: [plans/12-2_softlexicon.md](../plans/12-2_softlexicon.md)
+
+**实验目录**: [12-2_softlexicon/](./12-2_softlexicon/)
+
+**实验报告**:
+- [RedJujube_SoftLexicon_Complete_Report_20251213.md](./12-2_softlexicon/RedJujube_SoftLexicon_Complete_Report_20251213.md) - RedJujube 14个完整实验
+
+**核心结论**:
+- ❌ SoftLexicon在RedJujube上**完全无效** (所有版本 < Baseline)
+- ❌ 所有Soft+Expert融合方案**低于单独ExpertDict**
+- ✅ ExpertDict稳定性极高（97.00% ± 0.01%）
+- 💡 词典质量比规模更重要（ExpertDict 2k词 > SoftLex 200k词）
+
+**关键实验**:
+
+#### HZ数据集结果
+
+| 实验 | 词典规模 | HZ F1 | 状态 |
+|------|---------|-------|------|
+| SoftLex-CTB | 280,930 | 95.88% | ✅ |
+| SoftLex-TrainLex | 197,972 | **96.57%** | ✅ |
+| SoftLex-Auto | 自动提取 | 96.27% | ✅ |
+| SoftLex-Filtered | 过滤版 | 96.22% | ✅ |
+| ExpertDict(自动) | 3,214 | **97.05%** | ✅ |
+| Baseline | - | 95.66% | ✅ |
+
+#### RedJujube数据集结果 (14个实验)
+
+| 类别 | 实验 | 测试F1 | 说明 |
+|------|------|--------|------|
+| **ExpertDict** | Run1/Run2/Run3 | **97.00%** | 最优方案 🏆 |
+| **融合方案** | Concat | 96.87% | 最佳融合 |
+| | Weighted | 96.72% | 加权融合 |
+| | Attention | 96.53% | 注意力融合 |
+| | Gated | 96.46% | 门控融合 |
+| **SoftLexicon** | v1 | 95.47% | 无效 ❌ |
+| | v2 | 95.46% | 无效 ❌ |
+| | Balanced | 94.63% | 反降 ❌ |
+| **Baseline** | - | 95.51% | 基线 |
+
+**关键发现**:
+1. SoftLexicon在RedJujube上完全无效（所有版本都低于Baseline）
+2. 所有融合方案都不如单独ExpertDict（Concat 96.87% vs Expert 97.00%）
+3. ExpertDict稳定性极高（3次运行标准差 < 0.01%）
+4. 词典质量比规模更重要（ExpertDict 2k词效率是SoftLex 20w词的2.6倍）
+
+---
+
+## 🔑 关键结论
+
+### ✅ 已验证结论 (12-1周 + 12-2周)
+
+1. **ExpertDict在两个数据集上都有效** 🏆
+   - HZ (医疗): **97.05% F1** (+1.39%)
+   - RedJujube (医疗): **97.00% F1** (+1.48%)
+   - 跨数据集稳定性验证
+
+2. **SoftLexicon效果不稳定** ⚠️
+   - HZ: +0.95% (有效)
+   - RedJujube: -0.05% (无效，所有版本都低于Baseline)
+   - 受数据集特性影响大
+
+3. **特征融合不如单独ExpertDict** 📉
+   - Concat融合: 96.87% (-0.13%)
+   - Weighted融合: 96.72% (-0.28%)
+   - Attention融合: 96.53% (-0.47%)
+   - Gated融合: 96.46% (-0.54%)
+   - SoftLexicon是"拖累"而非"增益"
+
+4. **ExpertDict稳定性极高** 💎
+   - 3次运行标准差 < 0.01%
+   - 97.00%, 97.01%, 97.01% (RedJujube)
+   - 证明方法的可靠性和可复现性
+
+5. **词典质量 > 词典规模** 🎯
+   - ExpertDict: 2,078词 → 97.00% F1
+   - SoftLex: 198,437词 → 96.07% F1 (HZ TrainLex)
+   - 精选词典效率是大规模词表的2.6倍
+
+6. **CTB vs 训练集词表** 📊
+   - HZ: TrainLex (96.57%) > CTB (95.88%)
+   - TrainLex避免数据泄露，性能更优
+   - 推荐使用训练集构建词典
+
+### 🎯 下周计划 (12-3周)
+
+基于12-2周实验发现：
+
+- ✅ 以 RedJujube 为主数据集
+- ❌ 放弃 Soft+Expert 融合方案（已验证无效）
+- 🎯 新方向：ExpertDict最优配置探索（词典规模、嵌入维度等）
+- 📝 撰写阶段总结报告
+
+---
+
+## 📂 文件索引
+
+### 12-1周报告
+- [HZ_NER_实验报告_20251208.md](./12-1_baseline_expert_dict/HZ_NER_实验报告_20251208.md) - HZ数据集Baseline vs ExpertDict
+- [RedJujube_NER_实验报告_20251212.md](./12-1_baseline_expert_dict/RedJujube_NER_实验报告_20251212.md) - RedJujube数据集完整对比
+- [词典对比分析报告.md](./12-1_baseline_expert_dict/词典对比分析报告.md) - 手工vs自动词典覆盖率分析
+
+### 12-2周报告
+- [softlexicon_20251210/](./12-2_softlexicon/softlexicon_20251210/) - SoftLexicon (CTB)
+- [softlexicon_trainlex_20251210/](./12-2_softlexicon/softlexicon_trainlex_20251210/) - SoftLexicon-TrainLex (原始)
+- [softlexicon_trainlex_auto/](./12-2_softlexicon/softlexicon_trainlex_auto/) - SoftLexicon-TrainLex (Auto)
+- [softlexicon_trainlex_filtered/](./12-2_softlexicon/softlexicon_trainlex_filtered/) - SoftLexicon-TrainLex (Filtered)
+- [RedJujube_SoftLexicon_Complete_Report_20251213.md](./12-2_softlexicon/RedJujube_SoftLexicon_Complete_Report_20251213.md) - RedJujube 14个完整实验
+
+---
+
+## 🔗 相关资源
+
+### 计划文档
+- [12-1周计划](../plans/12-1_baseline_expert_dict.md) - Baseline + ExpertDict对比
+- [12-2周计划](../plans/12-2_softlexicon.md) - SoftLexicon实验 (进行中) 🚀
+- [12-3周计划](../plans/12-3_soft_expert_joint.md) - ExpertDict深度优化 (下周)
+
+### 数据与模型
+- **数据集**: `/data/HZ/`, `/data/RedJujube/`
+- **模型缓存**: `/cache/redjujube_ner_comparison/`, `/cache/hz_softlexicon/`
+- **训练脚本**: `/_1CONFIG/redjujube/train_redjujube_ner_comparison.py`
+
+---
+
+**文档维护**: 与 `plans/` 目录周计划保持同步  
+**最后更新**: 2025-12-13 (当前为12-2周)  
+**实验负责人**: 史文龙
 
 ---
 

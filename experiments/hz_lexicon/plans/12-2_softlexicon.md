@@ -2,7 +2,8 @@
 
 **时间**: 2025-12-09 ~ 2025-12-13  
 **状态**: ✅ 已完成  
-**目标**: 验证 SoftLexicon 方法，对比 CTB 词表 vs 训练集词表
+**数据集**: HZ (历史) + RedJujube (主数据集)  
+**目标**: 验证 SoftLexicon 方法，对比 CTB 词表 vs 训练集词表，探索融合策略
 
 ---
 
@@ -293,12 +294,81 @@ python scripts/train_hz_ner_baseline_vs_expert_dict.py \
    - 自动词典提取策略 (min_freq=2) 非常有效
    - 推荐使用自动 ExpertDict 作为最佳实践
 
+### 2025-12-13 补充实验（RedJujube数据集深度验证）✅
+
+**实验背景**:
+- 在 RedJujube 数据集上系统验证 SoftLexicon 优化策略
+- 对比多种融合方案（Concat/Weighted/Gated/Attention）
+- 验证 ExpertDict 方法的稳定性
+
+**完成实验（10个）**:
+
+#### 1. SoftLexicon 词典质量优化
+
+| 实验 | 词典版本 | 词典规模 | 测试F1 | 说明 |
+|------|---------|---------|--------|------|
+| SoftLex-v1 | 含标点版 | 18,678 | **95.47%** | PMI过滤，但含"。果"等噪声 |
+| SoftLex-v2 | 去标点版 | 10,959 | **95.46%** | 移除7,719个噪声词 |
+| Balanced | 平衡版本 | 52,487 | **94.63%** | 大规模词典，性能反降 |
+
+**关键发现**: 
+- ❌ 去标点几乎无效（95.47% → 95.46%，仅-0.01%）
+- ❌ 所有SoftLex版本均低于Baseline（95.51%）
+- ❌ SoftLexicon在RedJujube上**完全无效**
+- 🔍 问题不在词典质量，而在方法本身（n-gram匹配太粗糙）
+
+#### 2. Soft+Expert 融合策略对比
+
+| 融合方法 | 测试F1 | 说明 |
+|---------|--------|------|
+| **Concat (特征拼接)** | **96.87%** 🏆 | 最优融合策略 |
+| Concat-重复验证 | 96.76% | 验证随机性波动±0.11% |
+| Weighted (加权融合) | 96.72% | 略低于Concat |
+| Gated (门控融合) | 96.46% | 效果一般 |
+| Attention (注意力) | 96.53% | 效果一般 |
+| Fusion-Improved | 96.42% | 改进版未超过原版 |
+
+**关键发现**:
+- ✅ Concat简单拼接即为最优（96.87%）
+- ✅ 复杂融合策略（Gated/Attention）反而更差
+- ⚠️ 但所有融合方案都低于单独ExpertDict（96.99%）
+- 💡 说明SoftLex是"拖累"而非"增益"
+
+#### 3. ExpertDict 稳定性验证
+
+| 实验 | Seed | 测试F1 | 说明 |
+|------|------|--------|------|
+| ExpertDict-Run1 | 42 | **96.99%** | 初始结果 |
+| ExpertDict-Run2 | 123 | **97.01%** | 重复验证 |
+| ExpertDict-Run3 | 456 | **97.01%** | 重复验证 |
+| **平均值** | - | **97.00%** | 标准差 ~0.01% |
+
+**关键发现**:
+- ✅ ExpertDict **极其稳定**（3次实验97.00% ± 0.01%）
+- ✅ 远超所有融合方案（97.00% vs 96.87%，+0.13%）
+- ✅ 证明单一ExpertDict特征优于复杂融合
+- 🏆 **ExpertDict(自动)是最优且最稳定的方案**
+
+**实验目录**:
+- SoftLex: `cache/redjujube_softlexicon_v2/`
+- 融合: `cache/redjujube_softlexicon_expert_*/`
+- ExpertDict: `cache/redjujube_expert_auto_run*/`
+
+**生成文档**:
+- ✅ [`SoftLexicon_Versions_Comparison.md`](../analysis/SoftLexicon_Versions_Comparison.md) - 词典版本详细对比
+- ✅ [`RedJujube_Complete_Experiments_20251213.md`](../results/RedJujube_Complete_Experiments_20251213.md) - 完整实验记录
+
+---
+
 ### 下周计划 (12-3周)
 
-- [ ] 以 RedJujube 为主数据集（更新版本）
-- [ ] 实现 Soft+Expert 联合模型
-- [ ] 探索混合词典优化方案
-- [ ] 性能调优与消融实验
+基于12-13实验发现，调整12-3周计划：
+
+- [x] 以 RedJujube 为主数据集（已切换）
+- [ ] ~~实现 Soft+Expert 联合模型~~（已验证，效果不如单独ExpertDict）
+- [x] 探索融合策略（已完成4种对比）
+- [ ] **新方向**: 借鉴NFLAT改进ExpertDict特征表达
+- [ ] **新方向**: 探索ExpertDict的最优配置（词典规模、嵌入维度等）
 - [ ] 撰写阶段总结报告
 
 ---

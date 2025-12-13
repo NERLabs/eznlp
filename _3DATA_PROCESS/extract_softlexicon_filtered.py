@@ -114,7 +114,8 @@ def is_valid_word(word):
     1. 不是停用词
     2. 不是纯数字
     3. 不是纯标点符号
-    4. 长度在合理范围内
+    4. 不包含标点符号（新增）
+    5. 长度在合理范围内
     """
     if word in STOPWORDS:
         return False
@@ -124,6 +125,13 @@ def is_valid_word(word):
     
     # 检查是否包含至少一个汉字
     if not any('\u4e00' <= c <= '\u9fff' for c in word):
+        return False
+    
+    # 过滤包含标点符号的词（关键改进）
+    import string
+    chinese_punctuation = '，。！？；：""''（）《》、·…—'
+    all_punctuation = string.punctuation + chinese_punctuation
+    if any(c in all_punctuation for c in word):
         return False
     
     # 长度检查

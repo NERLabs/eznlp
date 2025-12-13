@@ -133,21 +133,8 @@ dmypy.json
 /assets/
 /cache/
 
-!/_2DATA/
-/_2DATA/*
-!/_2DATA/*/
-/_2DATA/*/*
-!/_2DATA/*/demo.*
-!/_2DATA/conlleval/*.txt
-!/_2DATA/*/fix_*.py
-!/_2DATA/ontonotesv4/*.py
-!/_2DATA/ace-lu2015emnlp/*.py
-!/_2DATA/ace-luan2019naacl/*.py
-!/_2DATA/SciERC/*.py
-!/_2DATA/GENIA/*.py
-!/_2DATA/genia-yu2020acl/*.py
-!/_2DATA/nne-ringland2019acl/*.py
 
+_2DATA/*
 !/publications/
 /publications/*
 !/publications/*/
@@ -156,3 +143,4 @@ dmypy.json
 !/publications/framework/HwaMei-500.md
 !/publications/boundary-smoothing/slides.pdf
 !/publications/boundary-smoothing/poster.pdf
+examples/
