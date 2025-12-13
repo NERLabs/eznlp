@@ -1,28 +1,115 @@
 version: '3'
 
 tasks:
+  train:redjujube:all:
+    desc: 运行RedJujube数据集所有对比实验（Baseline、SoftLexicon、ExpertDict自动、ExpertDict手动）
+    dir: _1CONFIG/redjujube
+    cmds:
+      - bash run_redjujube_all_experiments.sh
+    silent: false
+
+  train:redjujube:baseline:
+    desc: 训练RedJujube Baseline模型（MacBERT+BiLSTM+CRF）
+    cmds:
+      - python _1CONFIG/redjujube/train_redjujube_ner_comparison.py --data_dir _2DATA/RedJujube --save_dir cache/redjujube_ner_comparison --bert_arch hfl/chinese-macbert-base --hid_dim 256 --num_layers 1 --dropout 0.5 --num_epochs 30 --batch_size 16 --lr 2e-3 --finetune_lr 2e-5 --run_baseline
+    silent: false
+
+
+  train:redjujube:softlexicon:
+    desc: 训练RedJujube SoftLexicon模型（TrainLex方案）
+    cmds:
+      - python _1CONFIG/redjujube/train_redjujube_ner_comparison.py --data_dir _2DATA/RedJujube --softlex_train_path _2DATA/RedJujube/softlexicon_train.txt --save_dir cache/redjujube_ner_comparison --bert_arch hfl/chinese-macbert-base --hid_dim 256 --num_layers 1 --dropout 0.5 --num_epochs 30 --batch_size 16 --lr 2e-3 --finetune_lr 2e-5 --run_softlexicon
+    silent: false
+
+  train:redjujube:expert-auto:
+    desc: 训练RedJujube ExpertDict模型（自动提取词典）
+    cmds:
+      - python _1CONFIG/redjujube/train_redjujube_ner_comparison.py --data_dir _2DATA/RedJujube --expert_dict_auto_path _2DATA/RedJujube/expert_lexicon_auto.txt --save_dir cache/redjujube_ner_comparison --bert_arch hfl/chinese-macbert-base --hid_dim 256 --num_layers 1 --dropout 0.5 --expert_dict_dim 50 --num_epochs 30 --batch_size 16 --lr 2e-3 --finetune_lr 2e-5 --run_expert_dict_auto
+    silent: false
+
+  train:redjujube:expert-manual:
+    desc: 训练RedJujube ExpertDict模型（手动标注词典）
+    cmds:
+      - python _1CONFIG/redjujube/train_redjujube_ner_comparison.py --data_dir _2DATA/RedJujube --expert_dict_path _2DATA/RedJujube/expert_lexicon.txt --save_dir cache/redjujube_ner_comparison --bert_arch hfl/chinese-macbert-base --hid_dim 256 --num_layers 1 --dropout 0.5 --expert_dict_dim 50 --num_epochs 30 --batch_size 16 --lr 2e-3 --finetune_lr 2e-5 --run_expert_dict_manual
+    silent: false
+
+  train:redjujube:fusion-concat:
+    desc: 训练RedJujube SoftLexicon+ExpertDict融合模型（Concat方案）
+    cmds:
+      - python _1CONFIG/redjujube/train_redjujube_ner_comparison.py --data_dir _2DATA/RedJujube --expert_dict_auto_path _2DATA/RedJujube/expert_lexicon_auto.txt --softlex_train_path _2DATA/RedJujube/softlexicon_train.txt --save_dir cache/redjujube_softlexicon_expert_concat --bert_arch hfl/chinese-macbert-base --hid_dim 256 --num_layers 1 --dropout 0.5 --expert_dict_dim 50 --num_epochs 30 --batch_size 16 --lr 2e-3 --finetune_lr 2e-5 --run_softlexicon_expert_concat
+    silent: false
+
+  train:redjujube:fusion-weighted:
+    desc: 训练RedJujube SoftLexicon+ExpertDict融合模型（Weighted方案）
+    cmds:
+      - python _1CONFIG/redjujube/train_redjujube_ner_comparison.py --data_dir _2DATA/RedJujube --expert_dict_auto_path _2DATA/RedJujube/expert_lexicon_auto.txt --softlex_train_path _2DATA/RedJujube/softlexicon_train.txt --save_dir cache/redjujube_softlexicon_expert_weighted --bert_arch hfl/chinese-macbert-base --hid_dim 256 --num_layers 1 --dropout 0.5 --expert_dict_dim 50 --num_epochs 30 --batch_size 16 --lr 2e-3 --finetune_lr 2e-5 --run_softlexicon_expert_weighted
+    silent: false
+
+  train:redjujube:fusion-attention:
+    desc: 训练RedJujube SoftLexicon+ExpertDict融合模型（Attention方案）
+    cmds:
+      - python _1CONFIG/redjujube/train_redjujube_ner_comparison.py --data_dir _2DATA/RedJujube --expert_dict_auto_path _2DATA/RedJujube/expert_lexicon_auto.txt --softlex_train_path _2DATA/RedJujube/softlexicon_train.txt --save_dir cache/redjujube_ner_comparison --bert_arch hfl/chinese-macbert-base --hid_dim 256 --num_layers 1 --dropout 0.5 --expert_dict_dim 50 --num_epochs 30 --batch_size 16 --lr 2e-3 --finetune_lr 2e-5 --run_softlexicon_expert_attention
+    silent: false
+
+  train:redjujube:fusion-gated:
+    desc: 训练RedJujube SoftLexicon+ExpertDict融合模型（Gated方案）
+    cmds:
+      - python _1CONFIG/redjujube/train_redjujube_ner_comparison.py --data_dir _2DATA/RedJujube --expert_dict_auto_path _2DATA/RedJujube/expert_lexicon_auto.txt --softlex_train_path _2DATA/RedJujube/softlexicon_train.txt --save_dir cache/redjujube_softlexicon_expert_gated --bert_arch hfl/chinese-macbert-base --hid_dim 256 --num_layers 1 --dropout 0.5 --expert_dict_dim 50 --num_epochs 30 --batch_size 16 --lr 2e-3 --finetune_lr 2e-5 --run_softlexicon_expert_gated
+    silent: false
+
+  train:redjujube:softlexicon-filtered:
+    desc: 训练RedJujube SoftLexicon过滤版（18k高质量词）
+    dir: _1CONFIG/redjujube
+    cmds:
+      - bash run_softlexicon_filtered.sh
+    silent: false
+
+  train:redjujube:fusion-improved:
+    desc: 训练RedJujube改进融合模型（ExpertDict+SoftLex过滤版）
+    dir: _1CONFIG/redjujube
+    cmds:
+      - bash run_fusion_improved.sh
+    silent: false
+
+  train:redjujube:hyperparameter-tuning:
+    desc: RedJujube ExpertDict超参数调优（4个实验）
+    dir: _1CONFIG/redjujube
+    cmds:
+      - bash run_hyperparameter_tuning.sh
+    silent: false
+
+  train:redjujube:fusion-all:
+    desc: 训练RedJujube所有融合方案（Concat、Weighted、Attention、Gated）
+    dir: _1CONFIG/redjujube
+    cmds:
+      - bash run_softlexicon_expert_all.sh
+    silent: false
+  
+  train:hz:comparison:
+    desc: 运行HZ数据集对比实验（Baseline vs ExpertDict手动）
+    dir: _1CONFIG/hz
+    cmds:
+      - bash run_hz_comparison.sh
+    silent: false
+
+  train:hz:comparison-auto:
+    desc: 运行HZ数据集对比实验（包含自动提取词典）
+    dir: _1CONFIG/hz
+    cmds:
+      - bash run_hz_comparison_with_auto_lexicon.sh
+    silent: false
+  
+  train:msra:expert-dict:
+    desc: 运行MSRA数据集专家词典对比实验
+    dir: _1CONFIG/msra
+    cmds:
+      - bash run_msra_expert_dict_comparison.sh
+    silent: false
+
   train:msra:softlexicon:
     desc: 在MSRA数据集上训练SoftLexicon模型
     cmds:
       - python scripts/entity_recognition.py --dataset MSRA --use_softlexicon --ck_decoder sequence_tagging --enc_arch LSTM --hid_dim 256 --num_layers 1 --batch_size 64 --lr 0.001 --num_epochs 50 --emb_dim 0
-    silent: false
-
-  train:msra:softlexicon+bert:
-    desc: 在MSRA数据集上训练SoftLexicon+BERT模型
-    cmds:
-      - python scripts/entity_recognition.py --dataset MSRA --use_softlexicon --bert_arch MacBERT_base --ck_decoder sequence_tagging --batch_size 16 --lr 2e-3 --finetune_lr 2e-5 --num_epochs 3 --use_interm2
-    silent: false
-
-  train:msra:lstm+crf:
-    desc: 在MSRA数据集上训练LSTM+CRF基线模型
-    cmds:
-      - python scripts/entity_recognition.py --dataset MSRA --ck_decoder sequence_tagging --enc_arch LSTM --hid_dim 256 --num_layers 2 --batch_size 64 --lr 0.01 --num_epochs 100 --emb_dim 100
-    silent: false
-
-  train:msra:flat-like:
-    desc: 在MSRA数据集上训练类似FLAT的模型
-    cmds:
-      - python scripts/entity_recognition.py --dataset MSRA --use_softlexicon --use_bigram --ck_decoder sequence_tagging --no_crf --enc_arch LSTM --hid_dim 256 --num_layers 2 --batch_size 32 --lr 0.005 --num_epochs 75 --emb_dim 0
     silent: false
 
   train:msra:bert-base:
@@ -30,23 +117,23 @@ tasks:
     cmds:
       - python scripts/entity_recognition.py --dataset MSRA --bert_arch MacBERT_base --ck_decoder sequence_tagging --batch_size 16 --lr 2e-3 --finetune_lr 2e-5 --num_epochs 10
     silent: false
-
-  train:msra:bert+lstm:
-    desc: 在MSRA数据集上训练BERT+LSTM模型
+  
+  collect:redjujube:all:
+    desc: 收集RedJujube所有实验结果并生成对比报告
     cmds:
-      - python scripts/entity_recognition.py --dataset MSRA --bert_arch MacBERT_base --enc_arch LSTM --hid_dim 256 --num_layers 1 --ck_decoder sequence_tagging --batch_size 16 --lr 2e-3 --finetune_lr 2e-5 --num_epochs 10
+      - python _6EVALUATE/format_redjujube_results.py
     silent: false
 
-  train:msra:bert+softlexicon:
-    desc: 在MSRA数据集上训练BERT+SoftLexicon模型
+  collect:redjujube:fusion:
+    desc: 收集RedJujube融合实验结果
     cmds:
-      - python scripts/entity_recognition.py --dataset MSRA --use_softlexicon --bert_arch MacBERT_base --ck_decoder sequence_tagging --batch_size 16 --lr 2e-3 --finetune_lr 2e-5 --num_epochs 10 --use_interm2
+      - python _6EVALUATE/collect_final_fusion_results.py
     silent: false
 
-  train:msra:bert+interm2:
-    desc: 在MSRA数据集上训练BERT+Interm2模型
+  collect:comparison:
+    desc: 收集对比实验结果
     cmds:
-      - python scripts/entity_recognition.py --dataset MSRA --bert_arch MacBERT_base --ck_decoder sequence_tagging --use_interm2 --batch_size 16 --lr 2e-3 --finetune_lr 2e-5 --num_epochs 10
+      - python _6EVALUATE/collect_comparison_results.py
     silent: false
 
   collect:msra:
@@ -54,27 +141,22 @@ tasks:
     cmds:
       - python scripts/exp_results_collector.py --dataset MSRA
     silent: false
-
-  collect:msra:zip:
-    desc: 收集MSRA数据集上的实验结果并打包为zip文件
+  
+  data:extract-lexicon:
+    desc: 从训练数据提取专家词典（需指定数据集路径）
     cmds:
-      - python scripts/exp_results_collector.py --dataset MSRA --format zip
+      - python _3DATA_PROCESS/extract_lexicon_from_training.py
     silent: false
 
-  monitor:gpu:
-    desc: 监视GPU使用情况
+  data:analyze-dict:
+    desc: 分析词典覆盖率（需指定词典路径）
     cmds:
-      - watch -n 1 nvidia-smi
+      - python _3DATA_PROCESS/test_expert_dict_coverage.py
     silent: false
 
-  monitor:gpu:detail:
-    desc: 详细监视GPU使用情况
+  monitor:training:
+    desc: 监控训练进度（实时显示日志）
     cmds:
-      - watch -n 1 'nvidia-smi --query-gpu=index,name,utilization.gpu,memory.used,memory.total,temperature.gpu --format=csv'
+      - bash _8TOOL/shell/watch_training.sh
     silent: false
 
-  monitor:processes:
-    desc: 监视GPU上的进程
-    cmds:
-      - watch -n 2 'nvidia-smi pmon -i 0'
-    silent: false
