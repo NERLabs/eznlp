@@ -31,6 +31,7 @@ from eznlp.model import (
     ExtractorConfig,
     SoftLexiconConfig,
 )
+from eznlp.model.model import FusionExtractorConfig
 from eznlp.model.decoder import SequenceTaggingDecoderConfig
 from eznlp.token import LexiconTokenizer
 from eznlp.dataset import Dataset
@@ -205,6 +206,213 @@ def build_softlexicon_config(args, vectors):
     return config
 
 
+def build_softlexicon_expert_concat_config(args, vectors):
+    """构建 Soft+Expert 联合模型配置（方案A：直接拼接）"""
+    # 加载 BERT 模型和 tokenizer
+    bert_model = transformers.AutoModel.from_pretrained(args.bert_arch)
+    tokenizer = transformers.AutoTokenizer.from_pretrained(args.bert_arch)
+    
+    bert_config = BertLikeConfig(
+        tokenizer=tokenizer,
+        bert_like=bert_model,
+        freeze=False,
+        mix_layers="top"
+    )
+    
+    # SoftLexicon配置
+    softlexicon_config = SoftLexiconConfig(
+        vectors=vectors,
+        emb_dim=50,
+        agg_mode="wtd_mean_pooling",
+    )
+    
+    # ExpertDict配置
+    expert_dict_config = ExpertDictConfig(
+        emb_dim=50,
+        agg_mode="wtd_mean_pooling"
+    )
+    
+    encoder_config = EncoderConfig(
+        arch="LSTM",
+        hid_dim=args.hid_dim,
+        num_layers=args.num_layers,
+        in_drop_rates=(args.dropout, 0.0, 0.0)
+    )
+    
+    decoder_config = SequenceTaggingDecoderConfig(
+        scheme="BMES",
+        use_crf=True,
+        in_drop_rates=(args.dropout,)
+    )
+    
+    # 关键：在nested_ohots中同时添加两种配置
+    config = ExtractorConfig(
+        bert_like=bert_config,
+        nested_ohots={
+            "softlexicon": softlexicon_config,
+            "expert_dict": expert_dict_config
+        },
+        encoder=encoder_config,
+        decoder=decoder_config
+    )
+    
+    return config
+
+
+def build_softlexicon_expert_weighted_config(args, vectors):
+    """构建 Soft+Expert 联合模型配置（方案B：加权求和）"""
+    bert_model = transformers.AutoModel.from_pretrained(args.bert_arch)
+    tokenizer = transformers.AutoTokenizer.from_pretrained(args.bert_arch)
+    
+    bert_config = BertLikeConfig(
+        tokenizer=tokenizer,
+        bert_like=bert_model,
+        freeze=False,
+        mix_layers="top"
+    )
+    
+    softlexicon_config = SoftLexiconConfig(
+        vectors=vectors,
+        emb_dim=50,
+        agg_mode="wtd_mean_pooling",
+    )
+    
+    expert_dict_config = ExpertDictConfig(
+        emb_dim=50,
+        agg_mode="wtd_mean_pooling"
+    )
+    
+    encoder_config = EncoderConfig(
+        arch="LSTM",
+        hid_dim=args.hid_dim,
+        num_layers=args.num_layers,
+        in_drop_rates=(args.dropout, 0.0, 0.0)
+    )
+    
+    decoder_config = SequenceTaggingDecoderConfig(
+        scheme="BMES",
+        use_crf=True,
+        in_drop_rates=(args.dropout,)
+    )
+    
+    # 使用融合提取器,指定融合策略
+    # 注意: 融合后直接进入解码器,不使用encoder(intermediate2)
+    config = FusionExtractorConfig(
+        bert_like=bert_config,
+        nested_ohots={
+            "softlexicon": softlexicon_config,
+            "expert_dict": expert_dict_config
+        },
+        intermediate2=None,  # 显式禁用默认的intermediate2编码器
+        decoder=decoder_config,
+        fusion_strategy="weighted"  # 加权求和
+    )
+    
+    return config
+
+
+def build_softlexicon_expert_gated_config(args, vectors):
+    """构建 Soft+Expert 联合模型配置（方案C：门控机制）"""
+    bert_model = transformers.AutoModel.from_pretrained(args.bert_arch)
+    tokenizer = transformers.AutoTokenizer.from_pretrained(args.bert_arch)
+    
+    bert_config = BertLikeConfig(
+        tokenizer=tokenizer,
+        bert_like=bert_model,
+        freeze=False,
+        mix_layers="top"
+    )
+    
+    softlexicon_config = SoftLexiconConfig(
+        vectors=vectors,
+        emb_dim=50,
+        agg_mode="wtd_mean_pooling",
+    )
+    
+    expert_dict_config = ExpertDictConfig(
+        emb_dim=50,
+        agg_mode="wtd_mean_pooling"
+    )
+    
+    encoder_config = EncoderConfig(
+        arch="LSTM",
+        hid_dim=args.hid_dim,
+        num_layers=args.num_layers,
+        in_drop_rates=(args.dropout, 0.0, 0.0)
+    )
+    
+    decoder_config = SequenceTaggingDecoderConfig(
+        scheme="BMES",
+        use_crf=True,
+        in_drop_rates=(args.dropout,)
+    )
+    
+    config = FusionExtractorConfig(
+        bert_like=bert_config,
+        nested_ohots={
+            "softlexicon": softlexicon_config,
+            "expert_dict": expert_dict_config
+        },
+        intermediate2=None,  # 显式禁用默认的intermediate2编码器
+        decoder=decoder_config,
+        fusion_strategy="gated",  # 门控融合
+        fusion_params={"gate_hidden_dim": 768}
+    )
+    
+    return config
+
+
+def build_softlexicon_expert_attention_config(args, vectors):
+    """构建 Soft+Expert 联合模型配置（方案D：注意力融合）"""
+    bert_model = transformers.AutoModel.from_pretrained(args.bert_arch)
+    tokenizer = transformers.AutoTokenizer.from_pretrained(args.bert_arch)
+    
+    bert_config = BertLikeConfig(
+        tokenizer=tokenizer,
+        bert_like=bert_model,
+        freeze=False,
+        mix_layers="top"
+    )
+    
+    softlexicon_config = SoftLexiconConfig(
+        vectors=vectors,
+        emb_dim=50,
+        agg_mode="wtd_mean_pooling",
+    )
+    
+    expert_dict_config = ExpertDictConfig(
+        emb_dim=50,
+        agg_mode="wtd_mean_pooling"
+    )
+    
+    encoder_config = EncoderConfig(
+        arch="LSTM",
+        hid_dim=args.hid_dim,
+        num_layers=args.num_layers,
+        in_drop_rates=(args.dropout, 0.0, 0.0)
+    )
+    
+    decoder_config = SequenceTaggingDecoderConfig(
+        scheme="BMES",
+        use_crf=True,
+        in_drop_rates=(args.dropout,)
+    )
+    
+    config = FusionExtractorConfig(
+        bert_like=bert_config,
+        nested_ohots={
+            "softlexicon": softlexicon_config,
+            "expert_dict": expert_dict_config
+        },
+        intermediate2=None,  # 显式禁用默认的intermediate2编码器
+        decoder=decoder_config,
+        fusion_strategy="attention",  # 注意力融合
+        fusion_params={"num_heads": 8, "dropout": 0.1}
+    )
+    
+    return config
+
+
 def build_optimizer_and_scheduler(model, num_train_batches, args):
     """构建优化器和调度器"""
     # 分组参数：预训练模型用小学习率，其他用大学习率
@@ -263,6 +471,11 @@ def train_model(config, train_data, dev_data, test_data, args, logger, save_dir,
     if use_expert_dict and "expert_dict" in config.nested_ohots:
         logger.info("构建专家词典词频统计...")
         config.nested_ohots["expert_dict"].build_freqs(train_data, dev_data, test_data)
+    
+    # 如果使用SoftLexicon，构建词频统计
+    if "softlexicon" in config.nested_ohots:
+        logger.info("构建 SoftLexicon 词频统计...")
+        config.nested_ohots["softlexicon"].build_freqs(train_data, dev_data, test_data)
     
     dev_set = Dataset(dev_data, config, training=False)
     test_set = Dataset(test_data, config, training=False)
@@ -433,6 +646,14 @@ def main():
                         help='运行 SoftLexicon (训练集词表) 实验')
     parser.add_argument('--softlex_train_path', type=str, default='data/RedJujube/softlexicon_train.txt',
                         help='SoftLexicon 训练集词表路径')
+    parser.add_argument('--run_softlexicon_expert_concat', action='store_true',
+                        help='运行 Soft+Expert 联合模型（方案A：直接拼接）')
+    parser.add_argument('--run_softlexicon_expert_weighted', action='store_true',
+                        help='运行 Soft+Expert 联合模型（方案B：加权求和）')
+    parser.add_argument('--run_softlexicon_expert_gated', action='store_true',
+                        help='运行 Soft+Expert 联合模型（方案C：门控机制）')
+    parser.add_argument('--run_softlexicon_expert_attention', action='store_true',
+                        help='运行 Soft+Expert 联合模型（方案D：注意力融合）')
     parser.add_argument('--run_all', action='store_true',
                         help='运行所有四组实验')
     parser.add_argument('--seed', type=int, default=42,
@@ -617,6 +838,169 @@ def main():
         config = build_softlexicon_config(args, vectors)
         results = train_model(config, train_data, dev_data, test_data, args, logger, softlexicon_trainlex_dir, model_name="SoftLexicon-TrainLex", use_expert_dict=False)
         results_summary['softlexicon_trainlex'] = results
+    
+    # 运行 Soft+Expert 联合模型（方案A：直接拼接）
+    if args.run_softlexicon_expert_concat:
+        # 重新加载数据（避免数据污染）
+        train_data, dev_data, test_data = load_redjujube_data(args.data_dir)
+        
+        print(f"\n{'='*70}")
+        print("加载 Soft+Expert 联合模型所需资源（方案A）...")
+        print(f"{'='*70}\n")
+        
+        # 加载 CTB 词向量（用于 SoftLexicon 初始化）
+        vectors = load_vectors("chinese", 50)
+        if vectors is None:
+            raise ValueError("无法加载中文 50 维词向量，请检查 assets/vectors 下是否存在相应文件。")
+        
+        # 加载训练集软词典
+        train_lexicon = load_expert_lexicon(args.softlex_train_path)
+        print(f"软词典大小: {len(train_lexicon):,} 个词")
+        soft_tokenizer = LexiconTokenizer(train_lexicon, max_len=10)
+        
+        # 加载自动专家词典
+        expert_lexicon_auto = load_expert_lexicon(args.expert_dict_auto_path)
+        print(f"自动专家词典大小: {len(expert_lexicon_auto)} 个词\n")
+        expert_tokenizer = LexiconTokenizer(expert_lexicon_auto, max_len=10)
+        
+        # 为数据同时添加两种特征
+        print("为数据添加 SoftLexicon + ExpertDict 特征...")
+        for data in (train_data, dev_data, test_data):
+            for entry in data:
+                # SoftLexicon 特征
+                entry["tokens"].build_softwords(soft_tokenizer.tokenize)
+                entry["tokens"].build_softlexicons(soft_tokenizer.tokenize)
+                # ExpertDict 特征
+                entry["tokens"].build_expert_dict_tags(expert_tokenizer.tokenize)
+        print("✅ 完成\n")
+        
+        softlex_expert_dir = f"{args.save_dir}/softlexicon_expert_concat_{timestamp}"
+        logger = setup_logger(softlex_expert_dir)
+        
+        logger.info("="*70)
+        logger.info("实验 6: Soft+Expert (方案A: 直接拼接) (MacBERT + BiLSTM + CRF + SoftLexicon + ExpertDict)")
+        logger.info("="*70)
+        
+        config = build_softlexicon_expert_concat_config(args, vectors)
+        results = train_model(config, train_data, dev_data, test_data, args, logger, softlex_expert_dir, model_name="Soft+Expert (Concat)", use_expert_dict=True)
+        results_summary['softlexicon_expert_concat'] = results
+    
+    # 运行 Soft+Expert 联合模型（方案B：加权求和）
+    if args.run_softlexicon_expert_weighted:
+        train_data, dev_data, test_data = load_redjujube_data(args.data_dir)
+        
+        print(f"\n{'='*70}")
+        print("加载 Soft+Expert 联合模型所需资源（方案B）...")
+        print(f"{'='*70}\n")
+        
+        vectors = load_vectors("chinese", 50)
+        if vectors is None:
+            raise ValueError("无法加载中文 50 维词向量，请检查 assets/vectors 下是否存在相应文件。")
+        
+        train_lexicon = load_expert_lexicon(args.softlex_train_path)
+        print(f"软词典大小: {len(train_lexicon):,} 个词")
+        soft_tokenizer = LexiconTokenizer(train_lexicon, max_len=10)
+        
+        expert_lexicon_auto = load_expert_lexicon(args.expert_dict_auto_path)
+        print(f"自动专家词典大小: {len(expert_lexicon_auto)} 个词\n")
+        expert_tokenizer = LexiconTokenizer(expert_lexicon_auto, max_len=10)
+        
+        print("为数据添加 SoftLexicon + ExpertDict 特征...")
+        for data in (train_data, dev_data, test_data):
+            for entry in data:
+                entry["tokens"].build_softwords(soft_tokenizer.tokenize)
+                entry["tokens"].build_softlexicons(soft_tokenizer.tokenize)
+                entry["tokens"].build_expert_dict_tags(expert_tokenizer.tokenize)
+        print("✅ 完成\n")
+        
+        softlex_expert_dir = f"{args.save_dir}/softlexicon_expert_weighted_{timestamp}"
+        logger = setup_logger(softlex_expert_dir)
+        
+        logger.info("="*70)
+        logger.info("实验 7: Soft+Expert (方案B: 加权求和) (MacBERT + BiLSTM + CRF + SoftLexicon + ExpertDict + Weighted Fusion)")
+        logger.info("="*70)
+        
+        config = build_softlexicon_expert_weighted_config(args, vectors)
+        results = train_model(config, train_data, dev_data, test_data, args, logger, softlex_expert_dir, model_name="Soft+Expert (Weighted)", use_expert_dict=True)
+        results_summary['softlexicon_expert_weighted'] = results
+    
+    # 运行 Soft+Expert 联合模型（方案C：门控机制）
+    if args.run_softlexicon_expert_gated:
+        train_data, dev_data, test_data = load_redjujube_data(args.data_dir)
+        
+        print(f"\n{'='*70}")
+        print("加载 Soft+Expert 联合模型所需资源（方案C）...")
+        print(f"{'='*70}\n")
+        
+        vectors = load_vectors("chinese", 50)
+        if vectors is None:
+            raise ValueError("无法加载中文 50 维词向量，请检查 assets/vectors 下是否存在相应文件。")
+        
+        train_lexicon = load_expert_lexicon(args.softlex_train_path)
+        print(f"软词典大小: {len(train_lexicon):,} 个词")
+        soft_tokenizer = LexiconTokenizer(train_lexicon, max_len=10)
+        
+        expert_lexicon_auto = load_expert_lexicon(args.expert_dict_auto_path)
+        print(f"自动专家词典大小: {len(expert_lexicon_auto)} 个词\n")
+        expert_tokenizer = LexiconTokenizer(expert_lexicon_auto, max_len=10)
+        
+        print("为数据添加 SoftLexicon + ExpertDict 特征...")
+        for data in (train_data, dev_data, test_data):
+            for entry in data:
+                entry["tokens"].build_softwords(soft_tokenizer.tokenize)
+                entry["tokens"].build_softlexicons(soft_tokenizer.tokenize)
+                entry["tokens"].build_expert_dict_tags(expert_tokenizer.tokenize)
+        print("✅ 完成\n")
+        
+        softlex_expert_dir = f"{args.save_dir}/softlexicon_expert_gated_{timestamp}"
+        logger = setup_logger(softlex_expert_dir)
+        
+        logger.info("="*70)
+        logger.info("实验 8: Soft+Expert (方案C: 门控机制) (MacBERT + BiLSTM + CRF + SoftLexicon + ExpertDict + Gated Fusion)")
+        logger.info("="*70)
+        
+        config = build_softlexicon_expert_gated_config(args, vectors)
+        results = train_model(config, train_data, dev_data, test_data, args, logger, softlex_expert_dir, model_name="Soft+Expert (Gated)", use_expert_dict=True)
+        results_summary['softlexicon_expert_gated'] = results
+    
+    # 运行 Soft+Expert 联合模型（方案D：注意力融合）
+    if args.run_softlexicon_expert_attention:
+        train_data, dev_data, test_data = load_redjujube_data(args.data_dir)
+        
+        print(f"\n{'='*70}")
+        print("加载 Soft+Expert 联合模型所需资源（方案D）...")
+        print(f"{'='*70}\n")
+        
+        vectors = load_vectors("chinese", 50)
+        if vectors is None:
+            raise ValueError("无法加载中文 50 维词向量，请检查 assets/vectors 下是否存在相应文件。")
+        
+        train_lexicon = load_expert_lexicon(args.softlex_train_path)
+        print(f"软词典大小: {len(train_lexicon):,} 个词")
+        soft_tokenizer = LexiconTokenizer(train_lexicon, max_len=10)
+        
+        expert_lexicon_auto = load_expert_lexicon(args.expert_dict_auto_path)
+        print(f"自动专家词典大小: {len(expert_lexicon_auto)} 个词\n")
+        expert_tokenizer = LexiconTokenizer(expert_lexicon_auto, max_len=10)
+        
+        print("为数据添加 SoftLexicon + ExpertDict 特征...")
+        for data in (train_data, dev_data, test_data):
+            for entry in data:
+                entry["tokens"].build_softwords(soft_tokenizer.tokenize)
+                entry["tokens"].build_softlexicons(soft_tokenizer.tokenize)
+                entry["tokens"].build_expert_dict_tags(expert_tokenizer.tokenize)
+        print("✅ 完成\n")
+        
+        softlex_expert_dir = f"{args.save_dir}/softlexicon_expert_attention_{timestamp}"
+        logger = setup_logger(softlex_expert_dir)
+        
+        logger.info("="*70)
+        logger.info("实验 9: Soft+Expert (方案D: 注意力融合) (MacBERT + BiLSTM + CRF + SoftLexicon + ExpertDict + Attention Fusion)")
+        logger.info("="*70)
+        
+        config = build_softlexicon_expert_attention_config(args, vectors)
+        results = train_model(config, train_data, dev_data, test_data, args, logger, softlex_expert_dir, model_name="Soft+Expert (Attention)", use_expert_dict=True)
+        results_summary['softlexicon_expert_attention'] = results
     
     # 打印对比结果
     if len(results_summary) >= 2:
