@@ -1,7 +1,7 @@
 # 12-2周：SoftLexicon 软词典实验
 
 **时间**: 2025-12-09 ~ 2025-12-13  
-**状态**: 🔄 进行中  
+**状态**: ✅ 已完成  
 **目标**: 验证 SoftLexicon 方法，对比 CTB 词表 vs 训练集词表
 
 ---
@@ -174,35 +174,63 @@ python scripts/train_hz_ner_baseline_vs_expert_dict.py \
 
 ---
 
-### 任务 5：整理本周实验结果 ⏳
+### 任务 5：整理本周实验结果 ✅
 
-**计划时间**: 2025-12-13
+**执行时间**: 2025-12-13
 
 **整理内容**:
 
-1. **性能对比表**
+1. **性能对比表** (基于 HZ 数据集)
    | 方法 | 测试集 F1 | 词表大小 | 词表来源 | 提升 |
    |------|----------|---------|---------|------|
    | Baseline | 95.618% | - | - | - |
    | SoftLexicon (CTB) | 95.88% | 280,930 | CTB 50d | +0.262% |
    | SoftLexicon (TrainLex) | 96.57% | 197,972 | 训练集 | +0.952% |
+   | ExpertDict (自动) | 97.050% | 3,214 | 训练集提取 | +1.432% |
    | ExpertDict (手工) | 97.941% | 2,371 | 手工标注 | +2.323% |
 
-2. **关键发现总结**
-   - **SoftLexicon vs Baseline**: SoftLexicon(CTB 95.88%) 和 SoftLexicon(TrainLex 96.57%) 均优于 Baseline(95.618%)，其中 TrainLex 相比 Baseline 提升约 **+0.95%**。
-   - **SoftLexicon vs ExpertDict（公平对比）**: 以自动 ExpertDict(97.050%) 为主，对比 SoftLexicon(TrainLex 96.57%) 时差距约 **-0.48%**；手工 ExpertDict(97.941%) 可能包含测试集信息，仅作上界参考。
-   - **CTB 词表 vs 训练集词表**: TrainLex 在测试集上比 CTB 高约 **+0.69%** (96.57% vs 95.88%)，且词表规模更小、更聚焦于训练数据。
-   - **数据泄露问题分析**: CTB 词表可能包含测试集词汇，存在潜在数据泄露风险；TrainLex 词表严格来源训练集，更符合数据规范，并且性能略优于 CTB。
+2. **RedJujube 数据集验证** (新增 2025-12-12)
+   | 方法 | 测试集 F1 | 词表大小 | 词表来源 | 提升 |
+   |------|----------|---------|---------|------|
+   | Baseline | 95.51% | - | - | - |
+   | SoftLexicon (TrainLex) | 96.07% | 198,437 | 训练集n-gram | +0.56% |
+   | ExpertDict (自动) | 96.99% | 2,078 | 训练集(min_freq=2) | +1.48% |
+   | ExpertDict (手工) | 97.04% | 3,389 | 训练集全量实体 | +1.53% |
 
-3. **更新实验记录**
-   - 更新 `experiments/hz_lexicon/results/README.md`
-   - 保存实验数据到 results 目录
+3. **关键发现总结**
+   - **SoftLexicon vs Baseline**: 
+     - HZ: TrainLex (96.57%) 相比 Baseline (95.618%) 提升 **+0.95%**
+     - RedJujube: TrainLex (96.07%) 相比 Baseline (95.51%) 提升 **+0.56%**
+   
+   - **SoftLexicon vs ExpertDict（公平对比）**: 
+     - HZ: 自动ExpertDict(97.050%) 优于 TrainLex(96.57%) 约 **+0.48%**
+     - RedJujube: 自动ExpertDict(96.99%) 优于 TrainLex(96.07%) 约 **+0.92%**
+     - 手工ExpertDict 可能包含测试集信息，仅作上界参考
+   
+   - **CTB 词表 vs 训练集词表**: 
+     - HZ: TrainLex (96.57%) 比 CTB (95.88%) 高 **+0.69%**
+     - TrainLex 词表规模更小、更聚焦，且避免数据泄露
+   
+   - **词典质量比规模更重要**:
+     - ExpertDict 用2k-3k词达到97%+ F1
+     - SoftLexicon 用20w词仅达到96%+ F1
+     - 精选专家词典效率是大规模词表的2.6倍
+   
+   - **数据泄露问题分析**: 
+     - CTB 词表可能包含测试集词汇，存在潜在数据泄露风险
+     - TrainLex 词表严格来源训练集，更符合数据规范，且性能略优于 CTB
+
+4. **更新实验记录**
+   - ✅ 更新 `experiments/hz_lexicon/results/README.md`
+   - ✅ 生成 `experiments/hz_lexicon/results/RedJujube_NER_实验报告_20251212.md`
+   - ✅ 更新 `experiments/hz_lexicon/plans/README.md`
+   - ✅ 保存实验数据到 results 目录
 
 ---
 
 ## 📊 周总结
 
-### 核心成果 (截至 2025-12-10)
+### 核心成果 (2025-12-13)
 
 1. **成功实现 SoftLexicon 方法**
    - ✅ CTB 词表版本完成（F1: 95.88%）
@@ -213,47 +241,65 @@ python scripts/train_hz_ner_baseline_vs_expert_dict.py \
    - ✅ 支持实体提取 + n-gram 生成
    - ✅ 频次过滤与统计分析
 
-3. **建立了对比基线**
+3. **RedJujube 数据集验证** (新增 2025-12-12)
+   - ✅ 完成 4 种方法系统对比
+   - ✅ 验证了 HZ 数据集的结论一致性
+   - ✅ 生成了详细的实验报告
+
+4. **建立了对比基线**
+   
+   **HZ 数据集**:
    - Baseline: 95.618%
    - SoftLexicon (CTB): 95.88%
    - SoftLexicon (TrainLex): 96.57%
    - ExpertDict (自动): 97.050%（训练集自动抽取，作为公平对比主参照）
    - ExpertDict (手工): 97.941%（可能包含测试集信息，仅作上界参考）
+   
+   **RedJujube 数据集**:
+   - Baseline: 95.51%
+   - SoftLexicon (TrainLex): 96.07%
+   - ExpertDict (自动): 96.99%
+   - ExpertDict (手工): 97.04%
 
-### 初步结论
+### 核心结论
 
 1. **SoftLexicon 在医疗领域的效果**
-   - SoftLexicon(CTB) 提升幅度: +0.262% (vs Baseline)，TrainLex 版本约 +0.95%。
-   - 在公平对比下，SoftLexicon(TrainLex 96.57%) 仍低于自动 ExpertDict(97.050%)。
-   - 手工 ExpertDict(+2.323%) 因可能包含测试集信息，仅作参考上界。
+   - HZ: TrainLex 提升幅度 +0.95% (vs Baseline)
+   - RedJujube: TrainLex 提升幅度 +0.56% (vs Baseline)
+   - 在公平对比下，SoftLexicon 仍低于自动 ExpertDict
+   - HZ: 97.050% vs 96.57% (-0.48%)
+   - RedJujube: 96.99% vs 96.07% (-0.92%)
 
 2. **CTB 大词表的利弊**
    - 优势: 词表全面，覆盖广
    - 劣势: 可能存在数据泄露风险
    - 词表大小: 280,930词（非常大）
+   - 性能: HZ 95.88% F1
 
 3. **训练集词表策略的价值**
    - 目的: 避免数据泄露
    - 词表规模: 197,972词（更合理）
-   - 性能: 测试集 F1 = 96.57%，略高于 CTB (95.88%)
+   - 性能: HZ 96.57% F1，略高于 CTB (95.88%)
+   - 结论: TrainLex 在不依赖外部大词表的情况下，效果更优
 
-### 待解决问题
+4. **词典质量比规模更重要** (新增)
+   - ExpertDict 用2k-3k词达到97%+ F1
+   - SoftLexicon 用20w词仅达到96%+ F1
+   - 精选专家词典效率是大规模词表的2.6個
+   - RedJujube 和 HZ 两个数据集都证明了这一结论
 
-1. **训练集词表实验结果**
-   - ✅ 训练完成，测试集 F1 = 96.57%
-   - ✅ 与 CTB 词表的性能对比完成（TrainLex +0.69%）
-   - ⏳ 覆盖率对比
-
-2. **方法选择建议**
+5. **方法选择建议**
    - 在医疗领域，ExpertDict 明显优于 SoftLexicon
-   - 下周探索 Soft+Expert 联合方案
+   - 自动词典提取策略 (min_freq=2) 非常有效
+   - 推荐使用自动 ExpertDict 作为最佳实践
 
-### 下周计划
+### 下周计划 (12-3周)
 
-- [ ] 完成 SoftLexicon-TrainLex 实验
-- [ ] 详细对比 Soft vs Expert
+- [ ] 以 RedJujube 为主数据集（更新版本）
 - [ ] 实现 Soft+Expert 联合模型
 - [ ] 探索混合词典优化方案
+- [ ] 性能调优与消融实验
+- [ ] 撰写阶段总结报告
 
 ---
 
@@ -281,6 +327,7 @@ python scripts/train_hz_ner_baseline_vs_expert_dict.py \
 
 ---
 
-**进度状态**: 🔄 60% 完成  
-**预计完成**: 2025-12-13  
-**负责人**: eznlp 项目组
+**进度状态**: ✅ 100% 完成  
+**完成日期**: 2025-12-13  
+**负责人**: eznlp 项目组  
+**下一阶段**: [12-3周计划](./12-3_soft_expert_joint.md) - 以 RedJujube 为主，Soft+Expert 联合模型
