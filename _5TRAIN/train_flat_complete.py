@@ -282,8 +282,16 @@ def train(args):
     save_dir = f"{args.save_dir}/flat_{timestamp}"
     Path(save_dir).mkdir(parents=True, exist_ok=True)
     
+    # 检测数据集类型
+    if os.path.exists(os.path.join(args.data_dir, 'redjujube_train.bmes')):
+        dataset_name = 'RedJujube'
+    elif os.path.exists(os.path.join(args.data_dir, 'train.char.bmes')):
+        dataset_name = 'MSRA'
+    else:
+        dataset_name = 'Unknown'
+    
     print("="*70)
-    print("【实验】完整 FLAT 模型训练 - RedJujube 数据集")
+    print(f"【实验】完整 FLAT 模型训练 - {dataset_name} 数据集")
     print("="*70)
     
     # 加载词表
@@ -318,9 +326,21 @@ def train(args):
     
     # 加载数据
     print(f"\n[{3 if args.use_bert else 2}/6] 加载数据...")
-    train_file = os.path.join(args.data_dir, 'redjujube_train.bmes')
-    dev_file = os.path.join(args.data_dir, 'redjujube_dev.bmes')
-    test_file = os.path.join(args.data_dir, 'redjujube_test.bmes')
+    # 数据文件名（根据数据集自动检测）
+    if os.path.exists(os.path.join(args.data_dir, 'redjujube_train.bmes')):
+        # RedJujube 数据集
+        train_file = os.path.join(args.data_dir, 'redjujube_train.bmes')
+        dev_file = os.path.join(args.data_dir, 'redjujube_dev.bmes')
+        test_file = os.path.join(args.data_dir, 'redjujube_test.bmes')
+        dataset_name = 'RedJujube'
+    elif os.path.exists(os.path.join(args.data_dir, 'train.char.bmes')):
+        # MSRA 数据集
+        train_file = os.path.join(args.data_dir, 'train.char.bmes')
+        dev_file = os.path.join(args.data_dir, 'dev.char.bmes')
+        test_file = os.path.join(args.data_dir, 'test.char.bmes')
+        dataset_name = 'MSRA'
+    else:
+        raise ValueError(f"未找到训练数据文件，请检查 {args.data_dir} 目录")
     
     train_data = load_bmes_data(train_file)
     dev_data = load_bmes_data(dev_file)
