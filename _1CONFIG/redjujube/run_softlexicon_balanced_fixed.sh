@@ -8,7 +8,7 @@ conda activate eznlp11
 
 cd /home/shiwenlong/NERlabs/eznlp
 
-python _1CONFIG/redjujube/train_redjujube_ner_comparison.py \
+python _5TRAIN/train_redjujube_ner.py \
     --data_dir _2DATA/RedJujube \
     --save_dir cache/redjujube_softlexicon_balanced \
     --bert_arch hfl/chinese-macbert-base \

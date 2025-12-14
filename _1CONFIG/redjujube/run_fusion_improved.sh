@@ -29,7 +29,7 @@ PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$PROJECT_ROOT"
 
 # 运行改进的融合实验
-python _1CONFIG/redjujube/train_redjujube_ner_comparison.py \
+python _5TRAIN/train_redjujube_ner.py \
   --data_dir _2DATA/RedJujube \
   --expert_dict_auto_path _2DATA/RedJujube/expert_lexicon_auto.txt \
   --softlex_train_path _2DATA/RedJujube/softlexicon_filtered.txt \

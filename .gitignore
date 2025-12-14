@@ -144,3 +144,4 @@ _2DATA/*
 !/publications/boundary-smoothing/slides.pdf
 !/publications/boundary-smoothing/poster.pdf
 examples/
+data/*

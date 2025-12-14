@@ -178,5 +178,61 @@ model = MacBertCRFNER(
 
 ---
 
-**报告生成时间**: 2025-12-13  
+## 📊 七、自定义脚本实验 (12-14补充)
+
+### 实验5: SoftLexicon-v1 (CTB词典)
+
+**完成时间**: 2024-12-14 05:23  
+**脚本**: `_1CONFIG/msra/train_msra_ner_all_methods.py`
+
+**配置**:
+- BERT: hfl/chinese-macbert-base
+- 编码器: BiLSTM (hidden=256, layers=1)
+- 解码器: CRF
+- 特征: SoftLexicon (CTB词典, 280K词)
+- 参数量: 110,115,186
+
+**训练参数**:
+- Epochs: 30
+- Batch Size: 16  
+- LR: 0.002 / Finetune: 2e-5
+
+**结果**:
+- **测试集F1**: **94.62%**
+- 测试Loss: 2.364
+
+---
+
+### 实验6: Soft+Expert Concat融合
+
+**完成时间**: 2024-12-14 07:00  
+**脚本**: `_1CONFIG/msra/train_msra_ner_all_methods.py`
+
+**配置**:
+- BERT: hfl/chinese-macbert-base
+- 编码器: BiLSTM (hidden=256, layers=1)  
+- 解码器: CRF
+- 特征: SoftLexicon (CTB) + ExpertDict (自动提取)
+- 融合方式: Concatenation
+- 参数量: 104,510,836
+
+**训练参数**:
+- Epochs: 30
+- Batch Size: 16
+- LR: 0.002 / Finetune: 2e-5
+- Seed: 42
+
+**结果**:
+- **测试集F1**: **94.75%**
+- 测试Loss: 1.588
+- vs SoftLex-v1: **+0.13%**
+
+**关键发现**:
+1. ✅ 融合有效: SoftLexicon + ExpertDict 带来提升
+2. 📊 Loss更低: 融合模型测试Loss显著降低 (1.588 vs 2.364)
+3. ⚠️ 参数更少: Concat融合参数量反而减少 (104.5M vs 110.1M)
+
+---
+
+**报告生成时间**: 2025-12-14  
 **实验负责人**: 史文龙  

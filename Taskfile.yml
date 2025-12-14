@@ -160,3 +160,33 @@ tasks:
       - bash _8TOOL/shell/watch_training.sh
     silent: false
 
+  pipeline:baseline:
+    desc: 运行Baseline实验自动化流水线
+    cmds:
+      - bash _7PIPELINE/run_pipeline.sh --name "RedJujube_Baseline" --baseline
+    silent: false
+
+  pipeline:softlexicon:
+    desc: 运行SoftLexicon实验自动化流水线
+    cmds:
+      - bash _7PIPELINE/run_pipeline.sh --name "RedJujube_SoftLexicon" --softlexicon
+    silent: false
+
+  pipeline:expert-dict:
+    desc: 运行ExpertDict实验自动化流水线
+    cmds:
+      - bash _7PIPELINE/run_pipeline.sh --name "RedJujube_ExpertDict" --expert-dict
+    silent: false
+
+  pipeline:all:
+    desc: 批量运行所有实验流水线
+    cmds:
+      - bash _7PIPELINE/run_all_pipelines.sh
+    silent: false
+
+  pipeline:custom:
+    desc: 运行自定义配置的实验流水线（需指定--name和--config）
+    cmds:
+      - bash _7PIPELINE/run_pipeline.sh
+    silent: false
+

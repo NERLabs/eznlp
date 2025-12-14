@@ -32,7 +32,7 @@ PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$PROJECT_ROOT"
 
 # 运行训练
-python _1CONFIG/redjujube/train_redjujube_ner_comparison.py \
+python _5TRAIN/train_redjujube_ner.py \
   --data_dir _2DATA/RedJujube \
   --softlex_train_path _2DATA/RedJujube/softlexicon_filtered.txt \
   --save_dir cache/redjujube_softlexicon_filtered \

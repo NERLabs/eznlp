@@ -1,0 +1,21 @@
+{
+  "experiment_name": "RedJujube_ExpertDict_Auto",
+  "dataset": "RedJujube",
+  "script": "python _1CONFIG/redjujube/train_redjujube_ner_comparison.py",
+  "data_dir": "_2DATA/RedJujube",
+  "expert_dict_auto_path": "_2DATA/RedJujube/expert_lexicon_auto.txt",
+  "save_dir": "cache/pipeline_test/expert_dict_auto",
+  "bert_arch": "hfl/chinese-macbert-base",
+  "hid_dim": 256,
+  "num_layers": 1,
+  "dropout": 0.5,
+  "expert_dict_dim": 50,
+  "num_epochs": 30,
+  "batch_size": 16,
+  "lr": 0.002,
+  "finetune_lr": 0.00002,
+  "weight_decay": 0.0001,
+  "grad_clip": 5.0,
+  "seed": 42,
+  "run_expert_dict_auto": true
+}

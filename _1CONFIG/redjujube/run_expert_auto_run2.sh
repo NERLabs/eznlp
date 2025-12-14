@@ -7,7 +7,7 @@ conda activate eznlp11
 cd /home/shiwenlong/NERlabs/eznlp
 
 # ExpertDict(自动) 重复实验2 - seed=123
-python _1CONFIG/redjujube/train_redjujube_ner_comparison.py \
+python _5TRAIN/train_redjujube_ner.py \
     --data_dir _2DATA/RedJujube \
     --expert_dict_auto_path _2DATA/RedJujube/expert_lexicon_auto.txt \
     --save_dir cache/redjujube_expert_auto_run2 \

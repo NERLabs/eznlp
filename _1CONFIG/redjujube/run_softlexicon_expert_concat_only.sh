@@ -17,7 +17,7 @@ conda activate eznlp11
 
 # 运行方案A
 echo "运行方案A: 直接拼接融合..."
-python scripts/train_redjujube_ner_comparison.py \
+python _5TRAIN/train_redjujube_ner.py \
   --data_dir data/RedJujube \
   --save_dir cache/redjujube_softlexicon_expert \
   --expert_dict_auto_path data/RedJujube/expert_lexicon_auto.txt \

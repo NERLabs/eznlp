@@ -1,0 +1,19 @@
+{
+  "experiment_name": "RedJujube_Baseline_Test",
+  "dataset": "RedJujube",
+  "script": "python _1CONFIG/redjujube/train_redjujube_ner_comparison.py",
+  "data_dir": "_2DATA/RedJujube",
+  "save_dir": "cache/pipeline_test/baseline",
+  "bert_arch": "hfl/chinese-macbert-base",
+  "hid_dim": 256,
+  "num_layers": 1,
+  "dropout": 0.5,
+  "num_epochs": 30,
+  "batch_size": 16,
+  "lr": 0.002,
+  "finetune_lr": 2e-05,
+  "weight_decay": 0.0001,
+  "grad_clip": 5.0,
+  "seed": 42,
+  "run_baseline": true
+}

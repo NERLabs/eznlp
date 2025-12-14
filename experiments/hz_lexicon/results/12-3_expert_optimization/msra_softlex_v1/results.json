@@ -1,0 +1,43 @@
+{
+  "model_type": "SoftLexicon",
+  "test_loss": 2.363516168443711,
+  "test_metrics": [
+    0.9462123832583882
+  ],
+  "total_params": 110115186,
+  "trainable_params": 110115186,
+  "args": {
+    "data_dir": "_2DATA/MSRA",
+    "expert_dict_path": "_2DATA/MSRA/expert_lexicon_auto.txt",
+    "expert_dict_auto_path": "_2DATA/MSRA/expert_lexicon_auto.txt",
+    "save_dir": "cache/msra_complete_experiments_20251214/softlex_v1",
+    "bert_arch": "hfl/chinese-macbert-base",
+    "bert_drop_rate": 0.2,
+    "hid_dim": 256,
+    "num_layers": 1,
+    "dropout": 0.5,
+    "expert_dict_dim": 50,
+    "num_epochs": 30,
+    "batch_size": 16,
+    "lr": 0.002,
+    "finetune_lr": 2e-05,
+    "weight_decay": 0.0001,
+    "grad_clip": 5.0,
+    "num_grad_acc_steps": 1,
+    "use_amp": false,
+    "disp_every_steps": 50,
+    "eval_every_steps": 200,
+    "run_baseline": false,
+    "run_expert_dict": false,
+    "run_expert_dict_auto": false,
+    "run_softlexicon": true,
+    "run_softlexicon_trainlex": false,
+    "softlex_train_path": "_2DATA/MSRA/softlexicon_train.txt",
+    "run_softlexicon_expert_concat": false,
+    "run_softlexicon_expert_weighted": false,
+    "run_softlexicon_expert_gated": false,
+    "run_softlexicon_expert_attention": false,
+    "run_all": false,
+    "seed": 42
+  }
+}
