@@ -1,0 +1,8 @@
+{
+    "yaml.schemas": {
+        "file:///c%3A/Users/Lenovo/.vscode/extensions/continue.continue-1.2.4-win32-x64/config-yaml-schema.json": [
+            ".continue/**/*.yaml",
+            "vscode-local:/c%3A/Users/Lenovo/.continue/config.yaml"
+        ]
+    }
+}
