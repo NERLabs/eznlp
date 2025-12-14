@@ -99,34 +99,11 @@ celerybeat-schedule
 
 # Environments
 .env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
 
-# Spyder project settings
-.spyderproject
-.spyproject
-
-# Rope project settings
-.ropeproject
-
-# mkdocs documentation
-/site
-
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Pyre type checker
-.pyre/
-
-
-# VS Code configurations
-.vscode/
+# Large data files that exceed GitHub's file size limit
+projects/data/yangjie_word_char_mix.txt
+projects/NFLAT4CNER-main/cache/NER_dataset_msra
+projects/NFLAT4CNER-main/cache/dataset_msra_lex_yj
 
 # _2DATA
 # Ref: https://riptutorial.com/git/example/911/exceptions-in-a--gitignore-file
