@@ -149,111 +149,162 @@ class RelativePositionEncoding(nn.Module):
 
 
 class FourPositionFusion(nn.Module):
-    """四位置融合模块
+    """四位置融合编码
     
-    用于 Lattice 结构的四种相对位置编码融合：
-    - SS (Start-Start): 开始位置到开始位置
-    - SE (Start-End): 开始位置到结束位置
-    - ES (End-Start): 结束位置到开始位置
-    - EE (End-End): 结束位置到结束位置
+    FLAT 的核心创新，融合四种相对位置编码：
+    - SS: start-to-start
+    - SE: start-to-end
+    - ES: end-to-start
+    - EE: end-to-end
+    
+    优化版本支持：
+    - use_unique: 使用 torch.unique() 去重，减少显存占用
+    - use_scalar: 使用标量替代向量，大幅减少显存
     """
     
     def __init__(
         self,
         hidden_size: int,
         max_len: int,
-        fusion_mode: Literal['concat', 'ff', 'attn', 'gate'] = 'ff',
+        fusion_mode: Literal['concat', 'ff', 'attn', 'gate', 'scalar'] = 'ff',
         learnable: bool = False,
-        shared: bool = True
+        shared: bool = True,
+        use_unique: bool = True,
+        use_scalar: bool = False,
+        scalar_dim: int = 4
     ):
         """初始化
         
         Args:
             hidden_size: 隐藏层维度
             max_len: 最大序列长度
-            fusion_mode: 融合方式 ('concat', 'ff', 'attn', 'gate')
-            learnable: 位置编码是否可学习
+            fusion_mode: 融合方式 ('ff', 'attn', 'gate', 'concat', 'scalar')
+            learnable: 是否可学习
             shared: 四个位置编码是否共享参数
+            use_unique: 是否使用 unique 优化来减少显存
+            use_scalar: 是否使用标量位置编码（类似 T5）
+            scalar_dim: 标量位置编码维度
         """
         super().__init__()
         self.hidden_size = hidden_size
         self.max_len = max_len
         self.fusion_mode = fusion_mode
         self.shared = shared
+        self.use_unique = use_unique
+        self.use_scalar = use_scalar
+        self.scalar_dim = scalar_dim
         
-        # 创建四个位置编码
-        pe = RelativePositionEncoding._create_relative_embedding(
-            2 * max_len + 1, hidden_size, symmetric=True, max_len=max_len
-        )
-        
-        if shared:
-            self.pe_ss = nn.Parameter(pe, requires_grad=learnable)
-            self.pe_se = self.pe_ss
-            self.pe_es = self.pe_ss
-            self.pe_ee = self.pe_ss
+        if use_scalar:
+            # 使用标量位置编码（类似 T5，大幅减少显存）
+            self.pe_ss = nn.Parameter(torch.zeros(2 * max_len + 1, scalar_dim), requires_grad=True)
+            self.pe_se = nn.Parameter(torch.zeros(2 * max_len + 1, scalar_dim), requires_grad=True)
+            self.pe_es = nn.Parameter(torch.zeros(2 * max_len + 1, scalar_dim), requires_grad=True)
+            self.pe_ee = nn.Parameter(torch.zeros(2 * max_len + 1, scalar_dim), requires_grad=True)
+            nn.init.xavier_uniform_(self.pe_ss)
+            nn.init.xavier_uniform_(self.pe_se)
+            nn.init.xavier_uniform_(self.pe_es)
+            nn.init.xavier_uniform_(self.pe_ee)
+            self.scalar_proj = nn.Linear(scalar_dim * 4, hidden_size)
         else:
-            self.pe_ss = nn.Parameter(pe.clone(), requires_grad=learnable)
-            self.pe_se = nn.Parameter(pe.clone(), requires_grad=learnable)
-            self.pe_es = nn.Parameter(pe.clone(), requires_grad=learnable)
-            self.pe_ee = nn.Parameter(pe.clone(), requires_grad=learnable)
-        
-        # 融合层
-        if fusion_mode == 'concat' or fusion_mode == 'ff':
-            self.fusion_layer = nn.Sequential(
-                nn.Linear(hidden_size * 4, hidden_size),
-                nn.ReLU()
+            # 创建四个位置编码
+            pe = RelativePositionEncoding._create_relative_embedding(
+                2 * max_len + 1, hidden_size, symmetric=True, max_len=max_len
             )
-        elif fusion_mode == 'attn':
-            self.attn_score = nn.Sequential(
-                nn.Linear(hidden_size * 4, hidden_size * 4),
-                nn.ReLU(),
-                nn.Linear(hidden_size * 4, 4),
-                nn.Softmax(dim=-1)
-            )
-            self.w_r = nn.Linear(hidden_size, hidden_size)
-        elif fusion_mode == 'gate':
-            self.gate_score = nn.Sequential(
-                nn.Linear(hidden_size * 4, hidden_size * 2),
-                nn.ReLU(),
-                nn.Linear(hidden_size * 2, 4 * hidden_size)
-            )
-            self.w_r = nn.Linear(hidden_size, hidden_size)
+            
+            if shared:
+                self.pe_ss = nn.Parameter(pe, requires_grad=learnable)
+                self.pe_se = self.pe_ss
+                self.pe_es = self.pe_ss
+                self.pe_ee = self.pe_ss
+            else:
+                self.pe_ss = nn.Parameter(pe.clone(), requires_grad=learnable)
+                self.pe_se = nn.Parameter(pe.clone(), requires_grad=learnable)
+                self.pe_es = nn.Parameter(pe.clone(), requires_grad=learnable)
+                self.pe_ee = nn.Parameter(pe.clone(), requires_grad=learnable)
+            
+            # 融合层
+            if fusion_mode == 'concat' or fusion_mode == 'ff':
+                self.fusion_layer = nn.Sequential(
+                    nn.Linear(hidden_size * 4, hidden_size),
+                    nn.ReLU()
+                )
+            elif fusion_mode == 'attn':
+                self.attn_score = nn.Sequential(
+                    nn.Linear(hidden_size * 4, hidden_size * 4),
+                    nn.ReLU(),
+                    nn.Linear(hidden_size * 4, 4),
+                    nn.Softmax(dim=-1)
+                )
+                self.w_r = nn.Linear(hidden_size, hidden_size)
+            elif fusion_mode == 'gate':
+                self.gate_score = nn.Sequential(
+                    nn.Linear(hidden_size * 4, hidden_size * 2),
+                    nn.ReLU(),
+                    nn.Linear(hidden_size * 2, 4 * hidden_size)
+                )
+                self.w_r = nn.Linear(hidden_size, hidden_size)
     
     def forward(self, pos_s: torch.Tensor, pos_e: torch.Tensor) -> torch.Tensor:
-        """前向传播
-        
-        Args:
-            pos_s: 开始位置 [batch, seq_len]
-            pos_e: 结束位置 [batch, seq_len]
-            
-        Returns:
-            融合后的位置编码 [batch, seq_len, seq_len, hidden_size]
-        """
+        """前向传播"""
         batch, seq_len = pos_s.size()
         
         # 计算四种相对位置
-        pos_ss = pos_s.unsqueeze(-1) - pos_s.unsqueeze(-2)  # [batch, seq_len, seq_len]
+        pos_ss = pos_s.unsqueeze(-1) - pos_s.unsqueeze(-2)
         pos_se = pos_s.unsqueeze(-1) - pos_e.unsqueeze(-2)
         pos_es = pos_e.unsqueeze(-1) - pos_s.unsqueeze(-2)
         pos_ee = pos_e.unsqueeze(-1) - pos_e.unsqueeze(-2)
         
-        # 获取四个位置编码
+        if self.use_scalar:
+            # 标量位置编码：直接处理，显存占用极小
+            pe_ss = self.pe_ss[(pos_ss + self.max_len).clamp(0, 2*self.max_len)]
+            pe_se = self.pe_se[(pos_se + self.max_len).clamp(0, 2*self.max_len)]
+            pe_es = self.pe_es[(pos_es + self.max_len).clamp(0, 2*self.max_len)]
+            pe_ee = self.pe_ee[(pos_ee + self.max_len).clamp(0, 2*self.max_len)]
+            pe_4 = torch.cat([pe_ss, pe_se, pe_es, pe_ee], dim=-1)
+            return self.scalar_proj(pe_4)
+        
+        if self.use_unique:
+            return self._forward_unique(pos_ss, pos_se, pos_es, pos_ee, batch, seq_len)
+        else:
+            return self._forward_standard(pos_ss, pos_se, pos_es, pos_ee, batch, seq_len)
+    
+    def _forward_unique(self, pos_ss, pos_se, pos_es, pos_ee, batch, seq_len):
+        """使用 unique 优化的前向传播"""
+        pos_4 = torch.stack([pos_ss, pos_se, pos_es, pos_ee], dim=-1)
+        pos_4_flat = pos_4.view(-1, 4)
+        
+        unique_pos, inverse_indices = torch.unique(pos_4_flat, dim=0, return_inverse=True)
+        
+        unique_pe_ss = self.pe_ss[(unique_pos[:, 0] + self.max_len).clamp(0, 2*self.max_len)]
+        unique_pe_se = self.pe_se[(unique_pos[:, 1] + self.max_len).clamp(0, 2*self.max_len)]
+        unique_pe_es = self.pe_es[(unique_pos[:, 2] + self.max_len).clamp(0, 2*self.max_len)]
+        unique_pe_ee = self.pe_ee[(unique_pos[:, 3] + self.max_len).clamp(0, 2*self.max_len)]
+        
+        unique_pe_4 = torch.cat([unique_pe_ss, unique_pe_se, unique_pe_es, unique_pe_ee], dim=-1)
+        
+        if hasattr(self, 'fusion_layer'):
+            unique_output = self.fusion_layer(unique_pe_4)
+        else:
+            unique_output = unique_pe_4[:, :self.hidden_size]
+        
+        output = unique_output[inverse_indices].view(batch, seq_len, seq_len, -1)
+        return output
+    
+    def _forward_standard(self, pos_ss, pos_se, pos_es, pos_ee, batch, seq_len):
+        """标准前向传播（无优化）"""
         pe_ss = self.pe_ss[(pos_ss + self.max_len).view(-1)].view(batch, seq_len, seq_len, -1)
         pe_se = self.pe_se[(pos_se + self.max_len).view(-1)].view(batch, seq_len, seq_len, -1)
         pe_es = self.pe_es[(pos_es + self.max_len).view(-1)].view(batch, seq_len, seq_len, -1)
         pe_ee = self.pe_ee[(pos_ee + self.max_len).view(-1)].view(batch, seq_len, seq_len, -1)
         
-        # 融合
         if self.fusion_mode in ['concat', 'ff']:
             pe_4 = torch.cat([pe_ss, pe_se, pe_es, pe_ee], dim=-1)
             output = self.fusion_layer(pe_4)
-        
         elif self.fusion_mode == 'attn':
             pe_4 = torch.cat([pe_ss, pe_se, pe_es, pe_ee], dim=-1)
-            attn_weights = self.attn_score(pe_4)  # [batch, seq_len, seq_len, 4]
+            attn_weights = self.attn_score(pe_4)
             pe_4_reshaped = self.w_r(pe_4.view(batch, seq_len, seq_len, 4, self.hidden_size))
             output = (attn_weights.unsqueeze(-1) * pe_4_reshaped).sum(dim=-2)
-        
         elif self.fusion_mode == 'gate':
             pe_4 = torch.cat([pe_ss, pe_se, pe_es, pe_ee], dim=-1)
             gate_weights = self.gate_score(pe_4).view(batch, seq_len, seq_len, 4, self.hidden_size)

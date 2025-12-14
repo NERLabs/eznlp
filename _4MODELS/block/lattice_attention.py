@@ -181,6 +181,7 @@ class LatticeSelfAttention(nn.Module):
     """Lattice 自注意力机制
     
     FLAT 的核心组件：结合四位置融合的自注意力
+    支持 use_scalar 优化来减少显存占用
     """
     
     def __init__(
@@ -189,7 +190,9 @@ class LatticeSelfAttention(nn.Module):
         num_heads: int,
         max_len: int,
         dropout: float = 0.1,
-        four_pos_fusion_mode: str = 'ff'
+        four_pos_fusion_mode: str = 'ff',
+        use_scalar: bool = True,
+        scalar_dim: int = 4
     ):
         """初始化
         
@@ -198,19 +201,28 @@ class LatticeSelfAttention(nn.Module):
             num_heads: 注意力头数
             max_len: 最大序列长度
             dropout: Dropout 比率
-            four_pos_fusion_mode: 四位置融合模式 ('ff', 'attn', 'gate')
+            four_pos_fusion_mode: 四位置融合模式 ('ff', 'attn', 'gate', 'scalar')
+            use_scalar: 是否使用标量位置编码（减少显存）
+            scalar_dim: 标量位置编码维度
         """
         super().__init__()
         
-        from .position_encoding import FourPositionFusion
+        try:
+            from .position_encoding import FourPositionFusion
+        except ImportError:
+            # 如果相对导入失败，尝试绝对导入
+            from _4MODELS.block.position_encoding import FourPositionFusion
         
-        # 四位置融合模块
+        # 四位置融合模块（使用优化版本）
         self.four_pos_fusion = FourPositionFusion(
             hidden_size=hidden_size,
             max_len=max_len,
             fusion_mode=four_pos_fusion_mode,
             learnable=True,
-            shared=True
+            shared=True,
+            use_unique=True,
+            use_scalar=use_scalar,
+            scalar_dim=scalar_dim
         )
         
         # 带相对位置的多头注意力

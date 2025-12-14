@@ -7,8 +7,18 @@
 """
 
 from .redjujube_model_builder import RedJujubeModelBuilder, RedJujubeModelFactory
+from .flat_model_builder import (
+    FLATEncoder,
+    FLATModelBuilder,
+    FLATModelFactory,
+)
 
 __all__ = [
+    # RedJujube 模型
     'RedJujubeModelBuilder',
     'RedJujubeModelFactory',
+    # FLAT 模型
+    'FLATEncoder',
+    'FLATModelBuilder',
+    'FLATModelFactory',
 ]
