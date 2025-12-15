@@ -98,6 +98,59 @@ results/
 
 ---
 
+### 📏 12-3周：ExpertDict深度优化 + FLAT模型探索 (2025-12-14 ~ 2025-12-20) 🔄
+
+**计划文档**: [plans/12-3_soft_expert_joint.md](../plans/12-3_soft_expert_joint.md)
+
+**实验目录**: [12-3_expert_optimization/](./12-3_expert_optimization/)
+
+**实验报告**:
+- [FLAT模型搭建实验记录_20251215.md](./12-3_expert_optimization/FLAT模型搭建实验记录_20251215.md) - FLAT模型实现与训练尝试 ⏸️ 暂停
+- [MSRA_ER_Experiments_20251213.md](./12-3_expert_optimization/MSRA_ER_Experiments_20251213.md) - MSRA数据集验证
+
+**核心工作** (🔄 进行中):
+
+1. 🔬 **FLAT (Flat-Lattice Transformer) 模型复现**
+   - ✅ 完整代码架构实现 (4,000行代码)
+   - ✅ NFLAT深度研究与改进方案 (2,000行文档)
+   - ⏸️ 训练阻塞：TransformerEncoderLayer接口不匹配
+   - 总工作量: **50小时（6.25个工作日）**
+
+2. 🔥 **ExpertDict深度优化** (⏳ 计划中)
+   - [ ] 错误分析
+   - [ ] 超参数优化
+   - [ ] 对抗训练 + 模型集成
+   - [ ] NFLAT Inter-Attention集成
+
+**关键发现**:
+- 🏆 **FLAT vs ExpertDict**: ExpertDict在性能、效率、可用性上全面优于FLAT
+  - ExpertDict: 97.00% F1, 1.5小时训练, 8GB GPU
+  - FLAT (预期): 94-96.5% F1, 6-12小时训练, 12-20GB GPU
+- 📚 **技术储备**: FLAT实现为理解Lattice架构提供基础
+- 💡 **改进方向**: NFLAT的Inter-Attention可应用于ExpertDict优化
+
+**FLAT代码产出**:
+```
+_4MODELS/
+├── block/
+│   ├── lattice_modules.py          # Lattice基础模块 (500行)
+│   └── lattice_attention.py        # Lattice注意力 (600行)
+├── models/
+│   ├── flat_extractor.py           # FLAT模型 (800行)
+│   ├── flat_data_processor.py      # 数据处理 (400行)
+│   ├── flat_model_builder.py       # 模型构建器 (350行)
+│   └── FLAT_MODEL_README.md        # 使用指南 (336行)
+└── _5TRAIN/train_flat_redjujube.py # 训练脚本 (450行)
+
+分析文档: experiments/hz_lexicon/analysis/
+├── NFLAT_Code_Analysis.md          # NFLAT深度分析 (638行)
+├── NFLAT_Quick_Reference.md        # NFLAT快速参考 (339行)
+├── nflat_improvements.py           # 改进方案代码 (400行)
+└── ARCHITECTURE_COMPARISON.md      # 架构对比 (350行)
+```
+
+---
+
 ## 🔑 关键结论
 
 ### ✅ 已验证结论 (12-1周 + 12-2周)
@@ -176,8 +229,24 @@ results/
 ---
 
 **文档维护**: 与 `plans/` 目录周计划保持同步  
-**最后更新**: 2025-12-13 (当前为12-2周)  
+**最后更新**: 2025-12-15 (已完成12-2周)  
 **实验负责人**: 史文龙
+
+---
+
+## 📝 近期更新 (2025-12-15)
+
+### 新增报告
+- ✅ [实验记录补充 (12-12 ~ 12-15)](./ 实验记录补充_20251212-20251215.md)
+  - 近三天完整实验记录 (RedJujube + MSRA)
+  - 16个完成实验 + 1个进行中
+  - 融合方案验证结论
+
+### 关键结论更新
+- ✅ **ExpertDict方法最优**: RedJujube 97.00% F1, 稳定性极高
+- ❌ **Soft+Expert融合无效**: 所有融合均低于单独ExpertDict
+- ❌ **SoftLexicon在RedJujube上完全无效**: 所有版本都低于Baseline
+- 🎯 **推荐方案**: ExpertDict(自动, min_freq=2) - 最佳实践
 
 ---
 

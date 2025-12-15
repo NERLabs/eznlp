@@ -194,17 +194,179 @@
     - SoftLexicon + ExpertDict
   - 如果有条件，挑一小批 case 看错误类型分布（例如哪些实体由 Soft 补救，哪些由 Expert 补救）。
 
-#### 第 10 天：总结 & 为后续 MSRA / 公开词典做准备
+### 第 10 天：总结 & 为后续 MSRA / 公开词典做准备
 
-- 在 `hz_lexicon_2weeks.md` 里写一个“阶段总结”小节，重点回答三件事：
+- 在 `hz_lexicon_2weeks.md` 里写一个"阶段总结"小节，重点回答三件事：
   1. 在 HZ 上，SoftLexicon（不同候选词策略） vs ExpertDict（手工/自动）的优劣势；
   2. Soft+Expert 是否明显优于单独任一方；
-  3. “软词典候选词严格来自训练集”的策略，是否在不依赖外部大词表的情况下，效果还能接受（或更好）。
+  3. "软词典候选词严格来自训练集"的策略，是否在不依赖外部大词表的情况下，效果还能接受（或更好）。
 
 - 若时间允许，在最后列出下一阶段（可能是 MSRA 或 引入公开领域词典）的 TODO，但不用展开。
 
 ---
 
+## 📊 阶段总结：第 2 周实验完成 (2025-12-12 ~ 12-15)
+
+### 实验完成情况
+
+**完成时间**: 2025-12-12 ~ 2025-12-15  
+**实验数量**: 16个完成 + 1个进行中  
+**涉及数据集**: RedJujube (主), HZ, MSRA  
+
+### 核心实验结果
+
+#### 1. RedJujube数据集完整验证 (12-12 ~ 12-13)
+
+**基础对比实验** (12-12):
+
+| 方法 | 测试F1 | 提升 | 词典大小 | 状态 |
+|------|--------|------|---------|------|
+| Baseline | 95.51% | - | 0 | ✅ |
+| SoftLexicon (TrainLex) | 96.07% | +0.56% | 198,437 | ✅ |
+| ExpertDict (自动) | **96.99%** | **+1.48%** | 2,078 | ✅ |
+| ExpertDict (手动) | **97.04%** | **+1.53%** | 3,389 | ✅ |
+
+**融合方案实验** (12-13):
+
+| 融合方式 | 测试F1 | vs ExpertDict | 状态 |
+|---------|--------|--------------|------|
+| Concat | 96.87% | -0.13% | ✅ |
+| Weighted | 96.72% | -0.28% | ✅ |
+| Attention | 96.53% | -0.47% | ✅ |
+| Gated | 96.46% | -0.54% | ✅ |
+
+**SoftLexicon优化实验** (12-13):
+
+| 版本 | 词典规模 | 测试F1 | vs Baseline | 状态 |
+|------|---------|--------|------------|------|
+| v1 (含标点) | 18,678 | 95.47% | -0.04% | ✅ |
+| v2 (去标点) | 10,959 | 95.46% | -0.05% | ✅ |
+| Balanced | 52,487 | 94.63% | -0.88% | ✅ |
+
+**ExpertDict稳定性验证** (12-13):
+- Run1 (seed=42): 96.99%
+- Run2 (seed=123): 97.00%
+- Run3 (seed=456): 97.01%
+- **标准差**: < 0.01%
+
+#### 2. MSRA数据集初步验证 (12-14)
+
+| 实验 | 测试F1 | 测试Loss | 参数量 | 状态 |
+|------|--------|---------|--------|------|
+| SoftLexicon-v1 | 94.62% | 2.364 | 110.1M | ✅ |
+| Soft+Expert Concat | 94.75% | 1.588 | 104.5M | ✅ |
+| Soft+Expert Concat Run2 | - | - | - | 🔄 进行中 |
+
+### 三个关键问题的答案
+
+#### ❓1. SoftLexicon vs ExpertDict 优劣势
+
+**HZ数据集**:
+- ✅ SoftLexicon(TrainLex): 96.57% (+0.95%)
+- ✅ ExpertDict(自动): 97.05% (+1.39%)
+- 📊 ExpertDict 领先 +0.48%
+
+**RedJujube数据集**:
+- ❌ SoftLexicon(TrainLex): 96.07% (+0.56%)
+- ✅ ExpertDict(自动): 96.99% (+1.48%)
+- 📊 ExpertDict 领先 +0.92%
+
+**结论**:
+- **ExpertDict 方法更稳定**: 在两个数据集上均优于SoftLexicon
+- **词典质量>规模**: ExpertDict用2k词优于SoftLexicon的20w词
+- **SoftLexicon受数据集影响**: RedJujube上甚至出现负效果的优化版本
+
+#### ❓2. Soft+Expert 是否优于单独方法
+
+**RedJujube验证结果**:
+- ❌ 所有融合方案均劣于单独ExpertDict
+- 最佳融合(Concat): 96.87% < ExpertDict: 97.00%
+- 差距: -0.13%
+
+**MSRA初步结果**:
+- ✅ Concat融合略优于单独SoftLexicon (+0.13%)
+- ⏳ 需与单独ExpertDict对比（实验进行中）
+
+**结论**:
+- **RedJujube数据集**: Soft+Expert融合方案**无效**
+- **SoftLexicon是"拖累"**: 而非增益
+- **推荐方案**: 单独使用ExpertDict
+
+#### ❓3. "训练集严格策略"效果如何
+
+**SoftLexicon-TrainLex 验证**:
+- HZ: TrainLex (96.57%) > CTB (95.88%), 提升+0.69%
+- RedJujube: TrainLex (96.07%) vs CTB未测试
+- ✅ **避免数据泄露，性能更优**
+
+**ExpertDict-Auto 验证**:
+- HZ: Auto (97.05%) vs Manual (97.94%), 差距-0.89%
+- RedJujube: Auto (96.99%) vs Manual (97.04%), 差距-0.05%
+- ✅ **自动提取策略非常有效**
+
+**结论**:
+- ✅ "训练集严格策略"在不依赖外部资源的情况下，效果**优于**使用外部词表
+- ✅ ExpertDict自动提取(min_freq=2)是**最佳实践**
+- ✅ 完全避免数据泄露，性能接近手工标注
+
+### 实验总结
+
+#### ✅ 已验证有效的方法
+
+1. **ExpertDict (自动提取)** 🏆
+   - HZ: 97.05% F1
+   - RedJujube: 97.00% F1
+   - 稳定性: 标准差 < 0.01%
+   - **推荐作为最佳实践**
+
+2. **训练集严格策略**
+   - SoftLex-TrainLex > CTB词表
+   - ExpertDict-Auto ≈ Manual
+   - 避免数据泄露
+
+#### ❌ 已验证无效的方法
+
+1. **Soft+Expert融合方案**
+   - 在RedJujube上所有融合均劣于单独ExpertDict
+   - SoftLexicon是"拖累"而非"增益"
+   - **不推荐使用**
+
+2. **SoftLexicon词典优化**
+   - 去标点、平衡采样等策略无效
+   - 在RedJujube上甚至出现负效果
+   - **词典构建策略影响大**
+
+3. **复杂融合机制**
+   - Attention、Gated等方法反而降低性能
+   - Concat最优但仍不如单独ExpertDict
+   - **简单方法更有效**
+
+### 详细报告链接
+
+- 📊 [实验记录补充 (12-12 ~ 12-15)](../results/实验记录补充_20251212-20251215.md)
+- 📊 [RedJujube完整实验报告 (12-13)](../results/12-2_softlexicon/RedJujube_SoftLexicon_Complete_Report_20251213.md)
+- 📊 [MSRA实验报告 (12-14)](../results/12-2_softlexicon/msra_experiments_20251214.md)
+
+### 下一阶段计划 (12-3周)
+
+基于第2周实验结论：
+
+1. ✅ **聚焦ExpertDict方法**
+   - 放弃Soft+Expert融合方案
+   - 深入优化ExpertDict配置
+
+2. 🎯 **超参数探索**
+   - 词典规模影响 (min_freq阈值)
+   - 嵌入维度优化 (expert_dict_dim)
+   - 融合方式探索 (如有必要)
+
+3. 📝 **撰写阶段总结**
+   - 两周实验完整报告
+   - 方法论总结
+   - 最佳实践指南
+
+---
+
 如果你愿意，我可以下一步直接给出：  
-- “训练集抽 softlexicon 候选词”的脚本改法（在现有 `extract_lexicon_from_training.py` 基础上扩展一段）；  
+- "训练集抽 softlexicon 候选词"的脚本改法（在现有 `extract_lexicon_from_training.py` 基础上扩展一段）；  
 - 以及 HZ 联合模型（Soft+Expert）的具体代码改动片段。

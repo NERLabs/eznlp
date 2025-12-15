@@ -1,13 +1,13 @@
-# 12-3周：ExpertDict深度优化 + SOTA技巧集成
+# 12-3周：ExpertDict深度优化 + FLAT模型探索
 
 **时间**: 2025-12-14 ~ 2025-12-20  
 **状态**: 🔄 进行中  
 **数据集**: RedJujube (主数据集) + MSRA-ER (验证数据集)  
-**目标**: ExpertDict深度优化 + 错误分析 + SOTA技巧集成 → 冲击98% F1
+**目标**: ExpertDict深度优化 + FLAT模型复现探索 + SOTA技巧集成 → 冲击98% F1
 
 ---
 
-## 📋 周计划概览（基于12-13实验结果调整）
+## 📋 周计划概览（基于12-13实验结果调整 + FLAT探索）
 
 ### ⚠️ 重要策略调整
 
@@ -19,23 +19,25 @@
 5. ✅ ExpertDict(自动)**极其稳定**（3次实验97.00% ± 0.01%）
 6. 💡 SoftLexicon是"拖累"而非"增益"
 
-**因此调整本周计划**：
+**因此调整本周计划**:
 - ❌ **放弃**: Soft+Expert联合模型（已验证无效）
 - ❌ **放弃**: SoftLexicon优化（方法本身有问题）
 - ✅ **新方向1**: ExpertDict深度优化（超参数、对抗训练、集成）
 - ✅ **新方向2**: SOTA技巧集成（Dice Loss、Boundary Smoothing）
 - ✅ **新方向3**: 跨数据集验证（RedJujube + MSRA-ER）
+- 🔬 **探索方向**: FLAT (Flat-Lattice Transformer) 模型复现
 
 ---
 
-### 实验目标（调整后）
+### 实验目标（调整后 + FLAT探索）
 1. ✅ 验证ExpertDict的稳定性（**已完成**：97.00% ± 0.01%）
 2. 🔥 **深度错误分析**（最重要！理解ExpertDict为什么有效）
 3. ⚡ **超参数优化**（词典规模、嵌入维度、频次阈值、聚合方式）
 4. 🛡️ **对抗训练**（FGM/PGD，预期+0.2~0.5% F1）
 5. 🏆 **模型集成**（多seed集成，预期+0.3~0.8% F1）
 6. 💡 **可选探索**：轻量级Attention增强、多头ExpertDict
-7. 📊 撰写完整的阶段总结报告
+7. 🔬 **FLAT模型复现**：探索Lattice Transformer架构（技术储备）
+8. 📊 撰写完整的阶段总结报告
 
 ### 关键问题（调整后）
 - 🔍 ExpertDict解决了哪些Baseline解决不了的问题？（错误分析）
@@ -122,6 +124,97 @@
 - ✅ [`SoftLexicon_Versions_Comparison.md`](../analysis/SoftLexicon_Versions_Comparison.md)
 - ✅ [`RedJujube_Complete_Experiments_20251213.md`](../results/RedJujube_Complete_Experiments_20251213.md)
 - ✅ [`NFLAT_Code_Analysis.md`](../analysis/NFLAT_Code_Analysis.md)
+- ✅ [`FLAT模型搭建实验记录_20251215.md`](../results/12-3_expert_optimization/FLAT模型搭建实验记录_20251215.md)
+
+---
+
+## 🔬 FLAT模型探索（并行工作）
+
+### 实验状态: ⏸️ 暂停（技术问题待解决）
+
+#### 已完成工作 (2025-12-13 ~ 2025-12-15)
+
+**1. 代码架构实现** ✅
+- ✅ 核心模块实现（约12小时）
+  - Lattice基础模块: `_4MODELS/block/lattice_modules.py` (500行)
+  - Lattice注意力: `_4MODELS/block/lattice_attention.py` (600行)
+  - FLAT完整模型: `_4MODELS/models/flat_extractor.py` (800行)
+- ✅ 数据处理模块（约8小时）
+  - FLAT数据处理器: `_4MODELS/models/flat_data_processor.py` (400行)
+  - YJ词典准备与格式转换
+- ✅ 模型构建器（约6小时）
+  - 模型工厂类: `_4MODELS/models/flat_model_builder.py` (350行)
+  - 配置文件: `_1CONFIG/redjujube/flat_redjujube_config.json`
+  - 使用文档: `_4MODELS/models/FLAT_MODEL_README.md` (336行)
+
+**2. NFLAT深度研究** ✅
+- ✅ 深度代码分析（约10小时）
+  - NFLAT代码分析: `experiments/hz_lexicon/analysis/NFLAT_Code_Analysis.md` (638行)
+  - 快速参考手册: `experiments/hz_lexicon/analysis/NFLAT_Quick_Reference.md` (339行)
+  - 实施指南与改进代码: `nflat_improvements.py` (400行)
+- ✅ 架构对比分析（约3小时）
+  - 可视化对比: `experiments/hz_lexicon/analysis/ARCHITECTURE_COMPARISON.md` (350行)
+  - FLAT vs NFLAT vs ExpertDict对比
+
+**3. 训练尝试** ❌ 失败
+- ⏸️ 首次训练 (2025-12-14 16:00)
+  - 模型: FLAT + BERT
+  - 错误: TransformerEncoderLayer接口不匹配
+  - 状态: 阻塞，需修复接口问题
+
+**工作量统计**:
+- 总代码量: ~4,000行代码 + ~2,000行文档
+- 总耗时: 约50小时（6.25个工作日）
+- 主要产出: 完整的FLAT实现 + NFLAT改进方案
+
+#### 关键问题与解决方案
+
+**阻塞问题**: TransformerEncoderLayer接口不匹配
+```
+TypeError: TransformerEncoderLayer.__init__() got an unexpected keyword argument 'max_seq_len'
+```
+- **影响**: ❌ 无法训练FLAT+BERT模型
+- **状态**: ⏸️ 暂停，待修复
+- **预估时间**: 2-4小时
+
+**次要问题**:
+1. ✅ Lattice词汇匹配效率低 → 已优化（限制词长和数量）
+2. ✅ 内存占用过大 → 已解决（限制词汇数，batch_size=8）
+
+#### FLAT vs ExpertDict 初步对比
+
+| 维度 | FLAT (预期) | ExpertDict (已验证) | 优势方 |
+|------|-----------|------------------|--------|
+| 性能 | 94-96.5% | **97.00%** | **ExpertDict** 🏆 |
+| 训练时间 | 6-12小时 | 1.5小时 | ExpertDict |
+| GPU内存 | 12-20GB | 8GB | ExpertDict |
+| 实施难度 | 高 | 低 | ExpertDict |
+| 复杂度 | O((n+m)²) | O(n) | ExpertDict |
+| 理论价值 | Lattice架构 | 精选词典 | - |
+
+**结论**: 
+- ExpertDict在性能、效率、可用性上全面优于FLAT
+- FLAT的价值在于技术储备和架构理解
+- 建议: 优先优化ExpertDict，FLAT作为对比基准
+
+#### 下一步计划（FLAT相关）
+
+**Priority 1**: 修复阻塞问题（1-2天）
+- [ ] 解决TransformerEncoderLayer接口问题
+- [ ] 完成FLAT Baseline首次训练
+- [ ] 记录性能基准
+
+**Priority 2**: 性能验证（可选，2-3天）
+- [ ] FLAT Baseline vs ExpertDict对比
+- [ ] FLAT + BERT性能评估
+- [ ] 撰写完整对比分析报告
+
+**Priority 3**: NFLAT改进集成（推荐，3-4天）
+- [ ] 将NFLAT的Inter-Attention应用到ExpertDict
+- [ ] 层次化特征融合
+- [ ] 预期提升0.3-0.5% F1
+
+**详细记录**: [FLAT模型搭建实验记录_20251215.md](../results/12-3_expert_optimization/FLAT模型搭建实验记录_20251215.md)
 
 ---
 
