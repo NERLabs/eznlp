@@ -22,7 +22,7 @@ ps aux | grep "train_redjujube_ner_comparison.py" | grep -v grep >> "$LOG_FILE" 
 echo "" >> "$LOG_FILE"
 
 # 检查最新的训练日志
-python3 scripts/monitor_training.py --once --log-lines 2 >> "$LOG_FILE" 2>&1
+python3 _8TOOL/monitoring/monitor_training.py --once --log-lines 2 >> "$LOG_FILE" 2>&1
 
 echo "" >> "$LOG_FILE"
 echo "下次检查: 5分钟后" >> "$LOG_FILE"

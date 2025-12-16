@@ -7,6 +7,9 @@ import pdb
 import pprint
 import sys
 
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
+sys.path.insert(0, os.path.join(project_root, "_8TOOL"))
 import torch
 from utils import (
     add_base_arguments,

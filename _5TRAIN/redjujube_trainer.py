@@ -256,13 +256,18 @@ class RedJujubeNERTrainer:
             use_amp=self.config.use_amp
         )
         
-        # 6. 保存回调
-        best_model_path = f"{self.config.save_dir}/best_model.pt"
-        def save_callback(model):
-            torch.save(model.state_dict(), best_model_path)
-            self.logger.info(f"✅ 保存最佳模型到: {best_model_path}")
+        # 6. 保存模型配置（用于测试和部署）
+        torch.save(model_config, f"{self.config.save_dir}/{model_config.name}-config.pth")
+        self.logger.info(f"💾 已保存配置: {self.config.save_dir}/{model_config.name}-config.pth")
         
-        # 7. 开始训练
+        # 7. 保存回调
+        def save_callback(model):
+            # 保存完整模型（推荐用于测试和部署）
+            model_path = f"{self.config.save_dir}/{model_config.name}.pth"
+            torch.save(model, model_path)
+            self.logger.info(f"✅ 保存最佳模型到: {model_path}")
+        
+        # 8. 开始训练
         self.logger.info(f"\n开始训练 {self.config.num_epochs} 个 epoch...")
         self.logger.info(f"设备: {self.config.device}")
         self.logger.info(f"批次大小: {self.config.batch_size}")
@@ -279,9 +284,10 @@ class RedJujubeNERTrainer:
             save_by_loss=False  # 按 F1 保存
         )
         
-        # 8. 加载最佳模型并在测试集上评估
+        # 9. 加载最佳模型并在测试集上评估
+        best_model_path = f"{self.config.save_dir}/{model_config.name}.pth"
         self.logger.info(f"\n加载最佳模型: {best_model_path}")
-        model.load_state_dict(torch.load(best_model_path))
+        model = torch.load(best_model_path, map_location=self.config.device, weights_only=False)
         
         self.logger.info("在测试集上评估...")
         test_loss, *test_metrics = trainer.eval_epoch(test_loader)
@@ -294,7 +300,7 @@ class RedJujubeNERTrainer:
                 self.logger.info(f"  Metric {i}: {metric:.4f}")
         self.logger.info(f"{'='*70}\n")
         
-        # 9. 保存结果
+        # 10. 保存结果
         results = {
             'model_type': self.config.model_name,
             'test_loss': float(test_loss),
