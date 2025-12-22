@@ -250,7 +250,7 @@ def evaluate_and_analyze(save_dir, model_type="baseline", export_predictions=Tru
         print(f"[{typ}] {txt} : {c}")
 
     print("\n===== 典型错误案例（前 5 条） =====")
-    for case in error_cases[:100]:
+    for case in error_cases[:5]:
         print("-" * 60)
         print(f"样本索引: {case['index']}")
         print(f"原文: {case['text']}")
