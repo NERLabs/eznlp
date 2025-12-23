@@ -6,7 +6,7 @@ MSRA FLAT 模型测试脚本（用于测试 cache/flat_msra_expert_bert/...）
 - 加载训练时保存的 config.pth（包含 args / char_vocab / label_vocab）
 - 加载 best_model.pth（完整模型对象）
 - 按 BMES MSRA 格式读取 test.char.bmes
-- 重建 FLAT 输入特征，进行实体级评估并打印各类 P/R/F1
+- 重建 FLAT 输入特征，调用 train_flat_complete.py 里的 evaluate 计算 P/R/F1
 """
 
 import argparse
@@ -23,8 +23,7 @@ sys.path.insert(0, os.path.join(project_root, "_8TOOL"))
 
 from _4MODELS.models.flat_data_processor import FLATDataProcessor, load_word_list
 from _4MODELS.models.flat_extractor import FLATModel  # 仅为类型提示，实际直接 load
-from _5TRAIN.train_flat_complete import extract_entities  # 复用 BMES 实体抽取逻辑
-from eznlp.metrics import precision_recall_f1_report
+from _5TRAIN.train_flat_complete import evaluate  # 复用原来的评估逻辑
 
 
 def load_bmes_data(file_path):
@@ -51,118 +50,6 @@ def load_bmes_data(file_path):
         data.append({"chars": chars, "labels": labels})
 
     return data
-
-
-def evaluate_with_report(
-    model,
-    dataloader,
-    device,
-    bert_model=None,
-    bert_tokenizer=None,
-    use_bert=False,
-    idx2label=None,
-):
-    """
-    基于 train_flat_complete.py 的 evaluate 实现，返回：
-    - loss
-    - 每个实体类型的 P/R/F1
-    - macro / micro 的 P/R/F1（实体级）
-    """
-    model.eval()
-
-    all_preds = []
-    all_targets = []
-    total_loss = 0.0
-    num_batches = 0
-
-    with torch.no_grad():
-        for batch in dataloader:
-            lattice = batch["lattice"].to(device)
-            pos_s = batch["pos_s"].to(device)
-            pos_e = batch["pos_e"].to(device)
-            seq_len = batch["seq_len"].to(device)
-            lex_num = batch["lex_num"].to(device)
-            target = batch["target"].to(device)
-
-            # 提取 BERT embeddings（与 train_flat_complete 保持一致）
-            bert_embed = None
-            if use_bert and bert_model is not None:
-                chars_list = batch["chars"]
-                batch_size = len(chars_list)
-                max_char_len = max(len(chars) for chars in chars_list)
-
-                bert_embeds = []
-                for chars in chars_list:
-                    text = "".join(chars)
-                    inputs = bert_tokenizer(
-                        text,
-                        return_tensors="pt",
-                        add_special_tokens=False,
-                        truncation=True,
-                        max_length=len(chars),
-                    ).to(device)
-                    outputs = bert_model(**inputs)
-                    char_embeds = outputs.last_hidden_state[0]
-
-                    if len(char_embeds) != len(chars):
-                        aligned = []
-                        token_per_char = len(char_embeds) / len(chars)
-                        for i in range(len(chars)):
-                            start_idx = int(i * token_per_char)
-                            end_idx = int((i + 1) * token_per_char)
-                            if end_idx > start_idx:
-                                aligned.append(char_embeds[start_idx:end_idx].mean(0))
-                            else:
-                                aligned.append(char_embeds[start_idx])
-                        char_embeds = torch.stack(aligned)
-
-                    bert_embeds.append(char_embeds[: len(chars)])
-
-                bert_embed = torch.zeros(batch_size, max_char_len, 768, device=device)
-                for i, emb in enumerate(bert_embeds):
-                    bert_embed[i, : len(emb)] = emb
-
-            # 先算 loss
-            model.train()
-            output = model(lattice, seq_len, lex_num, pos_s, pos_e, target, bert_embed=bert_embed)
-            total_loss += output["loss"].item()
-            num_batches += 1
-
-            # 再用 eval 模式算预测
-            model.eval()
-            output = model(lattice, seq_len, lex_num, pos_s, pos_e, bert_embed=bert_embed)
-            preds = output["pred"]
-
-            for i, (pred, length) in enumerate(zip(preds, seq_len)):
-                all_preds.append(pred[: length.item()])
-                all_targets.append(target[i, : length.item()].cpu().tolist())
-
-    # 转成实体级 span，和 eznlp 的 ER 评估对齐
-    set_y_pred = []
-    set_y_gold = []
-    for pred, gold in zip(all_preds, all_targets):
-        pred_entities_raw = list(extract_entities(pred, idx2label))  # (start, end, type)
-        gold_entities_raw = list(extract_entities(gold, idx2label))  # (start, end, type)
-
-        # 转成 (type, start, end)，匹配 precision_recall_f1_report 的期望格式
-        pred_entities = [(t, s, e) for (s, e, t) in pred_entities_raw]
-        gold_entities = [(t, s, e) for (s, e, t) in gold_entities_raw]
-
-        set_y_pred.append(pred_entities)
-        set_y_gold.append(gold_entities)
-
-    # 计算每类 + macro/micro（实体级）
-    scores, ave_scores = precision_recall_f1_report(
-        set_y_gold, set_y_pred, macro_over="types"
-    )
-    avg_loss = total_loss / num_batches if num_batches > 0 else 0.0
-
-    return {
-        "loss": avg_loss,
-        "scores": scores,
-        "macro": ave_scores["macro"],
-        "micro": ave_scores["micro"],
-    }
 
 
 def build_processor_from_config(config_dict: dict, override_word_file: str = None):
@@ -353,13 +240,9 @@ def main():
     model.to(device)
     model.eval()
 
-    # ===== 打印模型结构 =====
-    print("\n===== 模型结构 (FLAT-MSRA) =====")
-    print(model)
-
-    # 6. 调用带详细报告的 evaluate_with_report（实体级）
+    # 6. 调用原始 evaluate 计算 P/R/F1
     print("\n===== 使用 FLAT 评估 MSRA 测试集 =====")
-    metrics = evaluate_with_report(
+    metrics = evaluate(
         model,
         test_loader,
         device,
@@ -369,39 +252,11 @@ def main():
         idx2label=processor.idx2label,
     )
 
-    print("\n===== 测试集结果 (MSRA, 实体级) =====")
+    print("\n===== 测试集结果 (MSRA, Micro-F1) =====")
     print(f"Loss={metrics['loss']:.4f}")
-
-    macro = metrics["macro"]
-    micro = metrics["micro"]
-
-    # 打印宏观 / 微观 F1（实体级）
-    print("\n[Macro]")
-    print(f"P={macro['precision']:.4%}  R={macro['recall']:.4%}  F1={macro['f1']:.4%}")
-    print("[Micro]")
-    print(f"P={micro['precision']:.4%}  R={micro['recall']:.4%}  F1={micro['f1']:.4%}")
-
-    # 各实体类型指标：使用真实标签名（例如 MSRA: NR/NS/NT）
-    print("\n===== 各实体类型指标 (MSRA) =====")
-    # 统一列宽：Type 6 列，P/R/F1 9 列（含4位小数），计数列 8 列
-    print(f"{'Type':<6} {'P':>9} {'R':>9} {'F1':>9} {'Gold':>8} {'Pred':>8} {'TP':>8}")
-
-    scores = metrics["scores"]
-
-    # 若想按固定顺序显示 NR/NS/NT，可以在这里排序
-    order = ["NR", "NS", "NT"]
-    types_in_scores = list(scores.keys())
-    ordered_types = [t for t in order if t in types_in_scores] + [
-        t for t in sorted(types_in_scores) if t not in order
-    ]
-
-    for t in ordered_types:
-        s = scores[t]
-        print(
-            f"{t:<6} "
-            f"{s['precision']:>9.4f} {s['recall']:>9.4f} {s['f1']:>9.4f} "
-            f"{s['n_gold']:>8d} {s['n_pred']:>8d} {s['n_true_positive']:>8d}"
-        )
+    print(f"P={metrics['precision']:.4%}")
+    print(f"R={metrics['recall']:.4%}")
+    print(f"F1={metrics['f1']:.4%}")
 
 
 if __name__ == "__main__":

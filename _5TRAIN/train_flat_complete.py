@@ -33,7 +33,7 @@ from eznlp.metrics import precision_recall_f1_report
 
 # 导入 FLAT 组件
 from _4MODELS.models.flat_data_processor import FLATDataProcessor, FLATDataset, load_word_list
-from _4MODELS.models.flat_extractor import FLATModel, FLATModelWithBERT
+from _4MODELS.models.flat_extractor import FLATModel, FLATModelWithBERT, FLATWithInterAttention
 
 
 def parse_args():
@@ -89,6 +89,16 @@ def parse_args():
         default='bert-base-chinese',
         help='BERT 模型名称或本地路径'
     )
+    group_model.add_argument(
+        '--model_type',
+        type=str,
+        default='flat',
+        choices=['flat', 'flat_inter'],
+        help='模型类型: flat=原始FLAT, flat_inter=Inter-Attention改进版'
+    )
+
+    # 设备与训练配置
+    group_train = parser.add_argument_group("training config")
 
     # 其他参数
     group_misc = parser.add_argument_group("misc")
@@ -274,12 +284,22 @@ def extract_entities(labels, idx2label=None):
     return set(entities)
 
 
-def build_optimizer_and_scheduler(model, num_train_batches: int, args):
+def build_optimizer_and_scheduler(model, num_train_batches: int, args, bert_model=None):
     """构建优化器和调度器（对齐 _8TOOL/utils.build_trainer 的策略）"""
-    # FLAT 当前不区分预训练参数和非预训练参数，直接把所有参数放在“非预训练”组
+    # 构建参数组：区分预训练参数和非预训练参数
     param_groups = []
     param_groups.append({"params": collect_params(model, param_groups), "lr": args.lr})
+    
+    # 先检查模型参数组（不包括 BERT）
     assert check_param_groups(model, param_groups)
+    
+    # 如果使用 BERT，把 BERT 参数加入优化器（使用 finetune_lr）
+    if args.use_bert and bert_model is not None:
+        bert_lr = getattr(args, 'finetune_lr', args.lr * 0.1)
+        bert_params = list(bert_model.parameters())  # 转换为列表
+        param_groups.append({"params": bert_params, "lr": bert_lr})
+        print(f"  模型学习率: {args.lr}")
+        print(f"  BERT fine-tuning 学习率: {bert_lr}")
 
     optimizer = getattr(torch.optim, args.optimizer)(param_groups)
 
@@ -510,21 +530,39 @@ def train(args):
     print(f"\n[{5 if args.use_bert else 4}/6] 创建模型...")
     device = torch.device(args.device if torch.cuda.is_available() else 'cpu')
     
-    model = FLATModel(
-        vocab_size=len(processor.char_vocab),
-        label_size=len(processor.label_vocab),
-        hidden_size=args.hidden_size,
-        embed_size=args.embed_size,
-        num_heads=args.num_heads,
-        num_layers=args.num_layers,
-        ff_size=args.ff_size,
-        max_seq_len=args.max_seq_len,
-        dropout=args.dropout,
-        use_bigram=False,
-        use_bert=args.use_bert,
-        bert_hidden_size=768 if args.use_bert else 0,
-        four_pos_fusion=args.four_pos_fusion,
-    ).to(device)
+    model_type = getattr(args, 'model_type', 'flat')
+    
+    if model_type == 'flat_inter':
+        print("  模型类型: FLAT + Inter-Attention (NFLAT 风格)")
+        model = FLATWithInterAttention(
+            vocab_size=len(processor.char_vocab),
+            label_size=len(processor.label_vocab),
+            hidden_size=768 if args.use_bert else args.hidden_size,
+            embed_size=args.embed_size,
+            num_heads=8 if args.use_bert else args.num_heads,
+            num_inter_layers=args.num_layers,
+            ff_size=args.ff_size if args.ff_size > 0 else 768 * 4,
+            max_seq_len=args.max_seq_len,
+            dropout=args.dropout,
+            use_ffn=True,
+        ).to(device)
+    else:
+        print("  模型类型: 原始 FLAT")
+        model = FLATModel(
+            vocab_size=len(processor.char_vocab),
+            label_size=len(processor.label_vocab),
+            hidden_size=args.hidden_size,
+            embed_size=args.embed_size,
+            num_heads=args.num_heads,
+            num_layers=args.num_layers,
+            ff_size=args.ff_size,
+            max_seq_len=args.max_seq_len,
+            dropout=args.dropout,
+            use_bigram=False,
+            use_bert=args.use_bert,
+            bert_hidden_size=768 if args.use_bert else 0,
+            four_pos_fusion=args.four_pos_fusion,
+        ).to(device)
     
     total_params = sum(p.numel() for p in model.parameters())
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -534,9 +572,9 @@ def train(args):
     
     # 构建优化器与调度器（对齐 eznlp 的策略）
     optimizer, scheduler, schedule_by_step = build_optimizer_and_scheduler(
-        model, len(train_loader), args
+        model, len(train_loader), args, bert_model=bert_model
     )
-    
+
     # AMP 梯度缩放器
     scaler = torch.amp.GradScaler(enabled=args.use_amp)
     
