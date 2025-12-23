@@ -8,7 +8,6 @@
 使用方式:
     python train_flat_complete.py --data_dir _2DATA/RedJujube --word_file assets/vectors/ctb.50d.vec
 """
-
 import argparse
 import os
 import sys
@@ -20,10 +19,17 @@ from torch.utils.data import DataLoader
 import numpy as np
 from pathlib import Path
 from tqdm import tqdm
+from torch.utils.tensorboard import SummaryWriter
 
-# 添加项目路径
+# 添加项目路径（与 text2text/train_redjujube_ner 保持一致）
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
+sys.path.insert(0, os.path.join(project_root, "_8TOOL"))
+
+# 复用 eznlp 的训练工具和评估指标（不改内部结构）
+from utils import add_base_arguments, parse_to_args
+from eznlp.training import LRLambda, collect_params, check_param_groups
+from eznlp.metrics import precision_recall_f1_report
 
 # 导入 FLAT 组件
 from _4MODELS.models.flat_data_processor import FLATDataProcessor, FLATDataset, load_word_list
@@ -31,63 +37,67 @@ from _4MODELS.models.flat_extractor import FLATModel, FLATModelWithBERT
 
 
 def parse_args():
-    """解析命令行参数"""
-    parser = argparse.ArgumentParser(description='完整 FLAT 模型训练')
-    
+    """解析命令行参数（统一使用 eznlp 的基础训练超参）"""
+    parser = argparse.ArgumentParser(
+        description='完整 FLAT 模型训练',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        fromfile_prefix_chars='@',
+    )
+    # 训练超参：seed / num_epochs / batch_size / lr / optimizer / scheduler / num_grad_acc_steps / grad_clip / use_amp 等
+    parser = add_base_arguments(parser)
+
     # 数据参数
-    parser.add_argument('--data_dir', type=str, default='_2DATA/RedJujube',
-                        help='数据目录')
-    parser.add_argument('--word_file', type=str, default='assets/vectors/ctb.50d.vec',
-                        help='词表文件路径（用于构建 Trie）')
-    parser.add_argument('--save_dir', type=str, default='cache/flat_complete',
-                        help='模型保存目录')
-    
-    # 模型参数
-    parser.add_argument('--hidden_size', type=int, default=256,
-                        help='隐藏层维度')
-    parser.add_argument('--embed_size', type=int, default=50,
-                        help='嵌入维度')
-    parser.add_argument('--num_layers', type=int, default=2,
-                        help='Transformer 层数')
-    parser.add_argument('--num_heads', type=int, default=4,
-                        help='注意力头数')
-    parser.add_argument('--ff_size', type=int, default=-1,
-                        help='前馈网络维度（-1 表示 hidden_size * 4）')
-    parser.add_argument('--max_seq_len', type=int, default=256,
-                        help='最大序列长度')
-    parser.add_argument('--dropout', type=float, default=0.15,
-                        help='Dropout 率')
-    parser.add_argument('--four_pos_fusion', type=str, default='ff',
-                        choices=['ff', 'attn', 'gate', 'ff_linear', 'ff_two'],
-                        help='四位置融合方式')
-    parser.add_argument('--use_bert', action='store_true',
-                        help='是否使用 BERT 嵌入')
-    parser.add_argument('--bert_model', type=str, default='bert-base-chinese',
-                        help='BERT 模型名称')
-    
-    # 训练参数
-    parser.add_argument('--num_epochs', type=int, default=50,
-                        help='训练轮数')
-    parser.add_argument('--batch_size', type=int, default=16,
-                        help='批次大小')
-    parser.add_argument('--lr', type=float, default=1e-3,
-                        help='学习率')
-    parser.add_argument('--weight_decay', type=float, default=0.0,
-                        help='权重衰减')
-    parser.add_argument('--warmup_steps', type=int, default=500,
-                        help='Warmup 步数')
-    parser.add_argument('--grad_clip', type=float, default=5.0,
-                        help='梯度裁剪')
-    
+    group_data = parser.add_argument_group("data")
+    group_data.add_argument(
+        '--data_dir',
+        type=str,
+        default='_2DATA/RedJujube',
+        help='数据目录（包含 *.bmes）'
+    )
+    group_data.add_argument(
+        '--word_file',
+        type=str,
+        default='assets/vectors/ctb.50d.vec',
+        help='词表文件路径（用于构建 Trie）'
+    )
+    group_data.add_argument(
+        '--save_dir',
+        type=str,
+        default='cache/flat_complete',
+        help='模型保存目录'
+    )
+
+    # 模型参数（FLAT 专用）
+    group_model = parser.add_argument_group("FLAT model")
+    group_model.add_argument('--hidden_size', type=int, default=256, help='隐藏层维度')
+    group_model.add_argument('--embed_size', type=int, default=50, help='嵌入维度')
+    group_model.add_argument('--num_heads', type=int, default=4, help='注意力头数')
+    group_model.add_argument('--ff_size', type=int, default=-1, help='前馈网络维度（-1 表示 hidden_size * 4）')
+    group_model.add_argument('--max_seq_len', type=int, default=256, help='最大序列长度')
+    group_model.add_argument('--dropout', type=float, default=0.15, help='Dropout 率')
+    group_model.add_argument(
+        '--four_pos_fusion',
+        type=str,
+        default='ff',
+        choices=['ff', 'attn', 'gate', 'ff_linear', 'ff_two'],
+        help='四位置融合方式'
+    )
+    group_model.add_argument('--use_bert', action='store_true', help='是否使用 BERT 嵌入')
+    group_model.add_argument(
+        '--bert_model',
+        type=str,
+        default='bert-base-chinese',
+        help='BERT 模型名称或本地路径'
+    )
+
     # 其他参数
-    parser.add_argument('--seed', type=int, default=42,
-                        help='随机种子')
-    parser.add_argument('--device', type=str, default='cuda',
-                        help='设备')
-    parser.add_argument('--eval_every', type=int, default=200,
-                        help='每 N 步评估一次')
-    
-    return parser.parse_args()
+    group_misc = parser.add_argument_group("misc")
+    group_misc.add_argument('--device', type=str, default='cuda', help='设备')
+    group_misc.add_argument('--eval_every', type=int, default=200, help='每 N 步评估一次')
+    group_misc.add_argument('--weight_decay', type=float, default=0.0, help='权重衰减')
+
+    args = parse_to_args(parser)
+    return args
 
 
 def load_bmes_data(file_path):
@@ -117,7 +127,7 @@ def load_bmes_data(file_path):
 
 
 def evaluate(model, dataloader, device, bert_model=None, bert_tokenizer=None, use_bert=False, idx2label=None):
-    """评估模型（使用实体级别 F1）"""
+    """评估模型（使用与 eznlp 相同的实体级 F1 计算）"""
     model.eval()
     
     all_preds = []
@@ -134,7 +144,7 @@ def evaluate(model, dataloader, device, bert_model=None, bert_tokenizer=None, us
             lex_num = batch['lex_num'].to(device)
             target = batch['target'].to(device)
             
-            # 提取 BERT embeddings
+            # 提取 BERT embeddings（保持原逻辑）
             bert_embed = None
             if use_bert and bert_model is not None:
                 chars_list = batch['chars']
@@ -183,30 +193,25 @@ def evaluate(model, dataloader, device, bert_model=None, bert_tokenizer=None, us
             output = model(lattice, seq_len, lex_num, pos_s, pos_e, bert_embed=bert_embed)
             preds = output['pred']
             
-            # 收集预测和目标
+            # 收集预测和目标（按字符位置）
             for i, (pred, length) in enumerate(zip(preds, seq_len)):
                 all_preds.append(pred[:length.item()])
                 all_targets.append(target[i, :length.item()].cpu().tolist())
     
-    # 计算 F1（实体级别）
-    tp, fp, fn = 0, 0, 0
+    # 将 BMES 标签转换为实体 span，与 eznlp 的 ER 评估保持一致
+    set_y_pred = []
+    set_y_gold = []
     for pred, gold in zip(all_preds, all_targets):
-        pred_entities = extract_entities(pred, idx2label)
-        gold_entities = extract_entities(gold, idx2label)
-        
-        for entity in pred_entities:
-            if entity in gold_entities:
-                tp += 1
-            else:
-                fp += 1
-        
-        for entity in gold_entities:
-            if entity not in pred_entities:
-                fn += 1
+        pred_entities = list(extract_entities(pred, idx2label))
+        gold_entities = list(extract_entities(gold, idx2label))
+        set_y_pred.append(pred_entities)
+        set_y_gold.append(gold_entities)
     
-    precision = tp / (tp + fp) if tp + fp > 0 else 0
-    recall = tp / (tp + fn) if tp + fn > 0 else 0
-    f1 = 2 * precision * recall / (precision + recall) if precision + recall > 0 else 0
+    # 使用 eznlp 的 precision_recall_f1_report 计算 Micro P/R/F1
+    scores, ave_scores = precision_recall_f1_report(set_y_gold, set_y_pred)
+    precision = ave_scores['micro']['precision']
+    recall = ave_scores['micro']['recall']
+    f1 = ave_scores['micro']['f1']
     
     avg_loss = total_loss / num_batches if num_batches > 0 else 0
     
@@ -269,6 +274,49 @@ def extract_entities(labels, idx2label=None):
     return set(entities)
 
 
+def build_optimizer_and_scheduler(model, num_train_batches: int, args):
+    """构建优化器和调度器（对齐 _8TOOL/utils.build_trainer 的策略）"""
+    # FLAT 当前不区分预训练参数和非预训练参数，直接把所有参数放在“非预训练”组
+    param_groups = []
+    param_groups.append({"params": collect_params(model, param_groups), "lr": args.lr})
+    assert check_param_groups(model, param_groups)
+
+    optimizer = getattr(torch.optim, args.optimizer)(param_groups)
+
+    schedule_by_step = "warmup" in args.scheduler.lower()
+    if args.scheduler == "ReduceLROnPlateau":
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer, mode="max", factor=0.5, patience=5
+        )
+    elif args.scheduler == "LinearDecayWithWarmup":
+        # 计算总步数与 warmup 步数，确保 warmup_steps <= total_steps
+        num_total_steps = num_train_batches * args.num_epochs
+        num_warmup_epochs = max(2, args.num_epochs // 5)
+        num_warmup_steps = num_train_batches * num_warmup_epochs
+        # 如果总步数太少（例如只训练 1 个 epoch），压缩 warmup 步数
+        if num_total_steps < num_warmup_steps:
+            num_warmup_steps = num_total_steps
+        lr_lambda = LRLambda.linear_decay_lr_with_warmup(
+            num_warmup_steps=num_warmup_steps,
+            num_total_steps=num_total_steps,
+        )
+        scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_lambda)
+    elif args.scheduler == "PowerDecayWithWarmup":
+        num_total_steps = num_train_batches * args.num_epochs
+        num_warmup_epochs = max(2, args.num_epochs // 5)
+        num_warmup_steps = num_train_batches * num_warmup_epochs
+        if num_total_steps < num_warmup_steps:
+            num_warmup_steps = num_total_steps
+        lr_lambda = LRLambda.power_decay_lr_with_warmup(
+            num_warmup_steps=num_warmup_steps
+        )
+        scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_lambda)
+    else:
+        scheduler = None
+
+    return optimizer, scheduler, schedule_by_step
+
+
 def train(args):
     """训练主函数"""
     # 设置随机种子
@@ -281,6 +329,13 @@ def train(args):
     timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     save_dir = f"{args.save_dir}/flat_{timestamp}"
     Path(save_dir).mkdir(parents=True, exist_ok=True)
+    
+    # 日志文件路径（JSON Lines，一行一条记录）
+    log_file = os.path.join(save_dir, 'training_log.jsonl')
+    
+    # TensorBoard 日志目录与 writer
+    tb_log_dir = os.path.join(save_dir, "tensorboard")
+    writer = SummaryWriter(log_dir=tb_log_dir)
     
     # 检测数据集类型
     if os.path.exists(os.path.join(args.data_dir, 'redjujube_train.bmes')):
@@ -477,18 +532,13 @@ def train(args):
     print(f"  可训练参数: {trainable_params:,}")
     print(f"  设备: {device}")
     
-    # 优化器
-    optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+    # 构建优化器与调度器（对齐 eznlp 的策略）
+    optimizer, scheduler, schedule_by_step = build_optimizer_and_scheduler(
+        model, len(train_loader), args
+    )
     
-    # 学习率调度器
-    total_steps = len(train_loader) * args.num_epochs
-    
-    def lr_lambda(step):
-        if step < args.warmup_steps:
-            return step / args.warmup_steps
-        return max(0.1, 1 - (step - args.warmup_steps) / (total_steps - args.warmup_steps))
-    
-    scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
+    # AMP 梯度缩放器
+    scaler = torch.amp.GradScaler(enabled=args.use_amp)
     
     # 训练
     print(f"\n[6/6] 开始训练...")
@@ -514,19 +564,17 @@ def train(args):
             lex_num = batch['lex_num'].to(device)
             target = batch['target'].to(device)
             
-            # 提取 BERT embeddings
+            # 提取 BERT embeddings（保持原逻辑）
             bert_embed = None
             if args.use_bert and bert_model is not None:
                 chars_list = batch['chars']  # List[List[str]]
                 batch_size = len(chars_list)
                 max_char_len = max(len(chars) for chars in chars_list)
                 
-                # 逐个处理每个句子，确保长度对齐
                 bert_embeds = []
                 with torch.no_grad():
                     for chars in chars_list:
                         text = ''.join(chars)
-                        # tokenize 不添加特殊token
                         inputs = bert_tokenizer(
                             text,
                             return_tensors='pt',
@@ -537,10 +585,7 @@ def train(args):
                         outputs = bert_model(**inputs)
                         char_embeds = outputs.last_hidden_state[0]  # [seq_len, 768]
                         
-                        # 处理中文分词：BERT可能将一个汉字split成多个subword
-                        # 简单策略：取每个字符对应的第一个token
                         if len(char_embeds) != len(chars):
-                            # 使用平均池化对齐
                             aligned = []
                             token_per_char = len(char_embeds) / len(chars)
                             for i in range(len(chars)):
@@ -554,51 +599,150 @@ def train(args):
                         
                         bert_embeds.append(char_embeds[:len(chars)])  # 确保长度正确
                 
-                # Padding 到 batch 中最大长度
                 bert_embed = torch.zeros(batch_size, max_char_len, 768, device=device)
                 for i, emb in enumerate(bert_embeds):
                     bert_embed[i, :len(emb)] = emb
             
-            optimizer.zero_grad()
-            output = model(lattice, seq_len, lex_num, pos_s, pos_e, target, bert_embed=bert_embed)
-            loss = output['loss']
+            # 前向，得到原始 loss（不除以 grad_acc_steps）
+            with torch.amp.autocast(device_type=device.type if device.type != "cpu" else "cpu", enabled=args.use_amp):
+                output = model(lattice, seq_len, lex_num, pos_s, pos_e, target, bert_embed=bert_embed)
+                raw_loss = output['loss']
             
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
-            optimizer.step()
-            scheduler.step()
-            
-            epoch_loss += loss.item()
+            # 累积显示用
+            epoch_loss += raw_loss.item()
             num_batches += 1
+            
+            # 梯度累积：loss 平均到 num_grad_acc_steps
+            loss = raw_loss / args.num_grad_acc_steps
+            
+            scaler.scale(loss).backward()
             global_step += 1
             
-            pbar.set_postfix({'loss': f"{loss.item():.4f}", 'lr': f"{scheduler.get_last_lr()[0]:.6f}"})
+            # 到达一个“真实 batch”再 step
+            if global_step % args.num_grad_acc_steps == 0:
+                if args.grad_clip is not None and args.grad_clip > 0:
+                    scaler.unscale_(optimizer)
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
+                
+                scaler.step(optimizer)
+                scaler.update()
+                optimizer.zero_grad()
+                
+                if scheduler is not None and schedule_by_step:
+                    scheduler.step()
             
-            # 定期评估
+            # 当前学习率
+            if scheduler is not None:
+                current_lr = scheduler.get_last_lr()[0]
+            else:
+                current_lr = optimizer.param_groups[0]['lr']
+            
+            # 记录训练 loss 和学习率到 TensorBoard
+            writer.add_scalar("train/loss", raw_loss.item(), global_step)
+            writer.add_scalar("train/lr", current_lr, global_step)
+            
+            pbar.set_postfix({'loss': f"{raw_loss.item():.4f}", 'lr': f"{current_lr:.6f}"})
+            
+            # 定期评估（保持原逻辑）
             if global_step % args.eval_every == 0:
                 dev_metrics = evaluate(model, dev_loader, device, bert_model, bert_tokenizer, args.use_bert, processor.idx2label)
                 print(f"\n  Step {global_step}: Dev Loss={dev_metrics['loss']:.4f}, "
                       f"P={dev_metrics['precision']:.2%}, R={dev_metrics['recall']:.2%}, "
                       f"F1={dev_metrics['f1']:.2%}")
                 
+                # 将本次 dev 评估结果写入日志文件
+                dev_log_entry = {
+                    "type": "dev_eval",
+                    "epoch": epoch + 1,
+                    "global_step": global_step,
+                    "loss": dev_metrics["loss"],
+                    "precision": dev_metrics["precision"],
+                    "recall": dev_metrics["recall"],
+                    "f1": dev_metrics["f1"],
+                    "timestamp": datetime.datetime.now().isoformat(),
+                }
+                with open(log_file, "a", encoding="utf-8") as f:
+                    f.write(json.dumps(dev_log_entry, ensure_ascii=False) + "\n")
+                
+                # 同步写入 TensorBoard
+                writer.add_scalar("dev/loss", dev_metrics["loss"], global_step)
+                writer.add_scalar("dev/precision", dev_metrics["precision"], global_step)
+                writer.add_scalar("dev/recall", dev_metrics["recall"], global_step)
+                writer.add_scalar("dev/f1", dev_metrics["f1"], global_step)
+                
                 if dev_metrics['f1'] > best_f1:
                     best_f1 = dev_metrics['f1']
-                    torch.save(model.state_dict(), os.path.join(save_dir, 'best_model.pt'))
-                    print(f"  ✅ 保存最佳模型 (F1={best_f1:.2%})")
+                    # 保存完整模型对象和配置，使用 .pth 扩展名
+                    best_model_path = os.path.join(save_dir, 'best_model.pth')
+                    config_path = os.path.join(save_dir, 'config.pth')
+                    torch.save(model, best_model_path)
+                    torch.save(
+                        {
+                            'args': vars(args),
+                            'char_vocab': processor.char_vocab,
+                            'label_vocab': processor.label_vocab,
+                        },
+                        config_path,
+                    )
+                    print(f"  ✅ 保存最佳模型 (F1={best_f1:.2%}) 到 {best_model_path}")
+                    print(f"  ✅ 保存配置到 {config_path}")
                 
                 model.train()
         
         avg_loss = epoch_loss / num_batches
         print(f"\nEpoch {epoch+1} 完成: 平均损失={avg_loss:.4f}")
+        
+        # 记录 epoch 级别训练损失
+        epoch_log_entry = {
+            "type": "epoch_end",
+            "epoch": epoch + 1,
+            "avg_train_loss": avg_loss,
+            "global_step": global_step,
+            "timestamp": datetime.datetime.now().isoformat(),
+        }
+        with open(log_file, "a", encoding="utf-8") as f:
+            f.write(json.dumps(epoch_log_entry, ensure_ascii=False) + "\n")
+        
+        writer.add_scalar("epoch/avg_train_loss", avg_loss, epoch + 1)
     
     # 最终测试
     print("\n" + "="*70)
     print("最终测试")
     print("="*70)
     
-    # 加载最佳模型
-    model.load_state_dict(torch.load(os.path.join(save_dir, 'best_model.pt')))
-    test_metrics = evaluate(model, test_loader, device, bert_model, bert_tokenizer, args.use_bert, processor.idx2label)
+    # 加载最佳模型（完整模型对象）
+    best_model_path = os.path.join(save_dir, 'best_model.pth')
+    # PyTorch 2.6 默认 weights_only=True，需要显式关闭以加载完整模型对象
+    model = torch.load(best_model_path, map_location=device, weights_only=False)
+    model.to(device)
+    model.eval()
+    test_metrics = evaluate(
+        model,
+        test_loader,
+        device,
+        bert_model,
+        bert_tokenizer,
+        args.use_bert,
+        processor.idx2label,
+    )
+    
+    # 将最终测试结果写入日志
+    test_log_entry = {
+        "type": "test",
+        "loss": test_metrics["loss"],
+        "precision": test_metrics["precision"],
+        "recall": test_metrics["recall"],
+        "f1": test_metrics["f1"],
+        "timestamp": datetime.datetime.now().isoformat(),
+    }
+    with open(log_file, "a", encoding="utf-8") as f:
+        f.write(json.dumps(test_log_entry, ensure_ascii=False) + "\n")
+    
+    # 同步到 TensorBoard（用最后的 global_step 作为 step）
+    writer.add_scalar("test/loss", test_metrics["loss"], global_step)
+    writer.add_scalar("test/precision", test_metrics["precision"], global_step)
+    writer.add_scalar("test/recall", test_metrics["recall"], global_step)
+    writer.add_scalar("test/f1", test_metrics["f1"], global_step)
     
     print(f"\n📊 测试结果:")
     print(f"  Loss: {test_metrics['loss']:.4f}")
@@ -622,6 +766,9 @@ def train(args):
         json.dump(results, f, indent=2)
     
     print(f"\n💾 结果已保存到: {save_dir}")
+    
+    # 关闭 TensorBoard writer
+    writer.close()
     
     return test_metrics
 
