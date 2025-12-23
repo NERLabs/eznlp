@@ -34,6 +34,8 @@ from eznlp.metrics import precision_recall_f1_report
 # 导入 FLAT 组件
 from _4MODELS.models.flat_data_processor import FLATDataProcessor, FLATDataset, load_word_list
 from _4MODELS.models.flat_extractor import FLATModel, FLATModelWithBERT, FLATWithInterAttention
+from eznlp.model.bert_like import BertLikeConfig
+import transformers
 
 
 def parse_args():
@@ -136,7 +138,7 @@ def load_bmes_data(file_path):
     return data
 
 
-def evaluate(model, dataloader, device, bert_model=None, bert_tokenizer=None, use_bert=False, idx2label=None):
+def evaluate(model, dataloader, device, bert_model=None, bert_tokenizer=None, use_bert=False, idx2label=None, model_type='flat'):
     """评估模型（使用与 eznlp 相同的实体级 F1 计算）"""
     model.eval()
     
@@ -154,54 +156,63 @@ def evaluate(model, dataloader, device, bert_model=None, bert_tokenizer=None, us
             lex_num = batch['lex_num'].to(device)
             target = batch['target'].to(device)
             
-            # 提取 BERT embeddings（保持原逻辑）
-            bert_embed = None
-            if use_bert and bert_model is not None:
-                chars_list = batch['chars']
-                batch_size = len(chars_list)
-                max_char_len = max(len(chars) for chars in chars_list)
-                bert_embeds = []
+            if model_type == 'flat_inter':
+                # BERT 内嵌模式：直接传 chars
+                model.train()
+                output = model(lattice, seq_len, lex_num, pos_s, pos_e, target, chars=batch['chars'])
+                total_loss += output['loss'].item()
+                num_batches += 1
                 
-                for chars in chars_list:
-                    text = ''.join(chars)
-                    inputs = bert_tokenizer(
-                        text,
-                        return_tensors='pt',
-                        add_special_tokens=False,
-                        truncation=True,
-                        max_length=len(chars)
-                    ).to(device)
-                    outputs = bert_model(**inputs)
-                    char_embeds = outputs.last_hidden_state[0]
+                model.eval()
+                output = model(lattice, seq_len, lex_num, pos_s, pos_e, chars=batch['chars'])
+                preds = output['pred']
+            else:
+                # 原始模式：外部处理 BERT
+                bert_embed = None
+                if use_bert and bert_model is not None:
+                    chars_list = batch['chars']
+                    batch_size = len(chars_list)
+                    max_char_len = max(len(chars) for chars in chars_list)
+                    bert_embeds = []
                     
-                    if len(char_embeds) != len(chars):
-                        aligned = []
-                        token_per_char = len(char_embeds) / len(chars)
-                        for i in range(len(chars)):
-                            start_idx = int(i * token_per_char)
-                            end_idx = int((i + 1) * token_per_char)
-                            if end_idx > start_idx:
-                                aligned.append(char_embeds[start_idx:end_idx].mean(0))
-                            else:
-                                aligned.append(char_embeds[start_idx])
-                        char_embeds = torch.stack(aligned)
+                    for chars in chars_list:
+                        text = ''.join(chars)
+                        inputs = bert_tokenizer(
+                            text,
+                            return_tensors='pt',
+                            add_special_tokens=False,
+                            truncation=True,
+                            max_length=len(chars)
+                        ).to(device)
+                        outputs = bert_model(**inputs)
+                        char_embeds = outputs.last_hidden_state[0]
+                        
+                        if len(char_embeds) != len(chars):
+                            aligned = []
+                            token_per_char = len(char_embeds) / len(chars)
+                            for i in range(len(chars)):
+                                start_idx = int(i * token_per_char)
+                                end_idx = int((i + 1) * token_per_char)
+                                if end_idx > start_idx:
+                                    aligned.append(char_embeds[start_idx:end_idx].mean(0))
+                                else:
+                                    aligned.append(char_embeds[start_idx])
+                            char_embeds = torch.stack(aligned)
+                        
+                        bert_embeds.append(char_embeds[:len(chars)])
                     
-                    bert_embeds.append(char_embeds[:len(chars)])
+                    bert_embed = torch.zeros(batch_size, max_char_len, 768, device=device)
+                    for i, emb in enumerate(bert_embeds):
+                        bert_embed[i, :len(emb)] = emb
                 
-                bert_embed = torch.zeros(batch_size, max_char_len, 768, device=device)
-                for i, emb in enumerate(bert_embeds):
-                    bert_embed[i, :len(emb)] = emb
-            
-            # 计算损失
-            model.train()
-            output = model(lattice, seq_len, lex_num, pos_s, pos_e, target, bert_embed=bert_embed)
-            total_loss += output['loss'].item()
-            num_batches += 1
-            
-            # 获取预测
-            model.eval()
-            output = model(lattice, seq_len, lex_num, pos_s, pos_e, bert_embed=bert_embed)
-            preds = output['pred']
+                model.train()
+                output = model(lattice, seq_len, lex_num, pos_s, pos_e, target, bert_embed=bert_embed)
+                total_loss += output['loss'].item()
+                num_batches += 1
+                
+                model.eval()
+                output = model(lattice, seq_len, lex_num, pos_s, pos_e, bert_embed=bert_embed)
+                preds = output['pred']
             
             # 收集预测和目标（按字符位置）
             for i, (pred, length) in enumerate(zip(preds, seq_len)):
@@ -284,22 +295,32 @@ def extract_entities(labels, idx2label=None):
     return set(entities)
 
 
-def build_optimizer_and_scheduler(model, num_train_batches: int, args, bert_model=None):
+def build_optimizer_and_scheduler(model, num_train_batches: int, args, bert_model=None, model_type='flat'):
     """构建优化器和调度器（对齐 _8TOOL/utils.build_trainer 的策略）"""
     # 构建参数组：区分预训练参数和非预训练参数
     param_groups = []
-    param_groups.append({"params": collect_params(model, param_groups), "lr": args.lr})
     
-    # 先检查模型参数组（不包括 BERT）
+    # 先添加 BERT 参数（使用低学习率）
+    if model_type == 'flat_inter' and args.use_bert:
+        # BERT 内嵌模式：通过 model.pretrained_parameters() 获取 BERT 参数
+        bert_params = model.pretrained_parameters()
+        if bert_params:
+            bert_lr = getattr(args, 'finetune_lr', 2e-5)
+            param_groups.append({"params": bert_params, "lr": bert_lr})
+            print(f"  BERT fine-tuning 学习率: {bert_lr}")
+    
+    # 添加模型其他参数（使用正常学习率）
+    param_groups.append({"params": collect_params(model, param_groups), "lr": args.lr})
+    print(f"  模型学习率: {args.lr}")
+    
+    # 检查参数组
     assert check_param_groups(model, param_groups)
     
-    # 如果使用 BERT，把 BERT 参数加入优化器（使用 finetune_lr）
+    # 如果使用外部 BERT（原始模式），把 BERT 参数加入优化器
     if args.use_bert and bert_model is not None:
         bert_lr = getattr(args, 'finetune_lr', args.lr * 0.1)
-        bert_params = list(bert_model.parameters())  # 转换为列表
+        bert_params = list(bert_model.parameters())
         param_groups.append({"params": bert_params, "lr": bert_lr})
-        print(f"  模型学习率: {args.lr}")
-        print(f"  BERT fine-tuning 学习率: {bert_lr}")
 
     optimizer = getattr(torch.optim, args.optimizer)(param_groups)
 
@@ -309,13 +330,10 @@ def build_optimizer_and_scheduler(model, num_train_batches: int, args, bert_mode
             optimizer, mode="max", factor=0.5, patience=5
         )
     elif args.scheduler == "LinearDecayWithWarmup":
-        # 计算总步数与 warmup 步数，确保 warmup_steps <= total_steps
+        # 计算总步数与 warmup 步数
         num_total_steps = num_train_batches * args.num_epochs
-        num_warmup_epochs = max(2, args.num_epochs // 5)
-        num_warmup_steps = num_train_batches * num_warmup_epochs
-        # 如果总步数太少（例如只训练 1 个 epoch），压缩 warmup 步数
-        if num_total_steps < num_warmup_steps:
-            num_warmup_steps = num_total_steps
+        # 修改：warmup 只需要 1 个 epoch 或 1000 步
+        num_warmup_steps = min(num_train_batches, 1000)
         lr_lambda = LRLambda.linear_decay_lr_with_warmup(
             num_warmup_steps=num_warmup_steps,
             num_total_steps=num_total_steps,
@@ -534,6 +552,24 @@ def train(args):
     
     if model_type == 'flat_inter':
         print("  模型类型: FLAT + Inter-Attention (NFLAT 风格)")
+        
+        # 使用框架的 BertLikeConfig 将 BERT 集成到模型内部
+        bert_config = None
+        if args.use_bert:
+            import transformers
+            from eznlp.model.bert_like import BertLikeConfig
+            
+            bert_like = transformers.AutoModel.from_pretrained(args.bert_model)
+            tokenizer = transformers.AutoTokenizer.from_pretrained(args.bert_model)
+            
+            bert_config = BertLikeConfig(
+                tokenizer=tokenizer,
+                bert_like=bert_like,
+                freeze=False,  # fine-tune
+                mix_layers="top",
+            )
+            print(f"  BERT 模型: {args.bert_model} (内嵌)")
+        
         model = FLATWithInterAttention(
             vocab_size=len(processor.char_vocab),
             label_size=len(processor.label_vocab),
@@ -544,8 +580,14 @@ def train(args):
             ff_size=args.ff_size if args.ff_size > 0 else 768 * 4,
             max_seq_len=args.max_seq_len,
             dropout=args.dropout,
+            use_bert=args.use_bert,
+            bert_config=bert_config,  # 传入 BertLikeConfig
             use_ffn=True,
         ).to(device)
+        
+        # BERT 已集成在模型内部，不需要外部 bert_model
+        bert_model = None
+        bert_tokenizer = None
     else:
         print("  模型类型: 原始 FLAT")
         model = FLATModel(
@@ -572,7 +614,7 @@ def train(args):
     
     # 构建优化器与调度器（对齐 eznlp 的策略）
     optimizer, scheduler, schedule_by_step = build_optimizer_and_scheduler(
-        model, len(train_loader), args, bert_model=bert_model
+        model, len(train_loader), args, bert_model=bert_model, model_type=model_type
     )
 
     # AMP 梯度缩放器
@@ -602,42 +644,42 @@ def train(args):
             lex_num = batch['lex_num'].to(device)
             target = batch['target'].to(device)
             
-            # 提取 BERT embeddings（保持原逻辑）
+            # 提取 BERT embeddings（Fine-tuning 模式，保留梯度）
             bert_embed = None
             if args.use_bert and bert_model is not None:
+                bert_model.train()  # 确保 BERT 在训练模式
                 chars_list = batch['chars']  # List[List[str]]
                 batch_size = len(chars_list)
                 max_char_len = max(len(chars) for chars in chars_list)
                 
                 bert_embeds = []
-                with torch.no_grad():
-                    for chars in chars_list:
-                        text = ''.join(chars)
-                        inputs = bert_tokenizer(
-                            text,
-                            return_tensors='pt',
-                            add_special_tokens=False,
-                            truncation=True,
-                            max_length=len(chars)
-                        ).to(device)
-                        outputs = bert_model(**inputs)
-                        char_embeds = outputs.last_hidden_state[0]  # [seq_len, 768]
-                        
-                        if len(char_embeds) != len(chars):
-                            aligned = []
-                            token_per_char = len(char_embeds) / len(chars)
-                            for i in range(len(chars)):
-                                start_idx = int(i * token_per_char)
-                                end_idx = int((i + 1) * token_per_char)
-                                if end_idx > start_idx:
-                                    aligned.append(char_embeds[start_idx:end_idx].mean(0))
-                                else:
-                                    aligned.append(char_embeds[start_idx])
-                            char_embeds = torch.stack(aligned)
-                        
-                        bert_embeds.append(char_embeds[:len(chars)])
+                for chars in chars_list:
+                    text = ''.join(chars)
+                    inputs = bert_tokenizer(
+                        text,
+                        return_tensors='pt',
+                        add_special_tokens=False,
+                        truncation=True,
+                        max_length=len(chars)
+                    ).to(device)
+                    outputs = bert_model(**inputs)
+                    char_embeds = outputs.last_hidden_state[0]  # [seq_len, 768]
+                    
+                    if len(char_embeds) != len(chars):
+                        aligned = []
+                        token_per_char = len(char_embeds) / len(chars)
+                        for i in range(len(chars)):
+                            start_idx = int(i * token_per_char)
+                            end_idx = int((i + 1) * token_per_char)
+                            if end_idx > start_idx:
+                                aligned.append(char_embeds[start_idx:end_idx].mean(0))
+                            else:
+                                aligned.append(char_embeds[start_idx])
+                        char_embeds = torch.stack(aligned)
+                    
+                    bert_embeds.append(char_embeds[:len(chars)])
                 
-                # 拼接并 padding，保持梯度
+                # 使用 stack 保持梯度连接
                 padded_embeds = []
                 for emb in bert_embeds:
                     if len(emb) < max_char_len:
@@ -646,6 +688,189 @@ def train(args):
                     else:
                         padded_emb = emb[:max_char_len]
                     padded_embeds.append(padded_emb)
-                bert_embed = torch.stack(padded_embeds, dim=0)  # [batch, max_char_len, 768]
+                bert_embed = torch.stack(padded_embeds, dim=0)
             
-            # 前向，得到原始 loss
+            # 前向传播
+            with torch.amp.autocast(device_type=device.type if device.type != "cpu" else "cpu", enabled=args.use_amp):
+                if model_type == 'flat_inter':
+                    # BERT 内嵌模式：传递 chars
+                    output = model(lattice, seq_len, lex_num, pos_s, pos_e, target, chars=batch['chars'])
+                else:
+                    # 外部 BERT 模式
+                    output = model(lattice, seq_len, lex_num, pos_s, pos_e, target, bert_embed=bert_embed)
+                raw_loss = output['loss']
+            
+            # 累积显示用
+            epoch_loss += raw_loss.item()
+            num_batches += 1
+            
+            # 梯度累积：loss 平均到 num_grad_acc_steps
+            loss = raw_loss / args.num_grad_acc_steps
+            
+            scaler.scale(loss).backward()
+            global_step += 1
+            
+            # 到达一个“真实 batch”再 step
+            if global_step % args.num_grad_acc_steps == 0:
+                if args.grad_clip is not None and args.grad_clip > 0:
+                    scaler.unscale_(optimizer)
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
+                
+                scaler.step(optimizer)
+                scaler.update()
+                optimizer.zero_grad()
+                
+                if scheduler is not None and schedule_by_step:
+                    scheduler.step()
+            
+            # 当前学习率
+            if scheduler is not None:
+                current_lr = scheduler.get_last_lr()[0]
+            else:
+                current_lr = optimizer.param_groups[0]['lr']
+            
+            # 记录训练 loss 和学习率到 TensorBoard
+            writer.add_scalar("train/loss", raw_loss.item(), global_step)
+            writer.add_scalar("train/lr", current_lr, global_step)
+            
+            pbar.set_postfix({'loss': f"{raw_loss.item():.4f}", 'lr': f"{current_lr:.6f}"})
+            
+            # 定期评估（保持原逻辑）
+            if global_step % args.eval_every == 0:
+                dev_metrics = evaluate(model, dev_loader, device, bert_model, bert_tokenizer, args.use_bert, processor.idx2label, model_type)
+                print(f"\n  Step {global_step}: Dev Loss={dev_metrics['loss']:.4f}, "
+                      f"P={dev_metrics['precision']:.2%}, R={dev_metrics['recall']:.2%}, "
+                      f"F1={dev_metrics['f1']:.2%}")
+                
+                # 将本次 dev 评估结果写入日志文件
+                dev_log_entry = {
+                    "type": "dev_eval",
+                    "epoch": epoch + 1,
+                    "global_step": global_step,
+                    "loss": dev_metrics["loss"],
+                    "precision": dev_metrics["precision"],
+                    "recall": dev_metrics["recall"],
+                    "f1": dev_metrics["f1"],
+                    "timestamp": datetime.datetime.now().isoformat(),
+                }
+                with open(log_file, "a", encoding="utf-8") as f:
+                    f.write(json.dumps(dev_log_entry, ensure_ascii=False) + "\n")
+                
+                # 同步写入 TensorBoard
+                writer.add_scalar("dev/loss", dev_metrics["loss"], global_step)
+                writer.add_scalar("dev/precision", dev_metrics["precision"], global_step)
+                writer.add_scalar("dev/recall", dev_metrics["recall"], global_step)
+                writer.add_scalar("dev/f1", dev_metrics["f1"], global_step)
+                
+                if dev_metrics['f1'] > best_f1:
+                    best_f1 = dev_metrics['f1']
+                    # 保存完整模型对象和配置，使用 .pth 扩展名
+                    best_model_path = os.path.join(save_dir, 'best_model.pth')
+                    config_path = os.path.join(save_dir, 'config.pth')
+                    torch.save(model, best_model_path)
+                    torch.save(
+                        {
+                            'args': vars(args),
+                            'char_vocab': processor.char_vocab,
+                            'label_vocab': processor.label_vocab,
+                        },
+                        config_path,
+                    )
+                    print(f"  ✅ 保存最佳模型 (F1={best_f1:.2%}) 到 {best_model_path}")
+                    print(f"  ✅ 保存配置到 {config_path}")
+                    
+                    # 同时保存 BERT 权重（如果使用）
+                    if args.use_bert and bert_model is not None:
+                        bert_save_path = os.path.join(save_dir, 'best_bert.pth')
+                        torch.save(bert_model.state_dict(), bert_save_path)
+                        print(f"  ✅ 保存 BERT 权重到 {bert_save_path}")
+                
+                model.train()
+        
+        avg_loss = epoch_loss / num_batches
+        print(f"\nEpoch {epoch+1} 完成: 平均损失={avg_loss:.4f}")
+        
+        # 记录 epoch 级别训练损失
+        epoch_log_entry = {
+            "type": "epoch_end",
+            "epoch": epoch + 1,
+            "avg_train_loss": avg_loss,
+            "global_step": global_step,
+            "timestamp": datetime.datetime.now().isoformat(),
+        }
+        with open(log_file, "a", encoding="utf-8") as f:
+            f.write(json.dumps(epoch_log_entry, ensure_ascii=False) + "\n")
+        
+        writer.add_scalar("epoch/avg_train_loss", avg_loss, epoch + 1)
+    
+    # 最终测试
+    print("\n" + "="*70)
+    print("最终测试")
+    print("="*70)
+    
+    # 加载最佳模型（完整模型对象）
+    best_model_path = os.path.join(save_dir, 'best_model.pth')
+    # PyTorch 2.6 默认 weights_only=True，需要显式关闭以加载完整模型对象
+    model = torch.load(best_model_path, map_location=device, weights_only=False)
+    model.to(device)
+    model.eval()
+    test_metrics = evaluate(
+        model,
+        test_loader,
+        device,
+        bert_model,
+        bert_tokenizer,
+        args.use_bert,
+        processor.idx2label,
+    )
+    
+    # 将最终测试结果写入日志
+    test_log_entry = {
+        "type": "test",
+        "loss": test_metrics["loss"],
+        "precision": test_metrics["precision"],
+        "recall": test_metrics["recall"],
+        "f1": test_metrics["f1"],
+        "timestamp": datetime.datetime.now().isoformat(),
+    }
+    with open(log_file, "a", encoding="utf-8") as f:
+        f.write(json.dumps(test_log_entry, ensure_ascii=False) + "\n")
+    
+    # 同步到 TensorBoard（用最后的 global_step 作为 step）
+    writer.add_scalar("test/loss", test_metrics["loss"], global_step)
+    writer.add_scalar("test/precision", test_metrics["precision"], global_step)
+    writer.add_scalar("test/recall", test_metrics["recall"], global_step)
+    writer.add_scalar("test/f1", test_metrics["f1"], global_step)
+    
+    print(f"\n📊 测试结果:")
+    print(f"  Loss: {test_metrics['loss']:.4f}")
+    print(f"  Precision: {test_metrics['precision']:.2%}")
+    print(f"  Recall: {test_metrics['recall']:.2%}")
+    print(f"  F1: {test_metrics['f1']:.2%}")
+    
+    # 保存结果
+    results = {
+        'model_config': {
+            'hidden_size': args.hidden_size,
+            'num_layers': args.num_layers,
+            'num_heads': args.num_heads,
+            'dropout': args.dropout,
+        },
+        'test_metrics': test_metrics,
+        'best_dev_f1': best_f1,
+    }
+    
+    with open(os.path.join(save_dir, 'results.json'), 'w') as f:
+        json.dump(results, f, indent=2)
+    
+    print(f"\n💾 结果已保存到: {save_dir}")
+    
+    # 关闭 TensorBoard writer
+    writer.close()
+    
+    return test_metrics
+
+
+if __name__ == '__main__':
+    args = parse_args()
+    train(args)

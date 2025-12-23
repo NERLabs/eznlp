@@ -18,6 +18,12 @@ import math
 import copy
 from typing import Optional, Dict, List, Tuple
 
+# 导入框架的 BERT 组件
+try:
+    from eznlp.model.bert_like import BertLikeConfig
+except ImportError:
+    BertLikeConfig = None
+
 # 导入已实现的组件
 try:
     from _4MODELS.block.position_encoding import FourPositionFusion
@@ -687,37 +693,23 @@ class FLATWithInterAttention(nn.Module):
     核心改进：
     1. 不压缩 BERT 输出，保持 768 维
     2. 用 Inter-Attention 让 BERT 主动查询 Lattice 词汇信息
-    3. 保留四种相对位置编码
-    4. 残差连接 + LayerNorm 稳定训练
-    
-    架构：
-        BERT (768维)
-          ↓
-        [InterAttn] ← Lattice 词汇 (768维)
-          ↓ (残差 + LayerNorm)
-        增强特征 (768维)
-          ↓
-        [FFN] (可选)
-          ↓ (残差 + LayerNorm)
-        最终特征 (768维)
-          ↓
-        CRF 解码
+    3. 复用框架的 BertLikeEmbedder 处理 BERT
     """
     
     def __init__(
         self,
         vocab_size: int,
         label_size: int,
-        hidden_size: int = 768,  # 保持与 BERT 一致
+        hidden_size: int = 768,
         embed_size: int = 50,
         num_heads: int = 8,
-        num_inter_layers: int = 2,  # Inter-Attention 层数
+        num_inter_layers: int = 2,
         ff_size: int = -1,
         max_seq_len: int = 512,
         dropout: float = 0.15,
         use_bert: bool = True,
-        bert_hidden_size: int = 768,
-        use_ffn: bool = True,  # 是否使用 FFN
+        bert_config: 'BertLikeConfig' = None,  # 框架的 BertLikeConfig
+        use_ffn: bool = True,
     ):
         super().__init__()
         
@@ -727,16 +719,20 @@ class FLATWithInterAttention(nn.Module):
         self.use_ffn = use_ffn
         self.max_seq_len = max_seq_len
         
-        # Lattice 词汇嵌入
-        self.lattice_embed = nn.Embedding(vocab_size, embed_size, padding_idx=0)
-        
-        # 词汇嵌入投影到 hidden_size（与 BERT 维度对齐）
-        self.lex_proj = nn.Linear(embed_size, hidden_size)
-        
-        # 如果不用 BERT，需要字符嵌入
-        if not use_bert:
+        # 使用框架的 BertLikeEmbedder（BERT 集成在模型内部）
+        if use_bert and bert_config is not None:
+            self.bert_config = bert_config  # 保存 config 用于序列化
+            self.bert_embedder = bert_config.instantiate()
+            self.bert_hidden_size = bert_config.hid_dim
+        else:
+            self.bert_config = None
+            self.bert_embedder = None
             self.char_embed = nn.Embedding(vocab_size, embed_size, padding_idx=0)
             self.char_proj = nn.Linear(embed_size, hidden_size)
+        
+        # Lattice 词汇嵌入
+        self.lattice_embed = nn.Embedding(vocab_size, embed_size, padding_idx=0)
+        self.lex_proj = nn.Linear(embed_size, hidden_size)
         
         # Dropout
         self.embed_dropout = nn.Dropout(dropout)
@@ -779,6 +775,12 @@ class FLATWithInterAttention(nn.Module):
         from torchcrf import CRF
         self.crf = CRF(label_size, batch_first=True)
     
+    def pretrained_parameters(self):
+        """返回预训练模型参数（用于差分学习率）"""
+        if self.bert_embedder is not None:
+            return list(self.bert_embedder.bert_like.parameters())
+        return []
+    
     def forward(
         self,
         lattice: torch.Tensor,
@@ -787,7 +789,7 @@ class FLATWithInterAttention(nn.Module):
         pos_s: torch.Tensor,
         pos_e: torch.Tensor,
         target: Optional[torch.Tensor] = None,
-        bert_embed: Optional[torch.Tensor] = None,
+        chars: Optional[List[List[str]]] = None,  # 字符列表，用于 BERT
     ) -> Dict[str, torch.Tensor]:
         """
         Args:
@@ -797,19 +799,33 @@ class FLATWithInterAttention(nn.Module):
             pos_s: 开始位置 [batch, seq_len+lex_num]
             pos_e: 结束位置 [batch, seq_len+lex_num]
             target: 目标标签 [batch, seq_len]（可选）
-            bert_embed: BERT 嵌入 [batch, seq_len, bert_hidden_size]（可选）
+            chars: 字符列表 List[List[str]]，用于 BERT embedding
         """
         batch_size = lattice.size(0)
         max_lattice_len = lattice.size(1)
         max_seq_len_batch = seq_len.max().item()
         max_lex_num = lex_num.max().item()
+        device = lattice.device
         
         # 1. 获取 Query (BERT 或字符嵌入)
-        if self.use_bert and bert_embed is not None:
-            # 直接用 BERT 输出，不压缩
-            query = bert_embed  # [B, seq_len, 768]
+        if self.use_bert and self.bert_embedder is not None and chars is not None:
+            # 使用框架的 BertLikeConfig 处理 BERT 输入
+            from eznlp.token import TokenSequence
+            
+            batch_examples = []
+            for char_list in chars:
+                # 创建 TokenSequence 对象
+                tokens = TokenSequence.from_tokenized_text(char_list)
+                example = self.bert_config.exemplify(tokens)
+                batch_examples.append(example)
+            
+            # 批量化
+            bert_batch = self.bert_config.batchify(batch_examples)
+            bert_batch = {k: v.to(device) for k, v in bert_batch.items()}
+            
+            # 获取 BERT embedding
+            query = self.bert_embedder(**bert_batch)  # [B, seq_len, 768]
         else:
-            # 使用字符嵌入
             char_ids = lattice[:, :max_seq_len_batch]
             query = self.char_embed(char_ids)
             query = self.char_proj(query)
@@ -817,8 +833,6 @@ class FLATWithInterAttention(nn.Module):
         query = self.embed_dropout(query)
         
         # 2. 获取 Key/Value (词汇嵌入)
-        # 词汇在 lattice 中的位置是 [seq_len, seq_len+lex_num)
-        # 为每个样本提取词汇部分
         lex_embed_list = []
         lex_pos_s_list = []
         lex_pos_e_list = []
@@ -826,19 +840,19 @@ class FLATWithInterAttention(nn.Module):
         for i in range(batch_size):
             s = seq_len[i].item()
             e = s + lex_num[i].item()
-            lex_ids = lattice[i, s:e]  # [lex_num_i]
-            lex_emb = self.lattice_embed(lex_ids)  # [lex_num_i, embed_size]
-            lex_emb = self.lex_proj(lex_emb)  # [lex_num_i, hidden_size]
+            lex_ids = lattice[i, s:e]
+            lex_emb = self.lattice_embed(lex_ids)
+            lex_emb = self.lex_proj(lex_emb)
             lex_embed_list.append(lex_emb)
             lex_pos_s_list.append(pos_s[i, s:e])
             lex_pos_e_list.append(pos_e[i, s:e])
         
         # Padding 到相同长度
         if max_lex_num > 0:
-            lex_embed = torch.zeros(batch_size, max_lex_num, self.hidden_size, device=lattice.device)
-            lex_pos_s = torch.zeros(batch_size, max_lex_num, dtype=torch.long, device=lattice.device)
-            lex_pos_e = torch.zeros(batch_size, max_lex_num, dtype=torch.long, device=lattice.device)
-            lex_mask = torch.zeros(batch_size, max_seq_len_batch, max_lex_num, dtype=torch.bool, device=lattice.device)
+            lex_embed = torch.zeros(batch_size, max_lex_num, self.hidden_size, device=device)
+            lex_pos_s = torch.zeros(batch_size, max_lex_num, dtype=torch.long, device=device)
+            lex_pos_e = torch.zeros(batch_size, max_lex_num, dtype=torch.long, device=device)
+            lex_mask = torch.zeros(batch_size, max_seq_len_batch, max_lex_num, dtype=torch.bool, device=device)
             
             for i in range(batch_size):
                 n = lex_num[i].item()
@@ -848,11 +862,10 @@ class FLATWithInterAttention(nn.Module):
                     lex_pos_e[i, :n] = lex_pos_e_list[i]
                     lex_mask[i, :seq_len[i].item(), :n] = True
         else:
-            # 没有词汇匹配，创建空的 key_value
-            lex_embed = torch.zeros(batch_size, 1, self.hidden_size, device=lattice.device)
-            lex_pos_s = torch.zeros(batch_size, 1, dtype=torch.long, device=lattice.device)
-            lex_pos_e = torch.zeros(batch_size, 1, dtype=torch.long, device=lattice.device)
-            lex_mask = torch.zeros(batch_size, max_seq_len_batch, 1, dtype=torch.bool, device=lattice.device)
+            lex_embed = torch.zeros(batch_size, 1, self.hidden_size, device=device)
+            lex_pos_s = torch.zeros(batch_size, 1, dtype=torch.long, device=device)
+            lex_pos_e = torch.zeros(batch_size, 1, dtype=torch.long, device=device)
+            lex_mask = torch.zeros(batch_size, max_seq_len_batch, 1, dtype=torch.bool, device=device)
         
         lex_embed = self.embed_dropout(lex_embed)
         
@@ -886,11 +899,10 @@ class FLATWithInterAttention(nn.Module):
         emissions = self.output(hidden)
         
         # 7. 创建字符序列掩码
-        mask = torch.arange(max_seq_len_batch, device=lattice.device).unsqueeze(0) < seq_len.unsqueeze(1)
+        mask = torch.arange(max_seq_len_batch, device=device).unsqueeze(0) < seq_len.unsqueeze(1)
         
         # 8. 训练或推理
         if self.training and target is not None:
-            # 截断 target 到实际长度
             target = target[:, :max_seq_len_batch]
             loss = -self.crf(emissions, target, mask=mask, reduction='mean')
             return {'loss': loss}
