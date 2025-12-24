@@ -31,6 +31,8 @@ from eznlp.dataset import Dataset
 from eznlp.metrics import precision_recall_f1_report
 from eznlp.training import Trainer
 from eznlp.io import ConllIO
+from eznlp.token import LexiconTokenizer
+from eznlp.model import BertLikePreProcessor  # 新增：用于 BERT 预处理（句子切分）
 
 
 def span_text(entry, span):
@@ -151,9 +153,9 @@ def load_msra_data(data_dir="data/MSRA"):
         pad_token="",
     )
 
-    train_path = os.path.join(data_dir, "hz_train.bmes")
-    dev_path = os.path.join(data_dir, "hz_dev.bmes")
-    test_path = os.path.join(data_dir, "hz_test.bmes")
+    train_path = os.path.join(data_dir, "train.char.bmes")
+    dev_path = os.path.join(data_dir, "dev.char.bmes")
+    test_path = os.path.join(data_dir, "test.char.bmes")
 
     train_data = io.read(train_path)
     dev_data = io.read(dev_path)
@@ -198,6 +200,11 @@ def evaluate_msra_and_analyze(save_dir, data_dir=None, export_predictions=True):
     """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     config, model, _, _ = load_config_and_model(save_dir, device)
+
+    # 打印模型结构
+    print("\n===== 模型结构 (MSRA-ER) =====")
+    print(model)
+
     inferred_data_dir, batch_size, args = infer_args_from_results(save_dir)
 
     if data_dir is None:
@@ -207,17 +214,76 @@ def evaluate_msra_and_analyze(save_dir, data_dir=None, export_predictions=True):
     print(f"使用 batch_size = {batch_size}")
     print("数据集: MSRA-ER")
 
-    # 1. 构建 MSRA 测试集
-    _, _, test_data = load_msra_data(data_dir)
+    # 1. 构建 MSRA 数据集（train / dev / test）
+    train_data, dev_data, test_data = load_msra_data(data_dir)
+
+    # 1.5 先做与训练一致的 BERT 句子切分（避免超长）
+    if getattr(config, "bert_like", None) is not None:
+        bert_max_len = args.get("bert_max_length") or args.get("bert_max_len")
+        if bert_max_len is None:
+            bert_max_len = config.bert_like.tokenizer.model_max_length
+        print(f"\n[BERT] 使用 max_length = {bert_max_len} 做句子切分")
+        preprocessor = BertLikePreProcessor(
+            config.bert_like.tokenizer,
+            model_max_length=bert_max_len,
+            verbose=True,
+        )
+        if len(train_data) > 0:
+            train_data = preprocessor.segment_sentences_for_data(
+                train_data, update_raw_idx=True
+            )
+        if len(dev_data) > 0:
+            dev_data = preprocessor.segment_sentences_for_data(
+                dev_data, update_raw_idx=True
+            )
+        if len(test_data) > 0:
+            test_data = preprocessor.segment_sentences_for_data(
+                test_data, update_raw_idx=True
+            )
+
+    # 2. 如果模型使用了专家词典，为数据添加 expert_dict 特征
+    nested_ohots = getattr(config, "nested_ohots", None)
+    use_expert_dict = False
+    if nested_ohots is not None and hasattr(nested_ohots, "keys"):
+        use_expert_dict = "expert_dict" in nested_ohots.keys()
+
+    if use_expert_dict:
+        # 优先从 results/args 中恢复 expert_dict_path
+        expert_dict_path = args.get("expert_dict_path") or args.get("expert_dict_auto_path")
+        if not expert_dict_path:
+            expert_dict_path = os.path.join(data_dir, "expert_lexicon_auto.txt")
+
+        print(f"\n[ExpertDict] 加载专家词典: {expert_dict_path}")
+        lexicon = []
+        with open(expert_dict_path, "r", encoding="utf-8") as f:
+            for line in f:
+                word = line.strip().split("\t")[0]
+                if word:
+                    lexicon.append(word)
+        print(f"[ExpertDict] 词典大小: {len(lexicon)}")
+
+        tokenizer = LexiconTokenizer(lexicon, max_len=10)
+        print("[ExpertDict] 为 train/dev/test 添加 expert_dict 特征...")
+        for data in (train_data, dev_data, test_data):
+            for entry in data:
+                entry["tokens"].build_expert_dict_tags(tokenizer.tokenize)
+
+        # 频率统计在训练时已构建，这里可以不必重复；如需完全对齐训练，可取消注释：
+        # ed_cfg = nested_ohots["expert_dict"]
+        # if hasattr(ed_cfg, "build_freqs"):
+        #     print("[ExpertDict] 构建 expert_dict 词频统计...")
+        #     ed_cfg.build_freqs(train_data, dev_data)
+
+    # 3. 构建测试集 Dataset
     test_set = Dataset(test_data, config, training=False)
 
-    # 2. 预测
+    # 4. 预测
     trainer = Trainer(model, device=device)
     print("\n===== MSRA 测试集预测 =====")
     pred_chunks = trainer.predict(test_set, batch_size=batch_size)
     gold_chunks = [ex["chunks"] for ex in test_set.data]
 
-    # 3. 计算指标
+    # 5. 计算指标
     scores, ave_scores = precision_recall_f1_report(
         gold_chunks, pred_chunks, macro_over="types"
     )
@@ -228,15 +294,26 @@ def evaluate_msra_and_analyze(save_dir, data_dir=None, export_predictions=True):
     print(f"Macro: P={macro['precision']:.4f} R={macro['recall']:.4f} F1={macro['f1']:.4f}")
     print(f"Micro: P={micro['precision']:.4f} R={micro['recall']:.4f} F1={micro['f1']:.4f}")
 
+    # 各实体类型指标：NR/NS/NT 等，列宽统一对齐
     print("\n===== 各实体类型指标 (MSRA) =====")
-    print(f"{'Type':<15} {'P':>8} {'R':>8} {'F1':>8} {'Gold':>8} {'Pred':>8} {'TP':>8}")
-    for t, s in sorted(scores.items(), key=lambda kv: kv[0]):
+    print(f"{'Type':<6} {'P':>9} {'R':>9} {'F1':>9} {'Gold':>8} {'Pred':>8} {'TP':>8}")
+
+    # 若想优先按 NR/NS/NT 顺序展示
+    order = ["NR", "NS", "NT"]
+    types_in_scores = list(scores.keys())
+    ordered_types = [t for t in order if t in types_in_scores] + [
+        t for t in sorted(types_in_scores) if t not in order
+    ]
+
+    for t in ordered_types:
+        s = scores[t]
         print(
-            f"{t:<15} {s['precision']:.4f} {s['recall']:.4f} {s['f1']:.4f} "
-            f"{s['n_gold']:>8} {s['n_pred']:>8} {s['n_true_positive']:>8}"
+            f"{t:<6} "
+            f"{s['precision']:>9.4f} {s['recall']:>9.4f} {s['f1']:>9.4f} "
+            f"{s['n_gold']:>8d} {s['n_pred']:>8d} {s['n_true_positive']:>8d}"
         )
 
-    # 4. 错误分析
+    # 6. 错误分析
     miss_counter = Counter()   # (type, text) -> count
     wrong_counter = Counter()  # (type, text) -> count
     error_cases = []           # 存储有错误的样本

@@ -12,12 +12,21 @@ results/
 │   ├── HZ_NER_实验报告_20251208.md
 │   ├── RedJujube_NER_实验报告_20251212.md
 │   └── 词典对比分析报告.md
-├── 12-2_softlexicon/                    # 12-2周：SoftLexicon实验（进行中）🚀
+├── 12-2_softlexicon/                    # 12-2周：SoftLexicon实验
 │   ├── softlexicon_20251210/             # CTB词典实验
 │   ├── softlexicon_trainlex_20251210/    # TrainLex原始实验
 │   ├── softlexicon_trainlex_auto/        # TrainLex Auto实验
 │   ├── softlexicon_trainlex_filtered/    # TrainLex Filtered实验
-│   └── RedJujube_SoftLexicon_Complete_Report_20251213.md  # RedJujube完整实验报告
+│   └── RedJujube_SoftLexicon_Complete_Report_20251213.md
+├── 12-3_expert_optimization/            # 12-3周：FLAT模型搭建
+│   ├── FLAT模型搭建实验记录_20251215.md
+│   ├── MSRA_ER_Experiments_20251213.md
+│   └── 工作量总结_20251215.md
+├── 12-4_flat_msra/                      # 12-4周：FLAT-MSRA验证 ✅
+│   └── FLAT_MSRA_实验记录_20251224.md
+├── 实验快速索引_20251215.md              # 快速索引（已更新至12-24）
+├── 实验记录补充_20251212-20251215.md    # 12-2周补充记录
+├── 实验记录补充_20251224.md              # 12-4周补充记录 ⭐
 └── README.md                            # 本文档
 ```
 
@@ -148,6 +157,57 @@ _4MODELS/
 ├── nflat_improvements.py           # 改进方案代码 (400行)
 └── ARCHITECTURE_COMPARISON.md      # 架构对比 (350行)
 ```
+
+---
+
+### 📌 12-4周：FLAT模型MSRA验证 (2025-12-24) ✅
+
+**计划文档**: [plans/12-4_improvements.md](../plans/12-4_improvements.md)
+
+**实验目录**: [12-4_flat_msra/](./12-4_flat_msra/)
+
+**实验报告**:
+- [FLAT_MSRA_实验记录_20251224.md](./12-4_flat_msra/FLAT_MSRA_实验记录_20251224.md) - FLAT在MSRA数据集上的完整验证 ✅
+- [实验记录补充_20251224.md](./实验记录补充_20251224.md) - 12-4周实验补充记录
+
+**核心结论**:
+- 🏆 **性能超越论文**: MSRA测试集F1=**95.19%**，超越FLAT论文baseline **+0.73%**
+- ⚡ **训练高效**: 7个epoch达峰值（~2小时），后23个epoch仅微调
+- 🛡️ **泛化性强**: Test F1 > Dev F1 (+0.96%)，无过拟合
+- ⚠️ **机构识别偏弱**: NT类F1=91.28%，是主要瓶颈
+
+**关键实验结果**:
+
+| 指标类型 | Precision | Recall | F1 | vs FLAT论文 |
+|---------|-----------|--------|-----|-------------|
+| **Micro** | **95.52%** | **94.86%** | **95.19%** | **+0.73%** |
+| **Macro** | **94.81%** | **94.75%** | **94.77%** | **+0.31%** |
+
+**实体类型详细**:
+
+| 类型 | Precision | Recall | F1 | Gold | 说明 |
+|------|-----------|--------|-----|------|------|
+| NR (人名) | 96.52% | 97.30% | **96.91%** | 1,483 | ✅ 最优 |
+| NS (地名) | 97.39% | 94.88% | **96.12%** | 2,872 | ✅ 准确率最高 |
+| NT (机构) | 90.50% | 92.08% | **91.28%** | 1,325 | ⚠️ 主要瓶颈 |
+
+**训练特性**:
+- 模型: FLAT + Inter-Attention + BERT(MacBERT) + CRF
+- 词典: 4,834词专家词典
+- 参数量: ~112M
+- 训练时间: ~8小时（30 epochs，建议10-15 epochs）
+- GPU: 单卡（batch_size=16）
+
+**关键发现**:
+1. ✅ **快速收敛**: Epoch 1-7内F1从67% → 94.23%
+2. ✅ **稳定平台**: Epoch 7-30在93.6%-94.2%间稳定波动
+3. ⚠️ **训练冗余**: 后23个epoch仅贡献±0.3% F1波动
+4. 💡 **优化建议**: Early Stopping (patience=5) + max_epoch=10-15
+
+**改进方向**:
+- 短期: 加入Early Stopping，节省50-60%训练时间
+- 中期: 增强机构类词典，提升NT类F1
+- 长期: 标签重加权、数据增强、模型集成
 
 ---
 
