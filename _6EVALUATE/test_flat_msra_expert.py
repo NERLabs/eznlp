@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-MSRA FLAT 模型测试脚本（用于测试 cache/flat_msra_expert_bert/...）
+通用 FLAT 模型测试脚本（支持 MSRA / RedJujube 等 BMES 数据集）
 
 - 加载训练时保存的 config.pth（包含 args / char_vocab / label_vocab）
 - 加载 best_model.pth（完整模型对象）
-- 按 BMES MSRA 格式读取 test.char.bmes
+- 按 BMES 格式读取测试集
 - 重建 FLAT 输入特征，进行实体级评估并打印各类 P/R/F1
 """
 
@@ -25,30 +25,45 @@ from _4MODELS.models.flat_data_processor import FLATDataProcessor, load_word_lis
 from _4MODELS.models.flat_extractor import FLATModel  # 仅为类型提示，实际直接 load
 from _5TRAIN.train_flat_complete import extract_entities  # 复用 BMES 实体抽取逻辑
 from eznlp.metrics import precision_recall_f1_report
+from eznlp.io import ConllIO
+from eznlp.utils import ChunksTagsTranslator
 
 
 def load_bmes_data(file_path):
-    """复制 train_flat_complete.py 里的 BMES 加载逻辑（只用 test 集）"""
+    """
+    使用 ConllIO 读取 BMES 格式的 test.char.bmes，
+    保持与 test_msra_ner.py 完全一致的数据切分逻辑，
+    然后还原出每句的字符序列和 BMES 标签序列（chars + labels）。
+    """
+    # 与 test_msra_ner.py 中 load_msra_data 的 ConllIO 配置保持一致
+    io = ConllIO(
+        text_col_id=0,
+        tag_col_id=1,
+        scheme="BMES",
+        encoding="utf-8",
+        token_sep="",   # 字符级 BMES
+        pad_token="",
+    )
+
+    # 读取单个文件（这里只用 test 集）
+    data_entries = io.read(file_path)  # 每个元素: {"tokens": TokenSequence, "chunks": [(type, s, e), ...], ...}
+
+    # 用同样的 BMES 规则把 chunks 还原回标签序列
+    translator = ChunksTagsTranslator(scheme="BMES", sep="-", breaking_for_types=True)
+
     data = []
-    chars = []
-    labels = []
+    for entry in data_entries:
+        tokens = entry["tokens"]
+        chunks = entry["chunks"]
 
-    with open(file_path, "r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                if chars:
-                    data.append({"chars": chars, "labels": labels})
-                    chars = []
-                    labels = []
-            else:
-                parts = line.split()
-                if len(parts) >= 2:
-                    chars.append(parts[0])
-                    labels.append(parts[1])
+        # raw_text 是字符序列（因为 token_sep=""）
+        chars = list(tokens.raw_text)
+        seq_len = len(chars)
 
-    if chars:
-        data.append({"chars": chars, "labels": labels})
+        # 从实体块还原 BMES 标签序列，例如：["B-NS", "M-NS", "E-NS", "O", ...]
+        tags = translator.chunks2tags(chunks, seq_len)
+
+        data.append({"chars": chars, "labels": tags})
 
     return data
 
@@ -169,6 +184,8 @@ def evaluate_with_report(
         "scores": scores,
         "macro": ave_scores["macro"],
         "micro": ave_scores["micro"],
+        "y_gold": set_y_gold,
+        "y_pred": set_y_pred,
     }
 
 
@@ -279,7 +296,7 @@ def build_test_loader(processor: FLATDataProcessor, test_data, batch_size: int):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="测试 FLAT-MSRA 实验（best_model.pth + config.pth）")
+    parser = argparse.ArgumentParser(description="测试 FLAT 模型（best_model.pth + config.pth）")
     parser.add_argument(
         "--save_dir",
         type=str,
@@ -290,7 +307,13 @@ def parse_args():
         "--data_dir",
         type=str,
         default="data/MSRA",
-        help="MSRA 数据目录（包含 train.char.bmes / dev.char.bmes / test.char.bmes）",
+        help="数据目录（包含 BMES 测试文件）",
+    )
+    parser.add_argument(
+        "--test_file",
+        type=str,
+        default="test.char.bmes",
+        help="测试集 BMES 文件名或绝对路径（如 test.char.bmes / redjujube_test.bmes）",
     )
     parser.add_argument(
         "--batch_size",
@@ -327,10 +350,12 @@ def main():
     use_bert = bool(train_args.get("use_bert", False)) and not args.no_bert
     bert_model_name = train_args.get("bert_model", "bert-base-chinese")
 
-    # 2. 加载 MSRA 测试集（BMES）
-    test_file = os.path.join(args.data_dir, "test.char.bmes")
+    # 2. 加载测试集（BMES）
+    test_file = args.test_file
+    if not os.path.isabs(test_file):
+        test_file = os.path.join(args.data_dir, test_file)
     if not os.path.exists(test_file):
-        raise FileNotFoundError(f"未找到 MSRA 测试文件: {test_file}")
+        raise FileNotFoundError(f"未找到测试文件: {test_file}")
     print(f"加载测试集: {test_file}")
     test_data = load_bmes_data(test_file)
     print(f"  测试样本数: {len(test_data)}")
@@ -370,11 +395,11 @@ def main():
     model.eval()
 
     # ===== 打印模型结构 =====
-    print("\n===== 模型结构 (FLAT-MSRA) =====")
+    print("\n===== 模型结构 (FLAT) =====")
     print(model)
 
     # 6. 调用带详细报告的 evaluate_with_report（实体级）
-    print("\n===== 使用 FLAT 评估 MSRA 测试集 =====")
+    print("\n===== 使用 FLAT 评估测试集 =====")
     metrics = evaluate_with_report(
         model,
         test_loader,
@@ -385,7 +410,7 @@ def main():
         use_bert=use_bert,
     )
 
-    print("\n===== 测试集结果 (MSRA, 实体级) =====")
+    print("\n===== 测试集结果 (实体级) =====")
     print(f"Loss={metrics['loss']:.4f}")
 
     macro = metrics["macro"]
@@ -397,19 +422,16 @@ def main():
     print("[Micro]")
     print(f"P={micro['precision']:.4%}  R={micro['recall']:.4%}  F1={micro['f1']:.4%}")
 
-    # 各实体类型指标：使用真实标签名（例如 MSRA: NR/NS/NT）
-    print("\n===== 各实体类型指标 (MSRA) =====")
+    # 各实体类型指标：使用真实标签名
+    print("\n===== 各实体类型指标 =====")
     # 统一列宽：Type 6 列，P/R/F1 9 列（含4位小数），计数列 8 列
     print(f"{'Type':<6} {'P':>9} {'R':>9} {'F1':>9} {'Gold':>8} {'Pred':>8} {'TP':>8}")
 
     scores = metrics["scores"]
 
-    # 若想按固定顺序显示 NR/NS/NT，可以在这里排序
-    order = ["NR", "NS", "NT"]
+    # 通用顺序：按标签名排序
     types_in_scores = list(scores.keys())
-    ordered_types = [t for t in order if t in types_in_scores] + [
-        t for t in sorted(types_in_scores) if t not in order
-    ]
+    ordered_types = sorted(types_in_scores)
 
     for t in ordered_types:
         s = scores[t]
@@ -418,6 +440,15 @@ def main():
             f"{s['precision']:>9.4f} {s['recall']:>9.4f} {s['f1']:>9.4f} "
             f"{s['n_gold']:>8d} {s['n_pred']:>8d} {s['n_true_positive']:>8d}"
         )
+
+    # 新增：保存 FLAT 的预测详情，方便 ensemble 融合
+    flat_pred_path = os.path.join(args.save_dir, "predictions_test_flat_msra.pt")
+    flat_pred_dump = [
+        {"chunks": g, "chunks_pred": p}
+        for g, p in zip(metrics["y_gold"], metrics["y_pred"])
+    ]
+    torch.save(flat_pred_dump, flat_pred_path)
+    print(f"\n已保存 FLAT 预测详情到: {flat_pred_path}")
 
 
 if __name__ == "__main__":

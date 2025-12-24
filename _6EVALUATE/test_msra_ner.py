@@ -133,16 +133,17 @@ def load_config_and_model(save_dir, device):
     return config, model, config_path, model_path
 
 
-def load_msra_data(data_dir="data/MSRA"):
+def load_msra_data(data_dir="data/MSRA", prefix=""):
     """
-    加载 MSRA-ER 数据集（BMES 字符级标注）。
+    加载 BMES 字符级标注数据集。
 
     data_dir 下期望存在：
-      - hz_train.bmes
-      - hz_dev.bmes
-      - hz_test.bmes
+      - {prefix}train.bmes
+      - {prefix}dev.bmes
+      - {prefix}test.bmes
 
-    若你的数据路径不同，可通过命令行参数 --data_dir 覆盖。
+    MSRA 默认 prefix="" 且文件名为 train.char.bmes / dev.char.bmes / test.char.bmes，
+    RedJujube 可使用 prefix="redjujube_".
     """
     io = ConllIO(
         text_col_id=0,
@@ -153,14 +154,22 @@ def load_msra_data(data_dir="data/MSRA"):
         pad_token="",
     )
 
-    train_path = os.path.join(data_dir, "train.char.bmes")
-    dev_path = os.path.join(data_dir, "dev.char.bmes")
-    test_path = os.path.join(data_dir, "test.char.bmes")
+    if prefix:
+        train_name = f"{prefix}train.bmes"
+        dev_name   = f"{prefix}dev.bmes"
+        test_name  = f"{prefix}test.bmes"
+    else:
+        train_name = "train.char.bmes"
+        dev_name   = "dev.char.bmes"
+        test_name  = "test.char.bmes"
+
+    train_path = os.path.join(data_dir, train_name)
+    dev_path   = os.path.join(data_dir, dev_name)
+    test_path  = os.path.join(data_dir, test_name)
 
     train_data = io.read(train_path)
-    dev_data = io.read(dev_path)
-    test_data = io.read(test_path)
-
+    dev_data   = io.read(dev_path)
+    test_data  = io.read(test_path)
     return train_data, dev_data, test_data
 
 
@@ -212,67 +221,66 @@ def evaluate_msra_and_analyze(save_dir, data_dir=None, export_predictions=True):
 
     print(f"使用 data_dir = {data_dir}")
     print(f"使用 batch_size = {batch_size}")
-    print("数据集: MSRA-ER")
 
-    # 1. 构建 MSRA 数据集（train / dev / test）
-    train_data, dev_data, test_data = load_msra_data(data_dir)
+    # 简单根据路径名判断：RedJujube 或 MSRA
+    if "RedJujube" in data_dir:
+        print("数据集: RedJujube-ER（BMES）")
+        train_data, dev_data, test_data = load_msra_data(data_dir, prefix="redjujube_")
+    else:
+        print("数据集: MSRA-ER")
+        train_data, dev_data, test_data = load_msra_data(data_dir)
 
     # 1.5 先做与训练一致的 BERT 句子切分（避免超长）
     if getattr(config, "bert_like", None) is not None:
-        bert_max_len = args.get("bert_max_length") or args.get("bert_max_len")
-        if bert_max_len is None:
-            bert_max_len = config.bert_like.tokenizer.model_max_length
-        print(f"\n[BERT] 使用 max_length = {bert_max_len} 做句子切分")
+        # 优先从训练 args 中恢复 bert_max_length，其次从 config 里取，最后默认 512
+        bert_max_len = args.get("bert_max_length", getattr(config, "bert_max_length", 512))
+
         preprocessor = BertLikePreProcessor(
             config.bert_like.tokenizer,
             model_max_length=bert_max_len,
             verbose=True,
         )
-        if len(train_data) > 0:
-            train_data = preprocessor.segment_sentences_for_data(
-                train_data, update_raw_idx=True
-            )
-        if len(dev_data) > 0:
-            dev_data = preprocessor.segment_sentences_for_data(
-                dev_data, update_raw_idx=True
-            )
-        if len(test_data) > 0:
-            test_data = preprocessor.segment_sentences_for_data(
-                test_data, update_raw_idx=True
-            )
+        test_data = preprocessor.segment_sentences_for_data(
+            test_data, update_raw_idx=True
+        )
 
-    # 2. 如果模型使用了专家词典，为数据添加 expert_dict 特征
+    # 2. 专家词典特征：本脚本改为“只测试 ExpertDict 架构”
     nested_ohots = getattr(config, "nested_ohots", None)
-    use_expert_dict = False
-    if nested_ohots is not None and hasattr(nested_ohots, "keys"):
-        use_expert_dict = "expert_dict" in nested_ohots.keys()
 
-    if use_expert_dict:
-        # 优先从 results/args 中恢复 expert_dict_path
-        expert_dict_path = args.get("expert_dict_path") or args.get("expert_dict_auto_path")
-        if not expert_dict_path:
-            expert_dict_path = os.path.join(data_dir, "expert_lexicon_auto.txt")
+    # 强制要求存在 expert_dict 通道，否则报错
+    if not (nested_ohots is not None and hasattr(nested_ohots, "keys") and "expert_dict" in nested_ohots.keys()):
+        raise ValueError(
+            "当前模型配置中未找到 nested_ohots['expert_dict']，"
+            "本测试脚本仅适用于带 ExpertDict 特征的 MSRA-ER 模型。"
+        )
 
-        print(f"\n[ExpertDict] 加载专家词典: {expert_dict_path}")
-        lexicon = []
-        with open(expert_dict_path, "r", encoding="utf-8") as f:
-            for line in f:
-                word = line.strip().split("\t")[0]
-                if word:
-                    lexicon.append(word)
-        print(f"[ExpertDict] 词典大小: {len(lexicon)}")
+    print("\n[ExpertDict] 检测到 ExpertDict 特征通道，开始加载专家词典...")
+    # 优先从训练 args 中恢复专家词典路径（自动/手工）
+    expert_dict_path = args.get("expert_dict_auto_path")
+    if not expert_dict_path:
+        # 若训练时未显式记录，则使用默认自动词典路径
+        expert_dict_path = os.path.join(data_dir, "expert_lexicon_auto.txt")
 
-        tokenizer = LexiconTokenizer(lexicon, max_len=10)
-        print("[ExpertDict] 为 train/dev/test 添加 expert_dict 特征...")
-        for data in (train_data, dev_data, test_data):
-            for entry in data:
-                entry["tokens"].build_expert_dict_tags(tokenizer.tokenize)
+    print(f"[ExpertDict] 加载专家词典: {expert_dict_path}")
+    lexicon = []
+    with open(expert_dict_path, "r", encoding="utf-8") as f:
+        for line in f:
+            word = line.strip().split("\t")[0]
+            if word:
+                lexicon.append(word)
+    print(f"[ExpertDict] 词典大小: {len(lexicon)}")
 
-        # 频率统计在训练时已构建，这里可以不必重复；如需完全对齐训练，可取消注释：
-        # ed_cfg = nested_ohots["expert_dict"]
-        # if hasattr(ed_cfg, "build_freqs"):
-        #     print("[ExpertDict] 构建 expert_dict 词频统计...")
-        #     ed_cfg.build_freqs(train_data, dev_data)
+    tokenizer = LexiconTokenizer(lexicon, max_len=10)
+    print("[ExpertDict] 为 train/dev/test 添加 expert_dict 特征...")
+    for data in (train_data, dev_data, test_data):
+        for entry in data:
+            entry["tokens"].build_expert_dict_tags(tokenizer.tokenize)
+
+    # 如需完全对齐训练时的频率统计，可在此补充，但默认不再重复构建
+    # ed_cfg = nested_ohots["expert_dict"]
+    # if hasattr(ed_cfg, "build_freqs"):
+    #     print("[ExpertDict] 构建 expert_dict 词频统计...")
+    #     ed_cfg.build_freqs(train_data, dev_data)
 
     # 3. 构建测试集 Dataset
     test_set = Dataset(test_data, config, training=False)
