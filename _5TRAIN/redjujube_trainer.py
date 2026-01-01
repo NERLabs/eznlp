@@ -15,6 +15,7 @@ import sys
 import logging
 import json
 import torch
+from torch.utils.tensorboard import SummaryWriter
 from eznlp.dataset import Dataset
 from eznlp.training import Trainer
 
@@ -47,6 +48,10 @@ class RedJujubeTrainerConfig:
         # 显示和评估参数
         self.disp_every_steps = getattr(args, 'disp_every_steps', 50)
         self.eval_every_steps = getattr(args, 'eval_every_steps', 200)
+        
+        # TensorBoard 配置
+        self.use_tensorboard = getattr(args, 'use_tensorboard', True)
+        self.tensorboard_dir = os.path.join(save_dir, 'tensorboard')
         
         # 设备配置
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -176,14 +181,33 @@ class RedJujubeNERTrainer:
     """RedJujube NER 训练器"""
     
     def __init__(self, train_config, logger):
-        """初始化训练器
-        
-        Args:
-            train_config: RedJujubeTrainerConfig 对象
-            logger: 日志器对象
-        """
         self.config = train_config
         self.logger = logger
+        self.writer = None
+        
+        # 初始化 TensorBoard
+        if self.config.use_tensorboard:
+            tb_log_dir = os.path.join(self.config.save_dir, "tensorboard")
+            os.makedirs(tb_log_dir, exist_ok=True)
+            self.writer = SummaryWriter(log_dir=tb_log_dir)
+            self.logger.info(f"📊 TensorBoard 日志目录: {tb_log_dir}")
+    
+    def _log_tensorboard(self, tag, value, step):
+        """记录到 TensorBoard"""
+        if self.writer is not None:
+            self.writer.add_scalar(tag, value, step)
+    
+    def _log_tensorboard_metrics(self, prefix, metrics_dict, step):
+        """记录多个指标到 TensorBoard"""
+        if self.writer is not None:
+            for key, value in metrics_dict.items():
+                if isinstance(value, (int, float)):
+                    self.writer.add_scalar(f"{prefix}/{key}", value, step)
+    
+    def _close_tensorboard(self):
+        """关闭 TensorBoard writer"""
+        if self.writer is not None:
+            self.writer.close()
     
     def train(self, model_config, train_data, dev_data, test_data, use_expert_dict=False):
         """训练模型
@@ -256,55 +280,116 @@ class RedJujubeNERTrainer:
             use_amp=self.config.use_amp
         )
         
-        # 6. 保存模型配置（用于测试和部署）
+        # 6. 保存模型配置
         torch.save(model_config, f"{self.config.save_dir}/{model_config.name}-config.pth")
         self.logger.info(f"💾 已保存配置: {self.config.save_dir}/{model_config.name}-config.pth")
         
-        # 7. 保存回调
-        def save_callback(model):
-            # 保存完整模型（推荐用于测试和部署）
-            model_path = f"{self.config.save_dir}/{model_config.name}.pth"
-            torch.save(model, model_path)
-            self.logger.info(f"✅ 保存最佳模型到: {model_path}")
+        # 7. 训练循环变量
+        best_dev_f1 = 0.0
+        best_epoch = 0
+        global_step = 0
         
-        # 8. 开始训练
-        self.logger.info(f"\n开始训练 {self.config.num_epochs} 个 epoch...")
-        self.logger.info(f"设备: {self.config.device}")
-        self.logger.info(f"批次大小: {self.config.batch_size}")
-        self.logger.info(f"学习率: {self.config.lr}")
-        self.logger.info(f"微调学习率: {self.config.finetune_lr}\n")
-        
-        trainer.train_steps(
-            train_loader=train_loader,
-            dev_loader=dev_loader,
-            num_epochs=self.config.num_epochs,
-            disp_every_steps=self.config.disp_every_steps,
-            eval_every_steps=self.config.eval_every_steps,
-            save_callback=save_callback,
-            save_by_loss=False  # 按 F1 保存
-        )
+        for epoch in range(1, self.config.num_epochs + 1):
+            self.logger.info(f"\n===== Epoch {epoch}/{self.config.num_epochs} =====")
+            
+            # 手动训练循环（支持 step 级别的 TensorBoard 记录）
+            model.train()
+            epoch_losses = []
+            
+            for batch in train_loader:
+                batch = batch.to(self.config.device)
+                
+                # 前向传播
+                with torch.amp.autocast('cuda', enabled=self.config.use_amp):
+                    losses, states = model(batch, return_states=True)
+                    loss = losses.mean()
+                
+                # 反向传播
+                loss.backward()
+                
+                if self.config.grad_clip > 0:
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), self.config.grad_clip)
+                
+                optimizer.step()
+                scheduler.step()
+                optimizer.zero_grad()
+                
+                global_step += 1
+                epoch_losses.append(loss.item())
+                
+                # 记录到 TensorBoard
+                if self.writer:
+                    self.writer.add_scalar("train/loss", loss.item(), global_step)
+                    current_lr = scheduler.get_last_lr()[0]
+                    self.writer.add_scalar("train/lr", current_lr, global_step)
+            
+            train_loss = sum(epoch_losses) / len(epoch_losses)
+            self.logger.info(f"Train Loss: {train_loss:.4f}")
+            if self.writer:
+                self.writer.add_scalar("epoch/train_loss", train_loss, epoch)
+            
+            # 验证
+            eval_result = trainer.eval_epoch(dev_loader)
+            if isinstance(eval_result, tuple):
+                dev_loss = eval_result[0]
+                dev_f1 = eval_result[1] if len(eval_result) > 1 else 0.0
+            else:
+                dev_loss = eval_result
+                dev_f1 = 0.0
+            
+            self.logger.info(f"Dev Loss: {dev_loss:.4f}, Dev F1: {dev_f1:.4f}")
+            if self.writer:
+                self.writer.add_scalar("dev/loss", dev_loss, epoch)
+                self.writer.add_scalar("dev/f1", dev_f1, epoch)
+            
+            # 保存最佳模型
+            if dev_f1 > best_dev_f1:
+                best_dev_f1 = dev_f1
+                best_epoch = epoch
+                model_path = f"{self.config.save_dir}/{model_config.name}.pth"
+                torch.save(model, model_path)
+                self.logger.info(f"✅ 保存最佳模型 (epoch {epoch}, F1={dev_f1:.4f})")
         
         # 9. 加载最佳模型并在测试集上评估
+        self.logger.info(f"\n最优验证 F1: {best_dev_f1:.4f} (epoch {best_epoch})")
         best_model_path = f"{self.config.save_dir}/{model_config.name}.pth"
-        self.logger.info(f"\n加载最佳模型: {best_model_path}")
+        self.logger.info(f"加载最佳模型: {best_model_path}")
         model = torch.load(best_model_path, map_location=self.config.device, weights_only=False)
         
+        # 重新构建 trainer 用于评估
+        trainer = Trainer(
+            model,
+            device=self.config.device,
+            use_amp=self.config.use_amp
+        )
+        
         self.logger.info("在测试集上评估...")
-        test_loss, *test_metrics = trainer.eval_epoch(test_loader)
+        test_result = trainer.eval_epoch(test_loader)
+        if isinstance(test_result, tuple):
+            test_loss = test_result[0]
+            test_f1 = test_result[1] if len(test_result) > 1 else 0.0
+        else:
+            test_loss = test_result
+            test_f1 = 0.0
         
         self.logger.info(f"\n{'='*70}")
         self.logger.info("测试集结果:")
         self.logger.info(f"  Loss: {test_loss:.4f}")
-        if test_metrics:
-            for i, metric in enumerate(test_metrics):
-                self.logger.info(f"  Metric {i}: {metric:.4f}")
+        self.logger.info(f"  F1: {test_f1:.4f}")
         self.logger.info(f"{'='*70}\n")
         
-        # 10. 保存结果
+        # 记录测试结果到 TensorBoard
+        if self.writer:
+            self.writer.add_scalar("test/loss", test_loss, 0)
+            self.writer.add_scalar("test/f1", test_f1, 0)
+        
+        # 保存结果
         results = {
             'model_type': self.config.model_name,
+            'best_dev_f1': float(best_dev_f1),
+            'best_epoch': best_epoch,
             'test_loss': float(test_loss),
-            'test_metrics': [float(m) for m in test_metrics] if test_metrics else [],
+            'test_f1': float(test_f1),
             'total_params': total_params,
             'trainable_params': trainable_params,
             'args': vars(self.config.args)
@@ -312,5 +397,9 @@ class RedJujubeNERTrainer:
         
         with open(f"{self.config.save_dir}/results.json", 'w') as f:
             json.dump(results, f, indent=2, ensure_ascii=False)
+        
+        # 关闭 TensorBoard writer
+        if self.writer:
+            self.writer.close()
         
         return results

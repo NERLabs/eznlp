@@ -647,7 +647,6 @@ def process_IE_data(train_data, dev_data, test_data, args, config):
                 test_data, doc_key=doc_key
             )
 
-        # ... existing code ...
         if args.dataset in ("MSRA", "yidu_s4k", "cmeee"):
             if len(train_data) > 0:
                 train_data = preprocessor.segment_sentences_for_data(
@@ -663,9 +662,6 @@ def process_IE_data(train_data, dev_data, test_data, args, config):
                 )
             
         # Remove the duplicate filtering code we added earlier since segmenting already handles long sequences
-# ... existing code ...
-            
-
         if args.pre_subtokenize:
             train_data = preprocessor.subtokenize_for_data(train_data)
             dev_data = preprocessor.subtokenize_for_data(dev_data)
@@ -795,8 +791,12 @@ if __name__ == "__main__":
         lexicon = []
         with open(args.expert_dict_path, "r", encoding="utf-8") as f:
             for line in f:
-                word = line.strip().split("\t")[0]
+                parts = line.strip().split("\t")
+                word = parts[0]
                 if word:
+                    # 如果有类型信息，拼接成 word_TYPE
+                    if len(parts) >= 2 and parts[1]:
+                        word = f"{word}_{parts[1]}"
                     lexicon.append(word)
         print(f"[ExpertDict] Loaded {len(lexicon)} lexicon entries")
 

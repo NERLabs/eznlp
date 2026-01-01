@@ -114,6 +114,26 @@ def load_config_and_model(save_dir, device):
     model = torch.load(model_path, map_location=device, weights_only=False)
     model.to(device)
 
+    # >>> 打印模型信息 <<<
+    print("\n===== 模型结构摘要 =====")
+    # 模型名（如果有 name 属性）
+    model_name = getattr(config, "name", None)
+    if model_name is not None:
+        print(f"模型名称: {model_name}")
+    # 顶层类名
+    print(f"模型类: {model.__class__.__name__}")
+    # 尝试打印解码器类型（序列标注 / 边界选择等）
+    decoder = getattr(model, "decoder", None)
+    if decoder is not None:
+        print(f"解码器类型: {decoder.__class__.__name__}")
+    # 参数量统计
+    total_params = sum(p.numel() for p in model.parameters())
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f"总参数量: {total_params:,}")
+    print(f"可训练参数: {trainable_params:,}")
+    print("模型结构:\n", model)
+    print("===== 模型结构摘要结束 =====\n")
+
     return config, model, config_path, model_path
 
 
@@ -157,7 +177,7 @@ def evaluate_and_analyze(save_dir, model_type="baseline", export_predictions=Tru
         if "auto" in model_type:
             expert_dict_path = args.get(
                 "expert_dict_auto_path",
-                "_2DATA/RedJujube/expert_lexicon_auto.txt",
+                "cache/redjujube_expert_boundary_min1/expert_boundary_20251224-202012/auto_lexicon.txt",
             )
         else:
             expert_dict_path = args.get(

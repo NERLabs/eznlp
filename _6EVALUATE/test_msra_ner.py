@@ -255,18 +255,31 @@ def evaluate_msra_and_analyze(save_dir, data_dir=None, export_predictions=True):
         )
 
     print("\n[ExpertDict] 检测到 ExpertDict 特征通道，开始加载专家词典...")
-    # 优先从训练 args 中恢复专家词典路径（自动/手工）
-    expert_dict_path = args.get("expert_dict_auto_path")
-    if not expert_dict_path:
-        # 若训练时未显式记录，则使用默认自动词典路径
-        expert_dict_path = os.path.join(data_dir, "expert_lexicon_auto.txt")
+    # 优先使用命令行参数指定的路径
+    cli_args = parse_args()
+    if hasattr(cli_args, 'expert_dict_path') and cli_args.expert_dict_path:
+        expert_dict_path = cli_args.expert_dict_path
+    else:
+        # 其次从训练 args 中恢复
+        expert_dict_path = args.get("expert_dict_path") or args.get("expert_dict_auto_path")
+    
+    if not expert_dict_path or not os.path.exists(expert_dict_path):
+        # 检测是否是带类型的模型（从路径判断）
+        if "typed" in save_dir:
+            expert_dict_path = os.path.join(data_dir, "expert_lexicon_typed.txt")
+        else:
+            expert_dict_path = os.path.join(data_dir, "expert_lexicon_auto.txt")
 
     print(f"[ExpertDict] 加载专家词典: {expert_dict_path}")
     lexicon = []
     with open(expert_dict_path, "r", encoding="utf-8") as f:
         for line in f:
-            word = line.strip().split("\t")[0]
+            parts = line.strip().split("\t")
+            word = parts[0]
             if word:
+                # 如果有类型信息，拼接成 word_TYPE
+                if len(parts) >= 2 and parts[1]:
+                    word = f"{word}_{parts[1]}"
                 lexicon.append(word)
     print(f"[ExpertDict] 词典大小: {len(lexicon)}")
 
@@ -404,26 +417,11 @@ def evaluate_msra_and_analyze(save_dir, data_dir=None, export_predictions=True):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(
-        description="MSRA NER 模型详细测试与错误分析"
-    )
-    parser.add_argument(
-        "--save_dir",
-        type=str,
-        default="cache/MSRA-ER/20250822-195241-646229",
-        help="训练输出目录（包含 *-config.pth / *.pth / results.json）",
-    )
-    parser.add_argument(
-        "--data_dir",
-        type=str,
-        default="data/MSRA",
-        help="MSRA 数据目录（包含 hz_train.bmes / hz_dev.bmes / hz_test.bmes）",
-    )
-    parser.add_argument(
-        "--no_export_predictions",
-        action="store_true",
-        help="不导出 predictions_test_msra.pt",
-    )
+    parser = argparse.ArgumentParser(description="MSRA/RedJujube NER 模型测试")
+    parser.add_argument("--save_dir", type=str, required=True, help="模型保存目录")
+    parser.add_argument("--data_dir", type=str, default=None, help="数据目录")
+    parser.add_argument("--expert_dict_path", type=str, default=None, help="专家词典路径（可选，覆盖默认）")
+    parser.add_argument("--no_export_predictions", action="store_true", help="不导出预测结果")
     return parser.parse_args()
 
 
