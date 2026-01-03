@@ -284,7 +284,29 @@ class RedJujubeNERTrainer:
         torch.save(model_config, f"{self.config.save_dir}/{model_config.name}-config.pth")
         self.logger.info(f"💾 已保存配置: {self.config.save_dir}/{model_config.name}-config.pth")
         
-        # 7. 训练循环变量
+        # 7. 记录模型结构到 TensorBoard
+        if self.writer is not None:
+            try:
+                sample_batch = next(iter(train_loader))
+                sample_batch = sample_batch.to(self.config.device)
+                
+                # 包装一个简化的 forward，只接受 batch，返回 loss
+                class ModelWrapper(torch.nn.Module):
+                    def __init__(self, base_model):
+                        super().__init__()
+                        self.base_model = base_model
+                    
+                    def forward(self, batch):
+                        losses, _ = self.base_model(batch, return_states=True)
+                        return losses
+                
+                wrapped_model = ModelWrapper(model)
+                self.writer.add_graph(wrapped_model, sample_batch)
+                self.logger.info("📊 已记录模型结构到 TensorBoard")
+            except Exception as e:
+                self.logger.warning(f"记录模型图失败: {e}")
+        
+        # 8. 训练循环变量
         best_dev_f1 = 0.0
         best_epoch = 0
         global_step = 0

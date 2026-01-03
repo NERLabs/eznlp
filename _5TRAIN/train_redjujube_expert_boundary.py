@@ -141,7 +141,7 @@ def build_expert_boundary_config(args):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="RedJujube NER - 自动词典 + 边界选择")
+    parser = argparse.ArgumentParser(description="RedJujube NER - ExpertDict + BoundarySelection")
     
     parser.add_argument("--data_dir", type=str, required=True, help="数据目录")
     parser.add_argument("--save_dir", type=str, required=True, help="保存目录")
@@ -186,6 +186,29 @@ def parse_args():
     return parser.parse_args()
 
 
+def truncate_long_sequences(datasets, max_char_len: int = 510):
+    """
+    将过长样本截断到 max_char_len，避免超过 BERT 的 512 上限。
+    只保留完全落在截断范围内的实体 span。
+    """
+    num_truncated = 0
+    for data in datasets:
+        for entry in data:
+            tokens = entry["tokens"]
+            if len(tokens) > max_char_len:
+                num_truncated += 1
+                # 截断 token 序列
+                entry["tokens"] = tokens[:max_char_len]
+                # 调整实体标注：丢掉越界的 span
+                chunks = entry.get("chunks", [])
+                new_chunks = []
+                for label, start, end in chunks:
+                    if end <= max_char_len:
+                        new_chunks.append((label, start, end))
+                entry["chunks"] = new_chunks
+    return num_truncated
+
+
 def main():
     args = parse_args()
     
@@ -203,10 +226,17 @@ def main():
     logger.info("=" * 70)
     logger.info(f"边界平滑: sb_epsilon={args.sb_epsilon}, sb_size={args.sb_size}")
     logger.info(f"保存目录: {save_dir}")
-
+    
     train_data, dev_data, test_data = load_redjujube_data(args.data_dir)
     logger.info(f"加载数据: train={len(train_data)}, dev={len(dev_data)}, test={len(test_data)}")
 
+    # 对过长样本做统一截断，避免超过 BERT 的 512 上限
+    num_trunc = truncate_long_sequences(
+        (train_data, dev_data, test_data), max_char_len=510
+    )
+    if num_trunc > 0:
+        logger.info(f"发现并截断过长样本: {num_trunc} 条 (长度 > 510)")
+    
     if args.expert_dict_path:
         lexicon = load_expert_lexicon(args.expert_dict_path)
         logger.info(f"加载专家词典: {len(lexicon)} 个词")
