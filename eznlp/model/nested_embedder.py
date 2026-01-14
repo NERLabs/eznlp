@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from collections import Counter
-from typing import List
+from typing import List, Optional
 
 import torch
 
@@ -260,6 +260,13 @@ class ExpertDictConfig(NestedOneHotConfig):
 
         kwargs["emb_dim"] = kwargs.pop("emb_dim", 50)
         kwargs["agg_mode"] = kwargs.pop("agg_mode", "wtd_mean_pooling")
+        
+        # BMES通道间注意力配置
+        self.use_channel_attention = kwargs.pop("use_channel_attention", False)
+        self.channel_attn_heads = kwargs.pop("channel_attn_heads", 4)
+        self.channel_attn_dropout = kwargs.pop("channel_attn_dropout", 0.1)
+        self.channel_attn_version = kwargs.pop("channel_attn_version", "v1")  # v1或v2
+        
         super().__init__(**kwargs)
 
     def __repr__(self):
@@ -306,3 +313,98 @@ class ExpertDictConfig(NestedOneHotConfig):
         )
         batch["inner_weight"] = batch_inner_freqs
         return batch
+    
+    def instantiate(self):
+        """实例化ExpertDict嵌入器（支持通道注意力）"""
+        if self.use_channel_attention:
+            return ExpertDictWithChannelAttention(self)
+        else:
+            return NestedOneHotEmbedder(self)
+
+
+class ExpertDictWithChannelAttention(NestedOneHotEmbedder):
+    """带通道间注意力的ExpertDict嵌入器
+    
+    在标准的NestedOneHotEmbedder基础上,增加BMES通道间注意力机制
+    """
+    
+    def __init__(self, config: ExpertDictConfig):
+        super().__init__(config)
+        
+        # 导入通道注意力模块
+        from .channel_attention import BMESChannelAttention, BMESChannelAttentionV2
+        
+        # 根据版本选择注意力模块
+        if config.channel_attn_version == "v2":
+            self.channel_attention = BMESChannelAttentionV2(
+                emb_dim=config.emb_dim,
+                num_channels=config.num_channels,
+                dropout=config.channel_attn_dropout
+            )
+        else:
+            self.channel_attention = BMESChannelAttention(
+                emb_dim=config.emb_dim,
+                num_channels=config.num_channels,
+                num_heads=config.channel_attn_heads,
+                dropout=config.channel_attn_dropout,
+                use_channel_pos=True
+            )
+    
+    def forward(
+        self,
+        inner_ids: torch.LongTensor,
+        inner_mask: torch.BoolTensor,
+        seq_lens: torch.LongTensor,
+        inner_weight: Optional[torch.FloatTensor] = None,
+    ):
+        """前向传播（增加通道注意力）
+        
+        修复后的流程:
+        1. Embedding: (batch*step*4, inner_step) → (batch*step*4, inner_step, 50)
+        2. Aggregation: (batch*step*4, inner_step, 50) → (batch*step*4, 50)
+        3. 先恢复batch维度: (batch*step*4, 50) → (batch, step, 200)
+        4. 重塑为通道维度: (batch, step, 200) → (batch, step, 4, 50)
+        5. 通道注意力: (batch, step, 4, 50) → (batch, step, 4, 50)
+        6. 展平通道维度: (batch, step, 4, 50) → (batch, step, 200)
+        """
+        assert (seq_lens * self.num_channels).sum().item() == inner_ids.size(0)
+        
+        # Step 1: Embedding
+        # embedded: (batch*step*num_channels, inner_step, emb_dim)
+        embedded = self.embedding(inner_ids)
+        
+        # Step 2: Encoding + Aggregating
+        # agg_hidden: (batch*step*num_channels, emb_dim)
+        if hasattr(self, "encoder"):
+            hidden = self.encoder(embedded, inner_mask)
+            agg_hidden = self.aggregating(hidden, inner_mask, weight=inner_weight)
+        else:
+            agg_hidden = self.aggregating(embedded, inner_mask, weight=inner_weight)
+        
+        # Step 3: 先恢复为外层batch维度
+        # agg_hidden: (batch*step*4, 50) → (batch, step, 200)
+        batch_hidden = self._restore_outer_shapes(agg_hidden, seq_lens)
+        
+        # Step 4: 重塑为通道维度
+        # batch_hidden: (batch, step, 200) → (batch, step, 4, 50)
+        batch_size, step_size = batch_hidden.size(0), batch_hidden.size(1)
+        channel_hidden = batch_hidden.view(batch_size, step_size, self.num_channels, -1)
+        
+        # 构造通道掩码 (有词典匹配的通道为True)
+        # channel_mask: (batch, step, 4)
+        channel_mask = (channel_hidden.abs().sum(dim=-1) > 0)
+        
+        # Step 5: 应用通道间注意力 (对每个token的4个通道做注意力)
+        # 需要reshape: (batch, step, 4, 50) → (batch*step, 4, 50)
+        channel_hidden_flat = channel_hidden.view(-1, self.num_channels, channel_hidden.size(-1))
+        channel_mask_flat = channel_mask.view(-1, self.num_channels)
+        
+        # 通道注意力: (batch*step, 4, 50) → (batch*step, 4, 50)
+        attended_hidden_flat = self.channel_attention(channel_hidden_flat, channel_mask_flat)
+        
+        # Step 6: 恢复并展平通道维度
+        # attended_hidden: (batch*step, 4, 50) → (batch, step, 4, 50) → (batch, step, 200)
+        attended_hidden = attended_hidden_flat.view(batch_size, step_size, self.num_channels, -1)
+        output = attended_hidden.view(batch_size, step_size, -1)
+        
+        return output

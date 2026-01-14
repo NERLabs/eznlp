@@ -105,6 +105,10 @@ def build_expert_boundary_config(args):
     expert_dict_config = ExpertDictConfig(
         emb_dim=args.expert_dict_dim,
         agg_mode="wtd_mean_pooling",
+        use_channel_attention=getattr(args, "use_channel_attention", False),
+        channel_attn_heads=getattr(args, "channel_attn_heads", 4),
+        channel_attn_dropout=getattr(args, "channel_attn_dropout", 0.1),
+        channel_attn_version=getattr(args, "channel_attn_version", "v1"),
     )
 
     reduction_config = EncoderConfig(
@@ -153,6 +157,16 @@ def parse_args():
     parser.add_argument("--num_layers", type=int, default=1)
     parser.add_argument("--dropout", type=float, default=0.5)
     parser.add_argument("--expert_dict_dim", type=int, default=50)
+    
+    # 通道注意力参数
+    parser.add_argument("--use_channel_attention", action="store_true", default=False,
+                        help="是否使用BMES通道间注意力")
+    parser.add_argument("--channel_attn_version", type=str, default="v1", choices=["v1", "v2"],
+                        help="通道注意力版本")
+    parser.add_argument("--channel_attn_heads", type=int, default=4,
+                        help="通道注意力头数(仅v1)")
+    parser.add_argument("--channel_attn_dropout", type=float, default=0.1,
+                        help="通道注意力Dropout率")
     
     parser.add_argument("--red_arch", type=str, default="FFN", help="边界降维架构")
     parser.add_argument("--red_dim", type=int, default=150, help="边界降维隐藏维度")
