@@ -9,9 +9,11 @@ RedJujube NER 训练脚本 - 自动词典 + 边界选择组合
 """
 
 import argparse
-import os
 import sys
 import datetime
+import logging
+import os
+import random
 import numpy as np
 import torch
 import transformers
@@ -226,8 +228,25 @@ def truncate_long_sequences(datasets, max_char_len: int = 510):
 def main():
     args = parse_args()
     
-    torch.manual_seed(args.seed)
+    # ===== 统一控制随机性，提升可复现性 =====
+    # Python 自身
+    random.seed(args.seed)
+    # Python 字典等哈希
+    os.environ["PYTHONHASHSEED"] = str(args.seed)
+    # NumPy
     np.random.seed(args.seed)
+    # PyTorch CPU
+    torch.manual_seed(args.seed)
+    # PyTorch GPU
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(args.seed)
+    
+    # cuDNN 确定性设置（会略微牺牲一点速度）
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    # 如需更严格，可以打开下面这一行（遇到不支持的算子会报警/报错）
+    # torch.use_deterministic_algorithms(True, warn_only=True)
+    # ======================================
     
     timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     model_name = "expert_boundary"

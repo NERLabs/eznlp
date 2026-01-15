@@ -224,30 +224,99 @@ class Extractor(ModelBase):
             embedded.extend(mhots_embedded)
 
         if hasattr(self, "nested_ohots"):
-            nested_ohots_embedded = [
-                self.nested_ohots[f](**batch.nested_ohots[f], seq_lens=batch.seq_lens)
-                for f in self.nested_ohots
-            ]
-            embedded.extend(nested_ohots_embedded)
+            # 改成逐个特征处理, 以便在ExpertDict上挂载BMES通道特征
+            for f in self.nested_ohots:
+                out = self.nested_ohots[f](**batch.nested_ohots[f], seq_lens=batch.seq_lens)
+                embedded.append(out)
+
+                # 如果是 ExpertDictWithChannelAttention, 则读取其通道隐藏状态
+                if (
+                    f == "expert_dict"
+                    and hasattr(self.nested_ohots[f], "last_channel_hidden")
+                ):
+                    # 形状: (batch, step, 4, emb_dim)
+                    self._expert_bmes_channels = self.nested_ohots[
+                        f
+                    ].last_channel_hidden
 
         return torch.cat(embedded, dim=-1)
 
     def _get_full_hidden(self, batch: Batch):
-        full_hidden = []
+        """
+        获取全部隐藏层特征
 
-        if any([hasattr(self, name) for name in ExtractorConfig._embedder_names]):
+        默认行为：拼接
+          [intermediate1(ohots/mhots/nested_ohots), elmo, bert_like, flair_fw, flair_bw]
+
+        特殊增强：当且仅当存在 BERT + ExpertDict（且 ExpertDict 作为唯一嵌套特征）时，
+        对这两路特征做 concat + Linear 融合，再与其他特征（如果有）一起拼接。
+        """
+        embedder_hidden = None
+        pretrained_hiddens = {}
+        parts = []
+
+        # 1) 嵌入侧 (ohots / mhots / nested_ohots)
+        has_any_embedder = any(
+            hasattr(self, name) for name in ExtractorConfig._embedder_names
+        )
+        if has_any_embedder:
             embedded = self._get_full_embedded(batch)
             if hasattr(self, "intermediate1"):
-                full_hidden.append(self.intermediate1(embedded, batch.mask))
+                embedder_hidden = self.intermediate1(embedded, batch.mask)
             else:
-                full_hidden.append(embedded)
+                embedder_hidden = embedded
 
+        # 2) 预训练侧 (elmo / bert_like / flair_fw / flair_bw)
         for name in ExtractorConfig._pretrained_names:
             if hasattr(self, name):
-                full_hidden.append(getattr(self, name)(**getattr(batch, name)))
+                pretrained_hiddens[name] = getattr(self, name)(**getattr(batch, name))
 
-        full_hidden = torch.cat(full_hidden, dim=-1)
+        # 3) 判断是否可以做“BERT + ExpertDict(BMES) concat+proj 融合”
+        use_bert_expert_fusion = (
+            hasattr(self, "bert_like")
+            and hasattr(self, "nested_ohots")
+            # 只在 ExpertDict 是唯一 nested_ohots 时启用，避免影响其他组合
+            and isinstance(self.nested_ohots, dict)
+            and len(self.nested_ohots) == 1
+            and "expert_dict" in self.nested_ohots
+            and embedder_hidden is not None
+            and "bert_like" in pretrained_hiddens
+        )
 
+        if use_bert_expert_fusion:
+            bert_hidden = pretrained_hiddens["bert_like"]
+
+            # 维度检查：B、S 维度应一致
+            assert (
+                bert_hidden.size(0) == embedder_hidden.size(0)
+                and bert_hidden.size(1) == embedder_hidden.size(1)
+            ), "BERT 与 ExpertDict 的 batch/seq 维度不一致"
+
+            fused_input = torch.cat([bert_hidden, embedder_hidden], dim=-1)
+            in_dim = fused_input.size(-1)
+
+            # 懒初始化：第一次调用时创建投影层，输出维度保持不变（in_dim）
+            if not hasattr(self, "bert_expert_proj"):
+                self.bert_expert_proj = torch.nn.Linear(in_dim, in_dim)
+
+            fused_hidden = self.bert_expert_proj(fused_input)
+            parts.append(fused_hidden)
+
+            # 如果还有其他预训练特征（如 elmo/flair），继续拼接
+            for name, h in pretrained_hiddens.items():
+                if name == "bert_like":
+                    continue
+                parts.append(h)
+        else:
+            # 保持原有拼接逻辑：embedder_hidden + 所有预训练特征
+            if embedder_hidden is not None:
+                parts.append(embedder_hidden)
+            parts.extend(pretrained_hiddens.values())
+
+        # 4) 拼接所有部分
+        full_hidden = torch.cat(parts, dim=-1)
+
+        # 5) 通过 intermediate2
         if hasattr(self, "intermediate2"):
             return self.intermediate2(full_hidden, batch.mask)
         else:
@@ -270,4 +339,13 @@ class Extractor(ModelBase):
         return params
 
     def forward2states(self, batch: Batch):
-        return {"full_hidden": self._get_full_hidden(batch)}
+        """
+        返回给解码器的状态:
+        - full_hidden: 原有编码器输出
+        - expert_bmes_channels: (可选) ExpertDict BMES通道隐藏状态, 形状 (batch, step, 4, emb_dim)
+        """
+        full_hidden = self._get_full_hidden(batch)
+        states = {"full_hidden": full_hidden}
+        if hasattr(self, "_expert_bmes_channels"):
+            states["expert_bmes_channels"] = self._expert_bmes_channels
+        return states

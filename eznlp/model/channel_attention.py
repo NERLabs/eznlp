@@ -72,25 +72,15 @@ class BMESChannelAttention(nn.Module):
             )
             nn.init.xavier_uniform_(self.channel_pos_emb)
         
-        # 静态通道关系偏置矩阵 (4x4, 建模B-E, M-B, M-E等关系)
-        # 作为结构先验，类似 FLAT 中的相对位置偏置
+        # 通道关系偏置矩阵 (4x4, 建模B-E, M-B, M-E等关系)
         self.channel_bias = nn.Parameter(
             torch.zeros(num_heads, num_channels, num_channels)
         )
         self._init_channel_bias()
         
-        # 动态通道关系偏置：参考 NFLAT 的位置偏置融合方式
-        # 为每个通道分配一个角色向量，然后对 (i,j) 做 MLP 融合得到标量偏置
-        self.channel_role = nn.Parameter(
-            torch.zeros(num_channels, self.per_head_dim)
-        )
-        nn.init.xavier_uniform_(self.channel_role)
-        
-        self.channel_bias_mlp = nn.Sequential(
-            nn.Linear(self.per_head_dim * 2, self.per_head_dim),
-            nn.ReLU(),
-            nn.Linear(self.per_head_dim, 1),
-        )
+        # 残差缩放因子：控制BMES注意力对输出的影响强度
+        # 初始化为0.5，既不过强也不过弱
+        self.alpha = nn.Parameter(torch.tensor(0.5))
         
         self.dropout = nn.Dropout(dropout)
         self.layer_norm = nn.LayerNorm(emb_dim)
@@ -118,24 +108,6 @@ class BMESChannelAttention(nn.Module):
                 
                 # S(3) → S(3): 自关联
                 self.channel_bias[h, 3, 3] = 1.0
-    
-    def _build_dynamic_channel_bias(self) -> torch.Tensor:
-        """根据通道角色向量构建动态通道偏置 (4x4)
-        
-        思路参考 NFLAT 中对四种相对位置的 MLP 融合：
-        对每个通道对 (i, j)，拼接其角色向量后过一层小 MLP 得到标量偏置。
-        """
-        # channel_role: [C, D] (C=4, D=per_head_dim)
-        # role_i/role_j: [C, C, D]
-        role_i = self.channel_role.unsqueeze(1).expand(
-            self.num_channels, self.num_channels, self.per_head_dim
-        )
-        role_j = self.channel_role.unsqueeze(0).expand(
-            self.num_channels, self.num_channels, self.per_head_dim
-        )
-        pair = torch.cat([role_i, role_j], dim=-1)  # [C, C, 2D]
-        bias = self.channel_bias_mlp(pair).squeeze(-1)  # [C, C]
-        return bias
     
     def forward(
         self,
@@ -181,23 +153,18 @@ class BMESChannelAttention(nn.Module):
         attn_score = attn_score / math.sqrt(self.per_head_dim)
         
         # 添加静态通道关系偏置 (结构先验)
-        # channel_bias: [num_heads, num_channels, num_channels]
         attn_score = attn_score + self.channel_bias.unsqueeze(0)
         
-        # 添加动态通道关系偏置 (基于通道角色的可学习偏置, 共享于各头)
-        # dyn_bias: [num_channels, num_channels] -> [1,1,C,C]
-        dyn_bias = self._build_dynamic_channel_bias()
-        attn_score = attn_score + dyn_bias.unsqueeze(0).unsqueeze(0)
+        # （如果你有动态偏置，这里继续加；否则保持现状）
+        # dyn_bias = self._build_dynamic_channel_bias()
+        # attn_score = attn_score + dyn_bias.unsqueeze(0).unsqueeze(0)
         
         # 应用掩码 (如果某通道无词典匹配，将其注意力分数置为极小值)
         if mask is not None:
-            # mask: [batch*seq_len, num_channels]
-            # 扩展为 [batch*seq_len, 1, 1, num_channels]
             mask_expanded = mask.unsqueeze(1).unsqueeze(1)
-            # 使用 -1e9 而非 -inf，后续再做截断，避免 softmax NaN
             attn_score = attn_score.masked_fill(~mask_expanded, -1e9)
         
-        # Softmax 前做数值裁剪，提升稳定性（参考 v2 与 NFLAT）
+        # Softmax 前做数值裁剪，提升稳定性
         attn_score = torch.clamp(attn_score, min=-10, max=10)
         attn_weights = F.softmax(attn_score, dim=-1)
         
@@ -222,8 +189,9 @@ class BMESChannelAttention(nn.Module):
         output = self.w_out(output)
         output = self.dropout(output)
         
-        # 残差连接 + LayerNorm
-        output = self.layer_norm(x + output)
+        # 残差连接 + 可学习缩放因子，再做LayerNorm
+        # output = x + alpha * output
+        output = self.layer_norm(x + self.alpha * output)
         
         return output
 

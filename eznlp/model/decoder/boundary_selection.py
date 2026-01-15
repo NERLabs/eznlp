@@ -254,7 +254,19 @@ class BoundarySelectionDecoder(DecoderBase, BoundariesDecoderMixin):
     def _get_span_non_mask(self, seq_len: int):
         return self._span_non_mask[:seq_len, :seq_len]
 
-    def compute_scores(self, batch: Batch, full_hidden: torch.Tensor):
+    def compute_scores(
+        self,
+        batch: Batch,
+        full_hidden: torch.Tensor,
+        expert_bmes_channels: torch.Tensor = None,
+    ):
+        """
+        计算跨度打分
+
+        Args:
+            full_hidden: (batch, step, hid_dim)
+            expert_bmes_channels: (batch, step, 4, emb_dim), 可选
+        """
         reduced_start = self.reduction_start(self.in_dropout(full_hidden), batch.mask)
         reduced_end = self.reduction_end(self.in_dropout(full_hidden), batch.mask)
 
@@ -297,15 +309,66 @@ class BoundarySelectionDecoder(DecoderBase, BoundariesDecoderMixin):
                 dim=-1,
             )
 
+        # 额外的 BMES 通道 span 特征打分
+        # expert_bmes_channels: (batch, step, 4, emb_dim)
+        if expert_bmes_channels is not None:
+            batch_size, seq_len, num_channels, ch_dim = expert_bmes_channels.size()
+            assert num_channels == 4, "BMES通道数量必须为4(B/M/E/S)"
+
+            # B 通道在各起点位置: (batch, seq_len, ch_dim)
+            b_all = expert_bmes_channels[:, :, 0, :]
+            # E 通道在各终点位置: (batch, seq_len, ch_dim)
+            e_all = expert_bmes_channels[:, :, 2, :]
+
+            # 对应矩阵坐标 (i,j) ↔ span (start=i, end=j+1)
+            # b_feat: (batch, start_step, end_step, ch_dim)
+            b_feat = b_all.unsqueeze(2).expand(-1, seq_len, seq_len, -1)
+            # e_feat: (batch, start_step, end_step, ch_dim)
+            e_feat = e_all.unsqueeze(1).expand(-1, seq_len, seq_len, -1)
+
+            # 拼成原始BMES span特征: (batch, start_step, end_step, 2*ch_dim)
+            span_bmes_raw = torch.cat([b_feat, e_feat], dim=-1)
+
+            # 懒初始化: 将 2*ch_dim 压到 ch_dim 维, 再映射到每个标签的加分
+            if not hasattr(self, "bmes_span_proj"):
+                self.bmes_span_proj = torch.nn.Linear(2 * ch_dim, ch_dim)
+                # 移到与full_hidden相同的设备
+                self.bmes_span_proj.to(full_hidden.device)
+                torch.nn.init.orthogonal_(self.bmes_span_proj.weight.data)
+                torch.nn.init.zeros_(self.bmes_span_proj.bias.data)
+                # V_bmes: (voc_dim, ch_dim)
+                self.V_bmes = torch.nn.Parameter(
+                    torch.empty(self.voc_dim, ch_dim, device=full_hidden.device)
+                )
+                torch.nn.init.orthogonal_(self.V_bmes.data)
+
+            # span_bmes_feat: (batch, start_step, end_step, ch_dim)
+            span_bmes_feat = self.bmes_span_proj(span_bmes_raw)
+            span_bmes_feat = self.hid_dropout(span_bmes_feat)
+
+            # scores_bmes: (voc_dim, ch_dim) * (batch, start_step, end_step, ch_dim, 1)
+            #           -> (batch, start_step, end_step, voc_dim)
+            scores_bmes = self.V_bmes.matmul(span_bmes_feat.unsqueeze(-1)).squeeze(-1)
+
+        else:
+            scores_bmes = 0
+
         # scores2: (voc_dim, red_dim*2 + emb_dim) * (batch, start_step, end_step, red_dim*2 + emb_dim, 1) -> (batch, start_step, end_step, voc_dim, 1)
         scores2 = self.W.matmul(reduced_cat.unsqueeze(-1))
 
         # scores: (batch, start_step, end_step, voc_dim)
-        scores = scores1.permute(0, 2, 3, 1) + scores2.squeeze(-1)
+        scores = scores1.permute(0, 2, 3, 1) + scores2.squeeze(-1) + scores_bmes
         return scores + self.b
 
-    def forward(self, batch: Batch, full_hidden: torch.Tensor):
-        batch_scores = self.compute_scores(batch, full_hidden)
+    def forward(
+        self,
+        batch: Batch,
+        full_hidden: torch.Tensor,
+        expert_bmes_channels: torch.Tensor = None,
+    ):
+        batch_scores = self.compute_scores(
+            batch, full_hidden, expert_bmes_channels=expert_bmes_channels
+        )
 
         losses = []
         for curr_scores, boundaries_obj, curr_len in zip(
@@ -322,8 +385,15 @@ class BoundarySelectionDecoder(DecoderBase, BoundariesDecoderMixin):
             losses.append(loss)
         return torch.stack(losses)
 
-    def decode(self, batch: Batch, full_hidden: torch.Tensor):
-        batch_scores = self.compute_scores(batch, full_hidden)
+    def decode(
+        self,
+        batch: Batch,
+        full_hidden: torch.Tensor,
+        expert_bmes_channels: torch.Tensor = None,
+    ):
+        batch_scores = self.compute_scores(
+            batch, full_hidden, expert_bmes_channels=expert_bmes_channels
+        )
 
         batch_chunks = []
         for curr_scores, boundaries_obj, curr_len in zip(

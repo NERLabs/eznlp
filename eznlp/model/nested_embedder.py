@@ -405,6 +405,11 @@ class ExpertDictWithChannelAttention(NestedOneHotEmbedder):
         # Step 6: 恢复并展平通道维度
         # attended_hidden: (batch*step, 4, 50) → (batch, step, 4, 50) → (batch, step, 200)
         attended_hidden = attended_hidden_flat.view(batch_size, step_size, self.num_channels, -1)
+        
+        # 将通道级隐藏状态保留下来, 供边界选择解码器使用
+        # 形状: (batch, step, 4, emb_dim)
+        self.last_channel_hidden = attended_hidden
+        
         output = attended_hidden.view(batch_size, step_size, -1)
         
         return output
