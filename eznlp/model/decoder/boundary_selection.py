@@ -315,24 +315,85 @@ class BoundarySelectionDecoder(DecoderBase, BoundariesDecoderMixin):
             batch_size, seq_len, num_channels, ch_dim = expert_bmes_channels.size()
             assert num_channels == 4, "BMES通道数量必须为4(B/M/E/S)"
 
-            # B 通道在各起点位置: (batch, seq_len, ch_dim)
+            # B/M/E/S 通道拆分: (batch, seq_len, ch_dim)
             b_all = expert_bmes_channels[:, :, 0, :]
-            # E 通道在各终点位置: (batch, seq_len, ch_dim)
+            m_all = expert_bmes_channels[:, :, 1, :]
             e_all = expert_bmes_channels[:, :, 2, :]
+            s_all = expert_bmes_channels[:, :, 3, :]
 
             # 对应矩阵坐标 (i,j) ↔ span (start=i, end=j+1)
+            # B 通道特征: 取起点 i
             # b_feat: (batch, start_step, end_step, ch_dim)
             b_feat = b_all.unsqueeze(2).expand(-1, seq_len, seq_len, -1)
+            # E 通道特征: 取终点 j
             # e_feat: (batch, start_step, end_step, ch_dim)
             e_feat = e_all.unsqueeze(1).expand(-1, seq_len, seq_len, -1)
 
-            # 拼成原始BMES span特征: (batch, start_step, end_step, 2*ch_dim)
-            span_bmes_raw = torch.cat([b_feat, e_feat], dim=-1)
+            # ===== 计算 M/S 通道在 span 内的平均表示 =====
+            # 目标: 对每个 span(i,j) (对应 token 区间 [i, j])，
+            #       取 M/S 通道在中间区域 (i+1 .. j-1) 的平均。
 
-            # 懒初始化: 将 2*ch_dim 压到 ch_dim 维, 再映射到每个标签的加分
+            # 前缀和: (batch, seq_len+1, ch_dim)
+            m_prefix = torch.cat(
+                [m_all.new_zeros(batch_size, 1, ch_dim), m_all.cumsum(dim=1)],
+                dim=1,
+            )
+            s_prefix = torch.cat(
+                [s_all.new_zeros(batch_size, 1, ch_dim), s_all.cumsum(dim=1)],
+                dim=1,
+            )
+
+            device = full_hidden.device
+            idx = torch.arange(seq_len, device=device)
+
+            # start_idx: (1, seq_len, 1), end_idx: (1, 1, seq_len)
+            start_idx = idx.view(1, seq_len, 1)
+            end_idx = idx.view(1, 1, seq_len) + 1  # 终点是左闭右开上界
+
+            # 中间区域起点: start+1，最大不超过 seq_len
+            start_plus1 = (start_idx + 1).clamp(max=seq_len)  # (1, seq_len, 1)
+
+            # 一维索引，用于从前缀和里取值: (batch, seq_len)
+            start_plus1_1d = start_plus1.view(1, seq_len).expand(batch_size, -1)
+            end_idx_1d = end_idx.view(1, seq_len).expand(batch_size, -1)
+
+            gather_idx_start = start_plus1_1d.unsqueeze(-1).expand(-1, -1, ch_dim)
+            gather_idx_end = end_idx_1d.unsqueeze(-1).expand(-1, -1, ch_dim)
+
+            # m_start_1d / m_end_1d: (batch, seq_len, ch_dim)
+            m_start_1d = torch.gather(m_prefix, 1, gather_idx_start)
+            m_end_1d = torch.gather(m_prefix, 1, gather_idx_end)
+            s_start_1d = torch.gather(s_prefix, 1, gather_idx_start)
+            s_end_1d = torch.gather(s_prefix, 1, gather_idx_end)
+
+            # 扩展成 span 维度:
+            #   m_start: 对应每个起点 i，复制到所有 end j
+            #   m_end:   对应每个终点 j，复制到所有 start i
+            m_start = m_start_1d.unsqueeze(2).expand(-1, seq_len, seq_len, -1)
+            m_end = m_end_1d.unsqueeze(1).expand(-1, seq_len, seq_len, -1)
+            s_start = s_start_1d.unsqueeze(2).expand(-1, seq_len, seq_len, -1)
+            s_end = s_end_1d.unsqueeze(1).expand(-1, seq_len, seq_len, -1)
+
+            m_sum = m_end - m_start
+            s_sum = s_end - s_start
+            ms_sum = 0.5 * (m_sum + s_sum)
+
+            # 中间 token 个数: end - (start+1)，形状 (1, seq_len, seq_len)
+            interior_len_2d = (end_idx - start_plus1).clamp(min=1)
+            # 扩展到 (batch, start_step, end_step, 1)
+            interior_len = interior_len_2d.expand(batch_size, -1, -1).unsqueeze(-1)
+
+            # ms_avg: (batch, start_step, end_step, ch_dim)
+            ms_avg = ms_sum / interior_len
+            # ===== M/S 平均计算结束 =====
+
+            # 拼成原始BMES span特征: [B(i); M/S_avg(i..j); E(j)]
+            # 维度: (batch, start_step, end_step, 3*ch_dim)
+            span_bmes_raw = torch.cat([b_feat, ms_avg, e_feat], dim=-1)
+
+            # 懒初始化: 将 3*ch_dim 压到 ch_dim 维, 再映射到每个标签的加分
             if not hasattr(self, "bmes_span_proj"):
-                self.bmes_span_proj = torch.nn.Linear(2 * ch_dim, ch_dim)
-                # 移到与full_hidden相同的设备
+                self.bmes_span_proj = torch.nn.Linear(3 * ch_dim, ch_dim)
                 self.bmes_span_proj.to(full_hidden.device)
                 torch.nn.init.orthogonal_(self.bmes_span_proj.weight.data)
                 torch.nn.init.zeros_(self.bmes_span_proj.bias.data)
@@ -346,8 +407,7 @@ class BoundarySelectionDecoder(DecoderBase, BoundariesDecoderMixin):
             span_bmes_feat = self.bmes_span_proj(span_bmes_raw)
             span_bmes_feat = self.hid_dropout(span_bmes_feat)
 
-            # scores_bmes: (voc_dim, ch_dim) * (batch, start_step, end_step, ch_dim, 1)
-            #           -> (batch, start_step, end_step, voc_dim)
+            # scores_bmes: (batch, start_step, end_step, voc_dim)
             scores_bmes = self.V_bmes.matmul(span_bmes_feat.unsqueeze(-1)).squeeze(-1)
 
         else:
@@ -365,6 +425,7 @@ class BoundarySelectionDecoder(DecoderBase, BoundariesDecoderMixin):
         batch: Batch,
         full_hidden: torch.Tensor,
         expert_bmes_channels: torch.Tensor = None,
+        expert_bmes_attn_weights: torch.Tensor = None,  # 新增, 当前不在decoder内部使用
     ):
         batch_scores = self.compute_scores(
             batch, full_hidden, expert_bmes_channels=expert_bmes_channels
@@ -390,6 +451,7 @@ class BoundarySelectionDecoder(DecoderBase, BoundariesDecoderMixin):
         batch: Batch,
         full_hidden: torch.Tensor,
         expert_bmes_channels: torch.Tensor = None,
+        expert_bmes_attn_weights: torch.Tensor = None,  # 同样接受该参数以兼容 states
     ):
         batch_scores = self.compute_scores(
             batch, full_hidden, expert_bmes_channels=expert_bmes_channels
@@ -400,6 +462,7 @@ class BoundarySelectionDecoder(DecoderBase, BoundariesDecoderMixin):
             batch_scores, batch.boundaries_objs, batch.seq_lens.cpu().tolist()
         ):
             curr_non_mask = self._get_span_non_mask(curr_len)
+            
 
             if not self.multilabel:
                 confidences, label_ids = (

@@ -176,6 +176,10 @@ class BMESChannelAttention(nn.Module):
         
         attn_weights = self.dropout(attn_weights)
         
+        # 额外：保留本次前向的注意力权重，用于 aux loss
+        # 形状: (batch*seq_len, num_heads, 4, 4)
+        self.last_attn_weights = attn_weights
+
         # 加权求和: [batch*seq_len, num_heads, num_channels, per_head_dim]
         output = torch.matmul(attn_weights, value)
         
@@ -281,5 +285,116 @@ class BMESChannelAttentionV2(nn.Module):
         
         # 残差 + LayerNorm
         output = self.layer_norm(x + output)
+        
+        return output
+
+
+class BMESCrossPositionEncoder(nn.Module):
+    """BMES 跨位置编码器
+    
+    让 BMES 通道信息在序列上传播，使得某个 token 的决策能感知到邻近 token 在 BMES 上的状态。
+    
+    核心思想:
+    - 将 (batch, seq_len, 4, emb_dim) reshape 成 (batch, seq_len*4, emb_dim)
+    - 在 seq_len*4 长度上跑一层序列编码器（BiLSTM 或 Self-Attention）
+    - 这样相邻 token 的 B/M/E/S 通道能互相影响
+    
+    例如: token_i 的 B 通道可以"看到" token_{i+1} 的 M 通道，
+          从而更好地建模"连续实体边界"的模式。
+    """
+    
+    def __init__(
+        self,
+        emb_dim: int = 50,
+        num_channels: int = 4,
+        encoder_type: str = "lstm",
+        num_heads: int = 2,
+        dropout: float = 0.1,
+    ):
+        """
+        Args:
+            emb_dim: 每个通道的嵌入维度
+            num_channels: 通道数量 (BMES = 4)
+            encoder_type: 编码器类型，"lstm" 或 "attention"
+            num_heads: attention 模式下的头数
+            dropout: Dropout 比率
+        """
+        super().__init__()
+        
+        self.emb_dim = emb_dim
+        self.num_channels = num_channels
+        self.encoder_type = encoder_type
+        
+        if encoder_type == "lstm":
+            self.encoder = nn.LSTM(
+                input_size=emb_dim,
+                hidden_size=emb_dim // 2,
+                num_layers=1,
+                batch_first=True,
+                bidirectional=True,
+                dropout=0,
+            )
+        elif encoder_type == "attention":
+            self.encoder = nn.MultiheadAttention(
+                embed_dim=emb_dim,
+                num_heads=num_heads,
+                dropout=dropout,
+                batch_first=True,
+            )
+            self.attn_norm = nn.LayerNorm(emb_dim)
+        
+        self.alpha = nn.Parameter(torch.tensor(0.5))
+        self.dropout = nn.Dropout(dropout)
+        self.out_norm = nn.LayerNorm(emb_dim)
+    
+    def forward(
+        self,
+        x: torch.Tensor,
+        mask: torch.Tensor = None
+    ) -> torch.Tensor:
+        """
+        Args:
+            x: (batch, seq_len, 4, emb_dim) 通道级表示
+            mask: (batch, seq_len) token-level mask，True 表示有效位置
+        
+        Returns:
+            (batch, seq_len, 4, emb_dim) 跨位置编码后的表示
+        """
+        batch_size, seq_len, num_channels, emb_dim = x.size()
+        
+        x_flat = x.view(batch_size, seq_len * num_channels, emb_dim)
+        
+        if self.encoder_type == "lstm":
+            if mask is not None:
+                lengths = mask.sum(dim=1) * num_channels
+                lengths = lengths.clamp(min=1).cpu()
+                
+                x_packed = nn.utils.rnn.pack_padded_sequence(
+                    x_flat, lengths, batch_first=True, enforce_sorted=False
+                )
+                output_packed, _ = self.encoder(x_packed)
+                output_flat, _ = nn.utils.rnn.pad_packed_sequence(
+                    output_packed, batch_first=True, total_length=seq_len * num_channels
+                )
+            else:
+                output_flat, _ = self.encoder(x_flat)
+        
+        elif self.encoder_type == "attention":
+            if mask is not None:
+                flat_mask = mask.unsqueeze(-1).expand(-1, -1, num_channels)
+                flat_mask = flat_mask.reshape(batch_size, seq_len * num_channels)
+                key_padding_mask = ~flat_mask
+            else:
+                key_padding_mask = None
+            
+            attn_output, _ = self.encoder(
+                x_flat, x_flat, x_flat,
+                key_padding_mask=key_padding_mask,
+            )
+            output_flat = self.attn_norm(x_flat + self.dropout(attn_output))
+        
+        output_flat = self.dropout(output_flat)
+        output_flat = self.out_norm(x_flat + self.alpha * output_flat)
+        output = output_flat.view(batch_size, seq_len, num_channels, emb_dim)
         
         return output

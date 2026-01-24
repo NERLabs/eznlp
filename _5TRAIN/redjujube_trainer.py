@@ -18,6 +18,7 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 from eznlp.dataset import Dataset
 from eznlp.training import Trainer
+from eznlp.utils.transition import ChunksTagsTranslator  # 新增：BMES chunks→tags 转换工具
 
 
 class RedJujubeTrainerConfig:
@@ -262,6 +263,30 @@ class RedJujubeNERTrainer:
         self.logger.info(f"总参数量: {total_params:,}")
         self.logger.info(f"可训练参数: {trainable_params:,}")
         
+        # === BMES 注意力 aux loss 的先验矩阵与权重 ===
+        # 通道顺序: 0=B, 1=M, 2=E, 3=S
+        bmes_prior = torch.zeros(4, 4, device=self.config.device)
+        # B↔E 强, M↔B/E 中等, S 自关联
+        bmes_prior[0, 2] = 1.0
+        bmes_prior[2, 0] = 1.0
+        bmes_prior[1, 0] = 0.5
+        bmes_prior[1, 2] = 0.5
+        bmes_prior[0, 1] = 0.5
+        bmes_prior[2, 1] = 0.5
+        bmes_prior[3, 3] = 1.0
+        # 行归一化成概率分布
+        bmes_prior = bmes_prior / bmes_prior.sum(dim=-1, keepdim=True)
+        # 全局先验型 aux loss 权重
+        bmes_aux_lambda = 0.01
+
+        # === Label-aware BMES aux loss 配置 ===
+        # chunks -> BMES token 标签
+        bmes_translator = ChunksTagsTranslator(scheme="BMES", sep="-", breaking_for_types=True)
+        # BMES 标签前缀到通道下标
+        bmes_tag2idx = {"B": 0, "M": 1, "E": 2, "S": 3}
+        # label-aware aux loss 权重（建议比全局先验更小）
+        bmes_label_aux_lambda = 0.005
+        
         # 4. 构建优化器和调度器
         self.logger.info("构建优化器和调度器...")
         optimizer, scheduler = OptimizerBuilder.build_optimizer_and_scheduler(
@@ -324,7 +349,80 @@ class RedJujubeNERTrainer:
                 # 前向传播
                 with torch.amp.autocast('cuda', enabled=self.config.use_amp):
                     losses, states = model(batch, return_states=True)
-                    loss = losses.mean()
+                    main_loss = losses.mean()
+                    
+                    # ===== BMES 通道注意力 aux loss：全局先验 + label-aware =====
+                    aux_prior_loss = 0.0
+                    aux_label_loss = 0.0
+
+                    if "expert_bmes_attn_weights" in states:
+                        # attn: (batch, step, num_heads, 4, 4)
+                        attn = states["expert_bmes_attn_weights"]
+
+                        # ---------- 3.1 全局先验型约束（保持你之前的实现） ----------
+                        attn_mean_global = attn.mean(dim=(0, 1, 2))  # (4, 4)
+                        attn_mean_global = attn_mean_global / (
+                            attn_mean_global.sum(dim=-1, keepdim=True) + 1e-8
+                        )
+                        aux_prior_loss = ((attn_mean_global - bmes_prior) ** 2).mean()
+
+                        # ---------- 3.2 label-aware 约束 ----------
+                        # 先在 head 维做平均：每个 token 一个 4x4 矩阵
+                        # attn_token: (batch, step, 4, 4)
+                        attn_token = attn.mean(dim=2)
+
+                        per_token_losses = []
+
+                        # 逐样本，根据 gold chunks 生成 BMES 标签，再对相应 token 的通道行加约束
+                        batch_size = attn_token.size(0)
+                        for i in range(batch_size):
+                            seq_len_i = batch.seq_lens[i].item()
+
+                            # Boundaries 对象里有 gold chunks
+                            if not hasattr(batch, "boundaries_objs"):
+                                continue
+                            boundaries_obj = batch.boundaries_objs[i]
+                            chunks = getattr(boundaries_obj, "chunks", None)
+                            if chunks is None:
+                                continue
+
+                            # gold BMES 标签序列（长度 = seq_len_i）
+                            tags = bmes_translator.chunks2tags(chunks, seq_len_i)
+
+                            for t, tag in enumerate(tags):
+                                # 跳过非实体位置
+                                if tag == "O" or tag == "<pad>":
+                                    continue
+
+                                # 取标签前缀：B/M/E/S
+                                if "-" in tag:
+                                    tag_prefix = tag.split("-", maxsplit=1)[0]
+                                else:
+                                    tag_prefix = tag
+
+                                ch_idx = bmes_tag2idx.get(tag_prefix, None)
+                                if ch_idx is None:
+                                    continue
+
+                                # 该 token 在对应通道的注意力行分布: (4,)
+                                pred_row = attn_token[i, t, ch_idx]
+                                # 目标分布：用先验矩阵的对应行
+                                target_row = bmes_prior[ch_idx]
+
+                                per_token_losses.append(
+                                    ((pred_row - target_row) ** 2).mean()
+                                )
+
+                        if len(per_token_losses) > 0:
+                            aux_label_loss = torch.stack(per_token_losses).mean()
+
+                    # 合并两个 aux loss
+                    loss = (
+                        main_loss
+                        + bmes_aux_lambda * aux_prior_loss
+                        + bmes_label_aux_lambda * aux_label_loss
+                    )
+                # ===== 反向传播和优化保持不变 =====
                 
                 # 反向传播
                 loss.backward()
@@ -342,6 +440,8 @@ class RedJujubeNERTrainer:
                 # 记录到 TensorBoard
                 if self.writer:
                     self.writer.add_scalar("train/loss", loss.item(), global_step)
+                    self.writer.add_scalar("train/bmes_aux_prior", float(aux_prior_loss), global_step)
+                    self.writer.add_scalar("train/bmes_aux_label", float(aux_label_loss), global_step)
                     current_lr = scheduler.get_last_lr()[0]
                     self.writer.add_scalar("train/lr", current_lr, global_step)
             

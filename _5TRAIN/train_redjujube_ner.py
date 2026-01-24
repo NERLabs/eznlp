@@ -69,7 +69,7 @@ def load_expert_lexicon(dict_path, with_type=False):
 
 
 def build_expert_dict_config(args):
-    """构建 ExpertDict 模型配置"""
+    """构建模型配置"""
     bert_model = transformers.AutoModel.from_pretrained(args.bert_arch)
     tokenizer = transformers.AutoTokenizer.from_pretrained(args.bert_arch)
 
@@ -82,14 +82,17 @@ def build_expert_dict_config(args):
         truncation=True,
     )
 
-    expert_dict_config = ExpertDictConfig(
-        emb_dim=args.expert_dict_dim,
-        agg_mode="wtd_mean_pooling",
-        use_channel_attention=getattr(args, "use_channel_attention", False),
-        channel_attn_heads=getattr(args, "channel_attn_heads", 4),
-        channel_attn_dropout=getattr(args, "channel_attn_dropout", 0.1),
-        channel_attn_version=getattr(args, "channel_attn_version", "v1"),
-    )
+    nested_ohots = {}
+    if args.expert_dict_path is not None:
+        expert_dict_config = ExpertDictConfig(
+            emb_dim=args.expert_dict_dim,
+            agg_mode="wtd_mean_pooling",
+            use_channel_attention=getattr(args, "use_channel_attention", False),
+            channel_attn_heads=getattr(args, "channel_attn_heads", 4),
+            channel_attn_dropout=getattr(args, "channel_attn_dropout", 0.1),
+            channel_attn_version=getattr(args, "channel_attn_version", "v1"),
+        )
+        nested_ohots["expert_dict"] = expert_dict_config
 
     encoder_config = EncoderConfig(
         arch="LSTM",
@@ -106,7 +109,8 @@ def build_expert_dict_config(args):
 
     config = ExtractorConfig(
         bert_like=bert_config,
-        nested_ohots={"expert_dict": expert_dict_config},
+        ohot_configs={},  # 显式设为空，去掉多余的 OneHotEmbedder (ohots)
+        nested_ohots=nested_ohots,
         encoder=encoder_config,
         decoder=decoder_config,
     )
@@ -114,9 +118,9 @@ def build_expert_dict_config(args):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="RedJujube NER 训练 - 带类型专家词典")
+    parser = argparse.ArgumentParser(description="RedJujube NER 训练 - 支持带类型专家词典及基准模型")
     parser.add_argument("--data_dir", type=str, required=True, help="数据目录")
-    parser.add_argument("--expert_dict_path", type=str, required=True, help="专家词典路径")
+    parser.add_argument("--expert_dict_path", type=str, default=None, help="专家词典路径 (可选)")
     parser.add_argument("--save_dir", type=str, required=True, help="保存目录")
     parser.add_argument("--with_type", action="store_true", default=False, help="使用带类型词典")
     parser.add_argument("--bert_arch", type=str, default="hfl/chinese-macbert-base")
@@ -154,30 +158,39 @@ def main():
     np.random.seed(args.seed)
     
     timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    model_name = "expert_dict_typed" if args.with_type else "expert_dict"
+    
+    if args.expert_dict_path is not None:
+        model_name = "expert_dict_typed" if args.with_type else "expert_dict"
+    else:
+        model_name = "bert_bilstm_crf"
+        
     save_dir = os.path.join(args.save_dir, f"{model_name}_{timestamp}")
     
     logger = LoggerManager.setup_logger(save_dir)
     
     logger.info("=" * 70)
-    logger.info("RedJujube NER - 专家词典训练")
+    logger.info(f"RedJujube NER - {model_name.upper()} 训练")
     logger.info("=" * 70)
-    logger.info(f"带类型词典: {args.with_type}")
+    if args.expert_dict_path is not None:
+        logger.info(f"带类型词典: {args.with_type}")
     logger.info(f"保存目录: {save_dir}")
 
     train_data, dev_data, test_data = load_redjujube_data(args.data_dir)
     logger.info(f"加载数据: train={len(train_data)}, dev={len(dev_data)}, test={len(test_data)}")
 
-    lexicon = load_expert_lexicon(args.expert_dict_path, with_type=args.with_type)
-    logger.info(f"加载专家词典: {len(lexicon)} 个词 (with_type={args.with_type})")
-    if args.with_type:
-        logger.info(f"词典示例: {lexicon[:5]}")
+    if args.expert_dict_path is not None:
+        lexicon = load_expert_lexicon(args.expert_dict_path, with_type=args.with_type)
+        logger.info(f"加载专家词典: {len(lexicon)} 个词 (with_type={args.with_type})")
+        if args.with_type:
+            logger.info(f"词典示例: {lexicon[:5]}")
 
-    tokenizer = LexiconTokenizer(lexicon, max_len=10)
-    for data in (train_data, dev_data, test_data):
-        for entry in data:
-            entry["tokens"].build_expert_dict_tags(tokenizer.tokenize)
-    logger.info("✅ 专家词典特征添加完成")
+        tokenizer = LexiconTokenizer(lexicon, max_len=10)
+        for data in (train_data, dev_data, test_data):
+            for entry in data:
+                entry["tokens"].build_expert_dict_tags(tokenizer.tokenize)
+        logger.info("✅ 专家词典特征添加完成")
+    else:
+        logger.info("ℹ️ 未提供专家词典，运行 BERT + BiLSTM + CRF 基准模型")
 
     model_config = build_expert_dict_config(args)
     
@@ -189,7 +202,7 @@ def main():
         train_data=train_data,
         dev_data=dev_data,
         test_data=test_data,
-        use_expert_dict=True
+        use_expert_dict=(args.expert_dict_path is not None)
     )
     
     logger.info("\n" + "=" * 70)

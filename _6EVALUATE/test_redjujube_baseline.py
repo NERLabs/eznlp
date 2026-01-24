@@ -156,7 +156,7 @@ def infer_args_from_results(save_dir):
     return data_dir, batch_size, args
 
 
-def evaluate_and_analyze(save_dir, model_type="baseline", export_predictions=True):
+def evaluate_and_analyze(save_dir, model_type="baseline", export_predictions=True, expert_dict_auto_path_override=None):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     config, model, _, _ = load_config_and_model(save_dir, device)
     data_dir, batch_size, args = infer_args_from_results(save_dir)
@@ -175,7 +175,7 @@ def evaluate_and_analyze(save_dir, model_type="baseline", export_predictions=Tru
     elif model_type in ["expert_dict", "expert_dict_auto", "expert_dict_manual"]:
         # 与训练脚本保持一致：auto 用 expert_dict_auto_path，其它用 expert_dict_path
         if "auto" in model_type:
-            expert_dict_path = args.get(
+            expert_dict_path = expert_dict_auto_path_override or args.get(
                 "expert_dict_auto_path",
                 "cache/redjujube_expert_boundary_min1/expert_boundary_20251224-202012/auto_lexicon.txt",
             )
@@ -322,6 +322,12 @@ def parse_args():
         help="模型类型，例如: baseline, expert_dict_auto, softlexicon 等",
     )
     parser.add_argument(
+        "--expert_dict_auto_path",
+        type=str,
+        default=None,
+        help="手动指定自动词典路径",
+    )
+    parser.add_argument(
         "--no_export_predictions",
         action="store_true",
         help="不导出 predictions_test.pt",
@@ -335,4 +341,5 @@ if __name__ == "__main__":
         save_dir=args.save_dir,
         model_type=args.model_type,
         export_predictions=not args.no_export_predictions,
+        expert_dict_auto_path_override=args.expert_dict_auto_path,
     )

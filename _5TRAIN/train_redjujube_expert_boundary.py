@@ -104,14 +104,21 @@ def build_expert_boundary_config(args):
         truncation=True,
     )
 
-    expert_dict_config = ExpertDictConfig(
-        emb_dim=args.expert_dict_dim,
-        agg_mode="wtd_mean_pooling",
-        use_channel_attention=getattr(args, "use_channel_attention", False),
-        channel_attn_heads=getattr(args, "channel_attn_heads", 4),
-        channel_attn_dropout=getattr(args, "channel_attn_dropout", 0.1),
-        channel_attn_version=getattr(args, "channel_attn_version", "v1"),
-    )
+    nested_ohots = {}
+    if getattr(args, "use_expert_dict", True):
+        expert_dict_config = ExpertDictConfig(
+            emb_dim=args.expert_dict_dim,
+            agg_mode="wtd_mean_pooling",
+            use_channel_attention=getattr(args, "use_channel_attention", False),
+            channel_attn_heads=getattr(args, "channel_attn_heads", 4),
+            channel_attn_dropout=getattr(args, "channel_attn_dropout", 0.1),
+            channel_attn_version=getattr(args, "channel_attn_version", "v1"),
+            # 方案B: 跨位置编码器
+            use_cross_position_encoder=getattr(args, "use_cross_position_encoder", False),
+            cross_position_encoder_type=getattr(args, "cross_position_encoder_type", "lstm"),
+            cross_position_encoder_dropout=getattr(args, "cross_position_encoder_dropout", 0.1),
+        )
+        nested_ohots["expert_dict"] = expert_dict_config
 
     reduction_config = EncoderConfig(
         arch=args.red_arch,
@@ -139,7 +146,8 @@ def build_expert_boundary_config(args):
 
     config = ExtractorConfig(
         bert_like=bert_config,
-        nested_ohots={"expert_dict": expert_dict_config},
+        ohot_configs={},  # 显式移除默认的字符嵌入，保持消融基准纯净
+        nested_ohots=nested_ohots,
         intermediate2=None,
         decoder=decoder_config,
     )
@@ -151,6 +159,11 @@ def parse_args():
     
     parser.add_argument("--data_dir", type=str, required=True, help="数据目录")
     parser.add_argument("--save_dir", type=str, required=True, help="保存目录")
+    
+    # 添加专家词典控制开关
+    parser.add_argument("--use_expert_dict", action="store_true", default=True, help="是否使用专家词典")
+    parser.add_argument("--no_expert_dict", dest="use_expert_dict", action="store_false", help="不使用专家词典")
+    
     parser.add_argument("--expert_dict_path", type=str, default=None, help="专家词典路径(可选，默认自动提取)")
     parser.add_argument("--min_freq", type=int, default=2, help="自动提取词典的最小频次")
     
@@ -169,6 +182,13 @@ def parse_args():
                         help="通道注意力头数(仅v1)")
     parser.add_argument("--channel_attn_dropout", type=float, default=0.1,
                         help="通道注意力Dropout率")
+    # 方案B: 跨位置编码器参数
+    parser.add_argument("--use_cross_position_encoder", action="store_true", default=False,
+                        help="是否启用BMES跨位置编码器")
+    parser.add_argument("--cross_position_encoder_type", type=str, default="lstm",
+                        choices=["lstm", "attention"], help="跨位置编码器类型")
+    parser.add_argument("--cross_position_encoder_dropout", type=float, default=0.1,
+                        help="跨位置编码器Dropout率")
     
     parser.add_argument("--red_arch", type=str, default="FFN", help="边界降维架构")
     parser.add_argument("--red_dim", type=int, default=150, help="边界降维隐藏维度")
@@ -249,13 +269,18 @@ def main():
     # ======================================
     
     timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    model_name = "expert_boundary"
+    
+    if getattr(args, "use_expert_dict", True):
+        model_name = "expert_boundary"
+    else:
+        model_name = "bert_bs_pure"
+        
     save_dir = os.path.join(args.save_dir, f"{model_name}_{timestamp}")
     
     logger = LoggerManager.setup_logger(save_dir)
     
     logger.info("=" * 70)
-    logger.info("RedJujube NER - 自动词典 + 边界选择")
+    logger.info(f"RedJujube NER - {'专家词典 + 边界选择' if getattr(args, 'use_expert_dict', True) else '纯 BERT + 边界选择'}")
     logger.info("=" * 70)
     logger.info(f"边界平滑: sb_epsilon={args.sb_epsilon}, sb_size={args.sb_size}")
     logger.info(f"保存目录: {save_dir}")
@@ -270,24 +295,27 @@ def main():
     if num_trunc > 0:
         logger.info(f"发现并截断过长样本: {num_trunc} 条 (长度 > 510)")
     
-    if args.expert_dict_path:
-        lexicon = load_expert_lexicon(args.expert_dict_path)
-        logger.info(f"加载专家词典: {len(lexicon)} 个词")
-    else:
-        lexicon = extract_auto_lexicon(train_data, min_freq=args.min_freq)
-        logger.info(f"自动提取词典: {len(lexicon)} 个词 (min_freq={args.min_freq})")
-        auto_dict_path = os.path.join(save_dir, "auto_lexicon.txt")
-        os.makedirs(save_dir, exist_ok=True)
-        with open(auto_dict_path, "w", encoding="utf-8") as f:
-            for word in lexicon:
-                f.write(word + "\n")
-        logger.info(f"💾 自动词典已保存: {auto_dict_path}")
+    if getattr(args, "use_expert_dict", True):
+        if args.expert_dict_path:
+            lexicon = load_expert_lexicon(args.expert_dict_path)
+            logger.info(f"加载专家词典: {len(lexicon)} 个词")
+        else:
+            lexicon = extract_auto_lexicon(train_data, min_freq=args.min_freq)
+            logger.info(f"自动提取词典: {len(lexicon)} 个词 (min_freq={args.min_freq})")
+            auto_dict_path = os.path.join(save_dir, "auto_lexicon.txt")
+            os.makedirs(save_dir, exist_ok=True)
+            with open(auto_dict_path, "w", encoding="utf-8") as f:
+                for word in lexicon:
+                    f.write(word + "\n")
+            logger.info(f"💾 自动词典已保存: {auto_dict_path}")
 
-    tokenizer = LexiconTokenizer(lexicon, max_len=10)
-    for data in (train_data, dev_data, test_data):
-        for entry in data:
-            entry["tokens"].build_expert_dict_tags(tokenizer.tokenize)
-    logger.info("✅ 专家词典特征添加完成")
+        tokenizer = LexiconTokenizer(lexicon, max_len=10)
+        for data in (train_data, dev_data, test_data):
+            for entry in data:
+                entry["tokens"].build_expert_dict_tags(tokenizer.tokenize)
+        logger.info("✅ 专家词典特征添加完成")
+    else:
+        logger.info("ℹ️ 运行纯 BERT + 边界选择基准模型")
 
     model_config = build_expert_boundary_config(args)
     
@@ -299,7 +327,7 @@ def main():
         train_data=train_data,
         dev_data=dev_data,
         test_data=test_data,
-        use_expert_dict=True
+        use_expert_dict=getattr(args, "use_expert_dict", True)
     )
     
     logger.info("\n" + "=" * 70)

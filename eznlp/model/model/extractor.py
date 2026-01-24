@@ -229,15 +229,19 @@ class Extractor(ModelBase):
                 out = self.nested_ohots[f](**batch.nested_ohots[f], seq_lens=batch.seq_lens)
                 embedded.append(out)
 
-                # 如果是 ExpertDictWithChannelAttention, 则读取其通道隐藏状态
+                # 如果是 ExpertDictWithChannelAttention, 则读取其通道隐藏状态和注意力权重
                 if (
                     f == "expert_dict"
                     and hasattr(self.nested_ohots[f], "last_channel_hidden")
                 ):
                     # 形状: (batch, step, 4, emb_dim)
-                    self._expert_bmes_channels = self.nested_ohots[
-                        f
-                    ].last_channel_hidden
+                    self._expert_bmes_channels = self.nested_ohots[f].last_channel_hidden
+
+                    if hasattr(self.nested_ohots[f], "last_channel_attn_weights"):
+                        # 形状: (batch, step, num_heads, 4, 4)
+                        self._expert_bmes_attn_weights = self.nested_ohots[
+                            f
+                        ].last_channel_attn_weights
 
         return torch.cat(embedded, dim=-1)
 
@@ -343,9 +347,12 @@ class Extractor(ModelBase):
         返回给解码器的状态:
         - full_hidden: 原有编码器输出
         - expert_bmes_channels: (可选) ExpertDict BMES通道隐藏状态, 形状 (batch, step, 4, emb_dim)
+        - expert_bmes_attn_weights: (可选) BMES通道注意力权重, 形状 (batch, step, num_heads, 4, 4)
         """
         full_hidden = self._get_full_hidden(batch)
         states = {"full_hidden": full_hidden}
         if hasattr(self, "_expert_bmes_channels"):
             states["expert_bmes_channels"] = self._expert_bmes_channels
+        if hasattr(self, "_expert_bmes_attn_weights"):
+            states["expert_bmes_attn_weights"] = self._expert_bmes_attn_weights
         return states
