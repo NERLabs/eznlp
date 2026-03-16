@@ -1,0 +1,24 @@
+{
+  "experiment_id": "EXP-002-softlexicon",
+  "status": "completed",
+  "date": "2025-12-13",
+  "softlexicon_variants": {
+    "hz_ctb_f1": 0.9588,
+    "hz_trainlex_ngram_f1": 0.9657,
+    "hz_trainlex_auto_f1": 0.9627,
+    "hz_trainlex_filtered_f1": 0.9622,
+    "redjujube_trainlex_f1": 0.9607
+  },
+  "joint_fusion_redjujube": {
+    "expert_dict_baseline": 0.9700,
+    "scheme_A_concat": 0.9687,
+    "scheme_B_weighted": 0.9672,
+    "scheme_C_gated": 0.9646,
+    "scheme_D_attention": 0.9653
+  },
+  "hypotheses": {
+    "H1_trainlex_beats_ctb": "VERIFIED",
+    "H2_joint_beats_expert_alone": "FALSIFIED",
+    "H3_concat_best_among_fusion": "VERIFIED"
+  }
+}

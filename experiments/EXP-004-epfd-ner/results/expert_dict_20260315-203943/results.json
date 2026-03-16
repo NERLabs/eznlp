@@ -1,0 +1,32 @@
+{
+  "model_type": "expert_dict",
+  "best_dev_f1": 0.8678961234474971,
+  "best_epoch": 21,
+  "test_loss": 31.68292458852132,
+  "test_f1": 0.8561033290885937,
+  "total_params": 103280746,
+  "trainable_params": 103280746,
+  "args": {
+    "data_dir": "/home/shiwenlong/NERlabs/eznlp/_2DATA/RedJujube",
+    "expert_dict_path": "/home/shiwenlong/NERlabs/eznlp/_2DATA/RedJujube/expert_lexicon_auto_min1.txt",
+    "save_dir": "/home/shiwenlong/NERlabs/eznlp/experiments/EXP-004-epfd-ner/results",
+    "with_type": false,
+    "bert_arch": "/home/shiwenlong/NERlabs/eznlp/assets/transformers/hfl/chinese-macbert-base",
+    "hid_dim": 256,
+    "num_layers": 1,
+    "dropout": 0.5,
+    "expert_dict_dim": 50,
+    "use_channel_attention": false,
+    "channel_attn_version": "v1",
+    "channel_attn_heads": 4,
+    "channel_attn_dropout": 0.1,
+    "num_epochs": 30,
+    "batch_size": 16,
+    "lr": 0.002,
+    "finetune_lr": 2e-05,
+    "weight_decay": 0.0001,
+    "grad_clip": 5.0,
+    "seed": 42,
+    "use_tensorboard": true
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "experiment_id": "EXP-001-expert-dict",
+  "status": "completed",
+  "date": "2025-12-12",
+  "baseline": {
+    "redjujube_f1": 0.9551,
+    "hz_f1": 0.9562,
+    "msra_f1": 0.9509
+  },
+  "proposed": {
+    "redjujube_expert_auto_f1": 0.9699,
+    "redjujube_expert_manual_f1": 0.9704,
+    "hz_expert_auto_f1": 0.9705,
+    "hz_expert_manual_f1": 0.9794,
+    "msra_expert_f1": 0.9542
+  },
+  "improvement": {
+    "redjujube_auto": 0.0148,
+    "redjujube_manual": 0.0153,
+    "hz_auto": 0.0143,
+    "hz_manual": 0.0232,
+    "msra": 0.0033
+  },
+  "best_result": {
+    "dataset": "RedJujube",
+    "method": "ExpertDict(min1) + BoundarySmoothing",
+    "f1": 0.9739,
+    "improvement": 0.0188
+  },
+  "hypotheses": {
+    "H1_medical_domain_improvement_gt_1pct": "VERIFIED",
+    "H2_quality_beats_scale": "VERIFIED",
+    "H3_general_domain_limited": "VERIFIED"
+  }
+}

@@ -123,3 +123,6 @@ _2DATA/*
 examples/
 data/*
 projects/*
+*.md
+*.pth
+

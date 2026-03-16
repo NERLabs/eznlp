@@ -1,0 +1,119 @@
+# EXP-005-ee-resbilstm 配置文件
+# 基于 eznlp 框架，支持完整消融实验
+
+# ============================================
+# 数据配置
+# ============================================
+data:
+  dataset: redjujube
+  data_dir: /home/shiwenlong/NERlabs/eznlp/_2DATA/RedJujube
+  train_file: redjujube_train.bmes
+  dev_file: redjujube_dev.bmes
+  test_file: redjujube_test.bmes
+  max_seq_length: 128
+  label_scheme: BIOES
+
+# ============================================
+# 词典资源配置
+# ============================================
+lexicon:
+  # 专家词典（含类型）
+  expert_typed: /home/shiwenlong/NERlabs/eznlp/_2DATA/RedJujube/expert_lexicon_typed.txt
+  # 专家词典（自动扩展）
+  expert_auto: /home/shiwenlong/NERlabs/eznlp/_2DATA/RedJujube/expert_lexicon_auto_min1.txt
+  # SoftLexicon
+  softlexicon: /home/shiwenlong/NERlabs/eznlp/_2DATA/RedJujube/softlexicon_filtered.txt
+  # 默认使用的词典
+  default: expert_auto
+
+# ============================================
+# 模型配置
+# ============================================
+model:
+  # BERT 编码器
+  encoder:
+    type: bert
+    pretrained: /home/shiwenlong/NERlabs/eznlp/assets/transformers/hfl/chinese-macbert-base
+    freeze: false
+    hidden_size: 768
+    
+  # Res-BiLSTM 配置
+  res_bilstm:
+    enabled: true
+    hidden_size: 256
+    num_layers: 1
+    dropout: 0.3
+    residual: true  # 残差连接开关
+    
+  # 实体特征增强
+  entity_feature:
+    enabled: true
+    dict_embed_size: 64
+    type_embed_size: 32
+    num_dict_types: 10  # 实体类型数量
+    dropout: 0.3
+    
+  # Self-rectified Gate
+  self_gate:
+    enabled: true
+    hidden_size: 128
+    dropout: 0.2
+    use_boundary: true  # 是否使用边界位置特征
+    
+  # 解码器
+  decoder:
+    type: crf
+    use_crf: true
+
+# ============================================
+# 训练配置
+# ============================================
+training:
+  batch_size: 16
+  epochs: 30
+  learning_rate:
+    bert: 2.0e-5
+    other: 1.0e-3
+  weight_decay: 0.01
+  warmup_ratio: 0.1
+  max_grad_norm: 1.0
+  seed: 42
+  num_workers: 4
+
+# ============================================
+# 评估配置
+# ============================================
+evaluation:
+  metric: entity_f1
+  save_best: true
+  early_stop: 5
+  eval_steps: 100  # 每N步评估一次
+
+# ============================================
+# 输出配置
+# ============================================
+output:
+  save_dir: /home/shiwenlong/NERlabs/eznlp/experiments/EXP-005-ee-resbilstm/results
+  log_dir: /home/shiwenlong/NERlabs/eznlp/experiments/EXP-005-ee-resbilstm/docs/logs
+
+# ============================================
+# 消融实验配置
+# ============================================
+# 可选值:
+#   - full: 完整模型
+#   - baseline: 仅BERT+CRF
+#   - no_residual: 无残差连接
+#   - no_srg: 无Self-rectified Gate
+#   - no_dict: 无词典特征
+#   - no_entity_feature: 无实体特征增强
+ablation:
+  mode: full
+  
+# ============================================
+# 实验元信息
+# ============================================
+meta:
+  experiment_id: EXP-005-ee-resbilstm
+  paper: "Zhang et al. 2025 - Improving distant supervised relation extraction with entity enhanced res-BiLSTM and self-rectified gate"
+  task: NER
+  created_at: 2026-03-15

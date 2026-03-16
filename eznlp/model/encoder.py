@@ -18,6 +18,12 @@ class EncoderConfig(Config):
         self.in_dim = kwargs.pop("in_dim", None)
         self.in_proj = kwargs.pop("in_proj", False)
         self.shortcut = kwargs.pop("shortcut", False)
+        self.shortcut_mode = kwargs.pop("shortcut_mode", "concat")  # "concat" or "add"
+        
+        # Self-rectified Gate (EPFD)
+        self.use_srg = kwargs.pop("use_srg", False)
+        self.srg_hid_dim = kwargs.pop("srg_hid_dim", 128)
+        self.srg_dropout = kwargs.pop("srg_dropout", 0.2)
 
         if self.arch.lower() == "identity":
             self.in_drop_rates = kwargs.pop("in_drop_rates", (0.0, 0.0, 0.0))
@@ -69,7 +75,9 @@ class EncoderConfig(Config):
             out_dim = self.hid_dim
 
         if self.shortcut:
-            out_dim = out_dim + self.in_dim
+            if self.shortcut_mode == "concat":
+                out_dim = out_dim + self.in_dim
+            # for "add" mode, out_dim remains the same (hid_dim)
 
         return out_dim
 
@@ -98,11 +106,53 @@ class Encoder(torch.nn.Module):
             self.in_proj_layer = torch.nn.Linear(config.in_dim, config.in_dim)
             reinit_layer_(self.in_proj_layer, "linear")
         self.shortcut = config.shortcut
+        self.shortcut_mode = getattr(config, "shortcut_mode", "concat")
+        
+        # For addition shortcut with different dimensions, need projection
+        if self.shortcut and self.shortcut_mode == "add":
+            if hasattr(config, "hid_dim") and config.hid_dim != config.in_dim:
+                self.residual_proj = torch.nn.Linear(config.in_dim, config.hid_dim)
+                reinit_layer_(self.residual_proj, "linear")
+            else:
+                self.residual_proj = None
+        
+        # Self-rectified Gate (EPFD)
+        self.use_srg = getattr(config, "use_srg", False)
+        if self.use_srg:
+            # SRG input dim = encoder output dim
+            srg_in_dim = self._get_output_dim(config)
+            srg_hid_dim = getattr(config, "srg_hid_dim", 128)
+            srg_dropout = getattr(config, "srg_dropout", 0.2)
+            self.srg_fc1 = torch.nn.Linear(srg_in_dim, srg_hid_dim)
+            self.srg_fc2 = torch.nn.Linear(srg_hid_dim, srg_in_dim)
+            self.srg_dropout = torch.nn.Dropout(srg_dropout)
+            reinit_layer_(self.srg_fc1, "linear")
+            reinit_layer_(self.srg_fc2, "linear")
+    
+    def _get_output_dim(self, config):
+        """Get encoder output dimension before SRG."""
+        if hasattr(config, "hid_dim"):
+            out_dim = config.hid_dim
+            if config.shortcut:
+                if config.shortcut_mode == "concat":
+                    out_dim = out_dim + config.in_dim
+            return out_dim
+        else:
+            return config.in_dim
 
     def embedded2hidden(
         self, embedded: torch.FloatTensor, mask: torch.BoolTensor = None
     ):
         raise NotImplementedError("Not Implemented `embedded2hidden`")
+
+    def _apply_srg(self, hidden: torch.FloatTensor):
+        """Apply Self-rectified Gate."""
+        # g = σ(W_2 σ(W_1 h + b_1) + b_2)
+        # corrected = g * hidden
+        gate = torch.nn.functional.relu(self.srg_fc1(hidden))
+        gate = self.srg_dropout(gate)
+        gate = torch.sigmoid(self.srg_fc2(gate))
+        return gate * hidden
 
     def forward(self, embedded: torch.FloatTensor, mask: torch.BoolTensor = None):
         # embedded: (batch, step, emb_dim)
@@ -115,9 +165,22 @@ class Encoder(torch.nn.Module):
             hidden = self.embedded2hidden(self.dropout(embedded), mask=mask)
 
         if self.shortcut:
-            return torch.cat([hidden, embedded], dim=-1)
-        else:
-            return hidden
+            if self.shortcut_mode == "add":
+                # Addition residual: o_i = l_i + v_i (EPFD style)
+                if hasattr(self, "residual_proj") and self.residual_proj is not None:
+                    residual = self.residual_proj(embedded)
+                else:
+                    residual = embedded
+                hidden = hidden + residual
+            else:
+                # Concatenation (default eznlp style)
+                hidden = torch.cat([hidden, embedded], dim=-1)
+        
+        # Apply Self-rectified Gate
+        if self.use_srg:
+            hidden = self._apply_srg(hidden)
+        
+        return hidden
 
 
 class IdentityEncoder(Encoder):
@@ -243,12 +306,31 @@ class RNNEncoder(Encoder):
             )
 
         if self.shortcut:
-            if return_last_hidden:
-                return torch.cat([hidden[0], embedded], dim=-1), hidden[1]
+            if self.shortcut_mode == "add":
+                # Addition residual: o_i = l_i + v_i (EPFD style)
+                if hasattr(self, "residual_proj") and self.residual_proj is not None:
+                    residual = self.residual_proj(embedded)
+                else:
+                    residual = embedded
+                if return_last_hidden:
+                    hidden = (hidden[0] + residual, hidden[1])
+                else:
+                    hidden = hidden + residual
             else:
-                return torch.cat([hidden, embedded], dim=-1)
-        else:
-            return hidden
+                # Concatenation (default eznlp style)
+                if return_last_hidden:
+                    hidden = (torch.cat([hidden[0], embedded], dim=-1), hidden[1])
+                else:
+                    hidden = torch.cat([hidden, embedded], dim=-1)
+        
+        # Apply Self-rectified Gate
+        if self.use_srg:
+            if return_last_hidden:
+                hidden = (self._apply_srg(hidden[0]), hidden[1])
+            else:
+                hidden = self._apply_srg(hidden)
+        
+        return hidden
 
 
 class ConvEncoder(Encoder):

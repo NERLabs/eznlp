@@ -1,0 +1,31 @@
+{
+  "experiment_id": "EXP-003-boundary-smoothing",
+  "status": "completed",
+  "date": "2025-12-24",
+  "best_result": {
+    "dataset": "RedJujube",
+    "method": "ExpertDict(min1) + BoundarySmoothing(eps=0.15, size=1)",
+    "f1": 0.9739,
+    "vs_baseline": 0.0188,
+    "vs_expert_dict_alone": 0.0039
+  },
+  "ablation": {
+    "expert_dict_min2": 0.9700,
+    "expert_dict_min1": 0.9713,
+    "expert_dict_min2_bs_eps015_size1": 0.9729,
+    "expert_dict_min1_bs_eps015_size1": 0.9739,
+    "expert_dict_min1_bs_eps005_size1": 0.9715,
+    "expert_dict_min1_bs_eps015_size3": 0.9721,
+    "typed_expert_dict": 0.9559
+  },
+  "optimal_params": {
+    "eps": 0.15,
+    "size": 1,
+    "min_freq": 1
+  },
+  "hypotheses": {
+    "H1_bs_improvement_gt_03pct": "VERIFIED",
+    "H2_min1_beats_min2": "VERIFIED",
+    "H3_eps015_beats_eps005": "VERIFIED"
+  }
+}

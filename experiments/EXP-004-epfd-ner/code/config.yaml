@@ -1,0 +1,71 @@
+# EXP-004-epfd-ner 配置文件
+# 基于 eznlp 框架
+
+# 数据配置
+data:
+  dataset: redjujube
+  data_dir: /home/shiwenlong/NERlabs/eznlp/_2DATA/RedJujube
+  train_file: redjujube_train.bmes
+  dev_file: redjujube_dev.bmes
+  test_file: redjujube_test.bmes
+  max_seq_length: 128
+  label_scheme: BIOES
+
+# 模型配置
+model:
+  # 编码器
+  encoder:
+    type: bert
+    pretrained: /home/shiwenlong/NERlabs/eznlp/assets/transformers/hfl/chinese-macbert-base
+    freeze: false
+    
+  # Res-BiLSTM 配置
+  res_bilstm:
+    hid_dim: 256
+    num_layers: 1
+    dropout: 0.3
+    residual: true  # 残差连接
+    
+  # 实体特征增强
+  entity_feature:
+    word_dim: 768
+    dict_dim: 64
+    num_dict_types: 10
+    dropout: 0.3
+    
+  # Self-rectified Gate
+  self_gate:
+    hid_dim: 128
+    dropout: 0.2
+    
+  # 解码器
+  decoder:
+    type: crf
+
+# 训练配置
+training:
+  batch_size: 16
+  epochs: 30
+  learning_rate:
+    bert: 2.0e-5
+    other: 1.0e-3
+  weight_decay: 0.01
+  warmup_ratio: 0.1
+  max_grad_norm: 1.0
+  seed: 42
+  
+# 评估配置
+evaluation:
+  metric: entity_f1
+  save_best: true
+  early_stop: 5
+
+# 输出配置
+output:
+  save_dir: /home/shiwenlong/NERlabs/eznlp/experiments/EXP-004-epfd-ner/results
+  log_dir: /home/shiwenlong/NERlabs/eznlp/experiments/EXP-004-epfd-ner/docs/logs
+
+# 消融实验配置
+ablation:
+  # 可选值: full, no_res_bilstm, no_entity_feature, no_self_gate
+  mode: full
