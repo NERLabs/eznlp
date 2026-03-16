@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import math
 import torch
 
 from ..config import Config
@@ -10,6 +11,134 @@ from ..nn.modules import (
     FeedForwardBlock,
     TransformerEncoderBlock,
 )
+
+
+class RotaryPositionEmbedding(torch.nn.Module):
+    """Rotary Position Embedding (RoPE) from GTR-NNER.
+    
+    Applies relative position encoding through rotation matrices.
+    Reference: Su et al., 2021. RoFormer: Enhanced Transformer with Rotary Position Embedding.
+    """
+    
+    def __init__(self, dim: int, base: int = 10000, max_seq_len: int = 512):
+        super().__init__()
+        self.dim = dim
+        self.base = base
+        self.max_seq_len = max_seq_len
+        
+        # Compute inverse frequency: θ_i = base^(-2i/d)
+        inv_freq = 1.0 / (base ** (torch.arange(0, dim, 2).float() / dim))
+        self.register_buffer("inv_freq", inv_freq)
+        
+        # Precompute cos and sin for efficiency
+        self._build_cache(max_seq_len)
+    
+    def _build_cache(self, seq_len: int):
+        """Precompute cos and sin cache for positions."""
+        t = torch.arange(seq_len, device=self.inv_freq.device, dtype=self.inv_freq.dtype)
+        freqs = torch.einsum("i,j->ij", t, self.inv_freq)  # (seq_len, dim/2)
+        emb = torch.cat([freqs, freqs], dim=-1)  # (seq_len, dim)
+        self.register_buffer("cos_cached", emb.cos())
+        self.register_buffer("sin_cached", emb.sin())
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Apply rotary position embedding.
+        
+        Args:
+            x: Input tensor of shape (batch, seq_len, dim)
+        
+        Returns:
+            Tensor with RoPE applied, same shape as input
+        """
+        batch, seq_len, dim = x.shape
+        
+        if seq_len > self.max_seq_len:
+            self._build_cache(seq_len)
+        
+        # Get cos and sin for current sequence length
+        cos = self.cos_cached[:seq_len].unsqueeze(0)  # (1, seq_len, dim)
+        sin = self.sin_cached[:seq_len].unsqueeze(0)  # (1, seq_len, dim)
+        
+        # Apply rotation
+        x_rot = self._rotate_half(x)
+        return x * cos + x_rot * sin
+    
+    def _rotate_half(self, x: torch.Tensor) -> torch.Tensor:
+        """Rotate half the hidden dims of the input."""
+        x1, x2 = x[..., : x.shape[-1] // 2], x[..., x.shape[-1] // 2 :]
+        return torch.cat([-x2, x1], dim=-1)
+
+
+class TriAffineAttention(torch.nn.Module):
+    """TriAffine Attention Fusion from GTR-NNER.
+    
+    Three-way tensor fusion for combining multiple feature sources.
+    Computes attention scores: score(h1, h2, h3) = h1 @ W @ h2.T + h3 @ U
+    """
+    
+    def __init__(self, in_dim: int, hid_dim: int = 128, dropout: float = 0.2):
+        super().__init__()
+        self.in_dim = in_dim
+        self.hid_dim = hid_dim
+        
+        # Project to common dimension
+        self.proj_q = torch.nn.Linear(in_dim, hid_dim)
+        self.proj_k = torch.nn.Linear(in_dim, hid_dim)
+        self.proj_v = torch.nn.Linear(in_dim, hid_dim)
+        
+        # TriAffine weight tensor
+        self.triaffine_weight = torch.nn.Parameter(torch.zeros(hid_dim, hid_dim, hid_dim))
+        torch.nn.init.xavier_uniform_(self.triaffine_weight)
+        
+        # Output projection
+        self.out_proj = torch.nn.Linear(hid_dim, in_dim)
+        self.dropout = torch.nn.Dropout(dropout)
+        
+        reinit_layer_(self.proj_q, "linear")
+        reinit_layer_(self.proj_k, "linear")
+        reinit_layer_(self.proj_v, "linear")
+        reinit_layer_(self.out_proj, "linear")
+    
+    def forward(self, hidden: torch.Tensor, mask: torch.BoolTensor = None) -> torch.Tensor:
+        """Apply TriAffine attention fusion.
+        
+        Args:
+            hidden: Input tensor of shape (batch, seq_len, in_dim)
+            mask: Optional mask tensor of shape (batch, seq_len)
+        
+        Returns:
+            Fused tensor of shape (batch, seq_len, in_dim)
+        """
+        batch, seq_len, _ = hidden.shape
+        
+        # Project to common dimension
+        q = self.proj_q(hidden)  # (batch, seq_len, hid_dim)
+        k = self.proj_k(hidden)  # (batch, seq_len, hid_dim)
+        v = self.proj_v(hidden)  # (batch, seq_len, hid_dim)
+        
+        # TriAffine computation: simplified bilinear attention
+        # Use matrix multiplication approximation for efficiency
+        W_mid = self.triaffine_weight.mean(dim=-1)  # (hid, hid) - average over third dimension
+        attn_scores = torch.matmul(q, W_mid)  # (batch, seq, hid)
+        attn_scores = torch.matmul(attn_scores, k.transpose(-1, -2))  # (batch, seq, seq)
+        
+        # Apply mask
+        if mask is not None:
+            attn_mask = mask.unsqueeze(1).expand(-1, seq_len, -1)  # (batch, seq, seq)
+            attn_scores = attn_scores.masked_fill(~attn_mask, float('-inf'))
+        
+        # Softmax
+        attn_weights = torch.softmax(attn_scores / math.sqrt(self.hid_dim), dim=-1)
+        attn_weights = self.dropout(attn_weights)
+        
+        # Apply attention to values
+        attn_out = torch.matmul(attn_weights, v)  # (batch, seq, hid)
+        
+        # Output projection
+        out = self.out_proj(attn_out)  # (batch, seq, in_dim)
+        
+        # Residual connection
+        return hidden + self.dropout(out)
 
 
 class EncoderConfig(Config):
@@ -24,6 +153,15 @@ class EncoderConfig(Config):
         self.use_srg = kwargs.pop("use_srg", False)
         self.srg_hid_dim = kwargs.pop("srg_hid_dim", 128)
         self.srg_dropout = kwargs.pop("srg_dropout", 0.2)
+        
+        # Rotary Position Embedding (RoPE) - GTR-NNER
+        self.use_rope = kwargs.pop("use_rope", False)
+        self.rope_base = kwargs.pop("rope_base", 10000)
+        self.rope_max_seq_len = kwargs.pop("rope_max_seq_len", 512)
+        
+        # TriAffine Attention Fusion - GTR-NNER
+        self.use_triaffine = kwargs.pop("use_triaffine", False)
+        self.triaffine_hid_dim = kwargs.pop("triaffine_hid_dim", 128)
 
         if self.arch.lower() == "identity":
             self.in_drop_rates = kwargs.pop("in_drop_rates", (0.0, 0.0, 0.0))
@@ -128,6 +266,25 @@ class Encoder(torch.nn.Module):
             self.srg_dropout = torch.nn.Dropout(srg_dropout)
             reinit_layer_(self.srg_fc1, "linear")
             reinit_layer_(self.srg_fc2, "linear")
+        
+        # Rotary Position Embedding (RoPE) - GTR-NNER
+        self.use_rope = getattr(config, "use_rope", False)
+        if self.use_rope:
+            rope_dim = self._get_output_dim(config)
+            rope_base = getattr(config, "rope_base", 10000)
+            rope_max_seq_len = getattr(config, "rope_max_seq_len", 512)
+            self.rope = RotaryPositionEmbedding(
+                dim=rope_dim, base=rope_base, max_seq_len=rope_max_seq_len
+            )
+        
+        # TriAffine Attention Fusion - GTR-NNER
+        self.use_triaffine = getattr(config, "use_triaffine", False)
+        if self.use_triaffine:
+            triaffine_in_dim = self._get_output_dim(config)
+            triaffine_hid_dim = getattr(config, "triaffine_hid_dim", 128)
+            self.triaffine = TriAffineAttention(
+                in_dim=triaffine_in_dim, hid_dim=triaffine_hid_dim, dropout=0.2
+            )
     
     def _get_output_dim(self, config):
         """Get encoder output dimension before SRG."""
@@ -175,6 +332,14 @@ class Encoder(torch.nn.Module):
             else:
                 # Concatenation (default eznlp style)
                 hidden = torch.cat([hidden, embedded], dim=-1)
+        
+        # Apply Rotary Position Embedding (RoPE)
+        if self.use_rope:
+            hidden = self.rope(hidden)
+        
+        # Apply TriAffine Attention Fusion
+        if self.use_triaffine:
+            hidden = self.triaffine(hidden, mask=mask)
         
         # Apply Self-rectified Gate
         if self.use_srg:
@@ -322,6 +487,20 @@ class RNNEncoder(Encoder):
                     hidden = (torch.cat([hidden[0], embedded], dim=-1), hidden[1])
                 else:
                     hidden = torch.cat([hidden, embedded], dim=-1)
+        
+        # Apply Rotary Position Embedding (RoPE)
+        if self.use_rope:
+            if return_last_hidden:
+                hidden = (self.rope(hidden[0]), hidden[1])
+            else:
+                hidden = self.rope(hidden)
+        
+        # Apply TriAffine Attention Fusion
+        if self.use_triaffine:
+            if return_last_hidden:
+                hidden = (self.triaffine(hidden[0], mask=mask), hidden[1])
+            else:
+                hidden = self.triaffine(hidden, mask=mask)
         
         # Apply Self-rectified Gate
         if self.use_srg:

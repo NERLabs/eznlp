@@ -1,0 +1,13 @@
+{
+  "ablation_mode": "full",
+  "best_dev_f1": 0.8653560830860535,
+  "test_metrics": {
+    "f1": 0.8520179372197311
+  },
+  "config": {
+    "use_rope": true,
+    "use_triaffine": true,
+    "use_expert_dict": true
+  },
+  "total_params": 102954822
+}

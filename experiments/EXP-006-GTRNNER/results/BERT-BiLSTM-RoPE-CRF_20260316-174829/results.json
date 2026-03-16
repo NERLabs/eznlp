@@ -1,0 +1,13 @@
+{
+  "ablation_mode": "BERT-BiLSTM-RoPE-CRF",
+  "best_dev_f1": 0.8507295173961841,
+  "test_metrics": {
+    "f1": 0.8436652810410266
+  },
+  "config": {
+    "use_rope": true,
+    "use_triaffine": false,
+    "use_expert_dict": true
+  },
+  "total_params": 102704646
+}

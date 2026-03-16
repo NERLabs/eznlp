@@ -1,0 +1,13 @@
+{
+  "ablation_mode": "BERT-BiLSTM-TriAffine-CRF",
+  "best_dev_f1": 0.8555888972243061,
+  "test_metrics": {
+    "f1": 0.8386396526772795
+  },
+  "config": {
+    "use_rope": false,
+    "use_triaffine": true,
+    "use_expert_dict": false
+  },
+  "total_params": 102704646
+}

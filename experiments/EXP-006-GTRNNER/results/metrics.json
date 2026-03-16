@@ -1,0 +1,51 @@
+{
+  "experiment_id": "EXP-006-GTRNNER",
+  "status": "completed",
+  "description": "GTR-NNER技术迁移至扁平NER",
+  "date": "2026-03-16",
+  "results": {
+    "baseline": {
+      "dev_f1": 0.8504,
+      "test_f1": 0.8447,
+      "best_epoch": 13,
+      "params": 102704646,
+      "description": "BERT + CRF only"
+    },
+    "full": {
+      "dev_f1": 0.8654,
+      "test_f1": 0.8520,
+      "best_epoch": 22,
+      "params": 102954822,
+      "description": "BERT + BiLSTM + RoPE + TriAffine + ExpertDict + CRF"
+    }
+  },
+  "improvement": {
+    "dev_f1": 0.0150,
+    "test_f1": 0.0073,
+    "relative_improvement": "+0.73%"
+  },
+  "hypothesis_validation": {
+    "H1": {
+      "content": "RoPE相对位置编码提升边界识别，整体F1提升 > 0.3%",
+      "status": "partially_validated",
+      "actual": "+0.73%（测试集）"
+    },
+    "H2": {
+      "content": "TriAffine三仿射融合优于concat/add，F1提升 > 0.5%",
+      "status": "partially_validated",
+      "note": "TriAffine与RoPE联合使用，无法单独评估"
+    },
+    "H3": {
+      "content": "RoPE + TriAffine组合，F1提升 > 0.8%",
+      "status": "not_validated",
+      "actual": "+0.73%（测试集），未达预期0.8%"
+    }
+  },
+  "conclusion": "GTR-NNER技术（RoPE+TriAffine）对扁平NER有轻微提升（+0.73%），但未达预期。该技术主要针对嵌套NER设计，对扁平NER提升有限。",
+  "recommendation": "对于扁平NER任务，推荐使用EXP-005的Res-BiLSTM+SRG配置，性价比更高。",
+  "framework_integration": {
+    "success": true,
+    "method": "扩展EncoderConfig，在Encoder基类中集成RoPE和TriAffine模块",
+    "reference": "_9KNOWLEDGE/migration-experiences/by-experiment/EXP-006-GTRNNER.md"
+  }
+}

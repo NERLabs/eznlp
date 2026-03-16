@@ -1,0 +1,13 @@
+{
+  "ablation_mode": "BERT-BiLSTM-CRF",
+  "best_dev_f1": 0.8578449905482042,
+  "test_metrics": {
+    "f1": 0.8407805945650192
+  },
+  "config": {
+    "use_rope": false,
+    "use_triaffine": false,
+    "use_expert_dict": true
+  },
+  "total_params": 102704646
+}
