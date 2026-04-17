@@ -1,0 +1,59 @@
+{
+  "Q' (BS+Dict+Focal)": {
+    "save_dir": "experiments/EXP-010-optimization/results_newdata/Q_bs_focal/expert_boundary_20260319-183316",
+    "model_type": "BS",
+    "train_f1": 0.8853609008676389,
+    "eval_f1": 0.8853609008676389,
+    "micro": {
+      "n_gold": 2738,
+      "n_pred": 2679,
+      "n_true_positive": 2398,
+      "precision": 0.8951101157148189,
+      "recall": 0.8758217677136596,
+      "f1": 0.8853609008676389
+    },
+    "macro": {
+      "precision": 0.8787971291289997,
+      "recall": 0.8408533884625616,
+      "f1": 0.8577539311116996
+    }
+  },
+  "H' (BS+Dict)": {
+    "save_dir": "experiments/EXP-010-optimization/results_newdata/H_bs_baseline/expert_boundary_20260319-175458",
+    "model_type": "BS",
+    "train_f1": 0.8780670537553849,
+    "eval_f1": 0.8780670537553849,
+    "micro": {
+      "n_gold": 2738,
+      "n_pred": 2601,
+      "n_true_positive": 2344,
+      "precision": 0.9011918492887351,
+      "recall": 0.8560993425858291,
+      "f1": 0.8780670537553849
+    },
+    "macro": {
+      "precision": 0.8883657712999025,
+      "recall": 0.8282456679576479,
+      "f1": 0.8558762533269108
+    }
+  },
+  "A' (CRF+Dict)": {
+    "save_dir": "experiments/EXP-010-optimization/results_newdata/A_baseline/expert_dict_20260319-222357",
+    "model_type": "CRF",
+    "train_f1": 0.8705413724425132,
+    "eval_f1": 0.8705413724425132,
+    "micro": {
+      "n_gold": 2738,
+      "n_pred": 2785,
+      "n_true_positive": 2404,
+      "precision": 0.8631956912028725,
+      "recall": 0.8780131482834186,
+      "f1": 0.8705413724425132
+    },
+    "macro": {
+      "precision": 0.8457210070075363,
+      "recall": 0.8463224256190676,
+      "f1": 0.845125190108465
+    }
+  }
+}

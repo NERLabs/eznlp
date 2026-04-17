@@ -202,8 +202,15 @@ class Boundaries(TargetWrapper):
                     label_id = config.label2idx[label]
                     self.label_ids[start, end - 1, label_id] += 1 - config.sb_epsilon
 
-                    for dist in range(1, config.sb_size + 1):
-                        eps_per_span = config.sb_epsilon / (config.sb_size * dist * 4)
+                    # 类型自适应 sb_size
+                    _sb_size = (
+                        config.sb_size_map.get(label, config.sb_size)
+                        if config.sb_size_map is not None
+                        else config.sb_size
+                    )
+
+                    for dist in range(1, _sb_size + 1):
+                        eps_per_span = config.sb_epsilon / (_sb_size * dist * 4)
                         sur_spans = list(
                             _spans_from_surrounding((start, end), dist, self.num_tokens)
                         )

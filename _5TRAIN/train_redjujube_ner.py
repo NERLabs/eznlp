@@ -109,7 +109,7 @@ def build_expert_dict_config(args):
 
     config = ExtractorConfig(
         bert_like=bert_config,
-        ohot_configs={},  # 显式设为空，去掉多余的 OneHotEmbedder (ohots)
+        ohots={},  # 禁用字符嵌入，获得纯净 BERT+LSTM+CRF 基线
         nested_ohots=nested_ohots,
         encoder=encoder_config,
         decoder=decoder_config,
@@ -148,7 +148,71 @@ def parse_args():
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--use_tensorboard", action="store_true", default=True, help="启用 TensorBoard")
     parser.add_argument("--no_tensorboard", dest="use_tensorboard", action="store_false", help="禁用 TensorBoard")
+    
+    # FGM 对抗训练参数
+    parser.add_argument("--use_fgm", action="store_true", default=True,
+                        help="启用 FGM 对抗训练")
+    parser.add_argument("--no_fgm", dest="use_fgm", action="store_false",
+                        help="禁用 FGM 对抗训练")
+    parser.add_argument("--fgm_epsilon", type=float, default=1.0,
+                        help="FGM 扰动强度")
+
+    # EMA 参数
+    parser.add_argument("--use_ema", action="store_true", default=True,
+                        help="启用 EMA 指数移动平均")
+    parser.add_argument("--no_ema", dest="use_ema", action="store_false",
+                        help="禁用 EMA")
+    parser.add_argument("--ema_decay", type=float, default=0.999,
+                        help="EMA 衰减系数")
+
+    # BMES Aux Loss 参数
+    parser.add_argument("--bmes_aux_lambda", type=float, default=0.0,
+                        help="BMES 全局先验 aux loss 权重（默认0=禁用）")
+    parser.add_argument("--bmes_label_aux_lambda", type=float, default=0.0,
+                        help="BMES label-aware aux loss 权重（默认0=禁用）")
+    
+    # 数据增强参数
+    parser.add_argument("--use_augment", action="store_true", default=False,
+                        help="启用实体替换数据增强")
+    parser.add_argument("--aug_ratio", type=int, default=2,
+                        help="数据增强倍数")
+    parser.add_argument("--aug_prob", type=float, default=0.3,
+                        help="实体替换概率")
+    
+    # R-Drop 正则化参数
+    parser.add_argument("--use_rdrop", action="store_true", default=False,
+                        help="启用 R-Drop 正则化（两次前向传播取平均）")
+    parser.add_argument("--rdrop_alpha", type=float, default=0.5,
+                        help="R-Drop KL 散度权重（当前简化版不使用，保留接口）")
+    
+    # 序列截断参数
+    parser.add_argument("--max_len", type=int, default=510,
+                        help="最大序列长度，超过此长度的样本将被截断")
+    
     return parser.parse_args()
+
+
+def truncate_long_sequences(datasets, max_char_len: int = 510):
+    """
+    将过长样本截断到 max_char_len，避免超过 BERT 的 512 上限。
+    只保留完全落在截断范围内的实体 span。
+    """
+    num_truncated = 0
+    for data in datasets:
+        for entry in data:
+            tokens = entry["tokens"]
+            if len(tokens) > max_char_len:
+                num_truncated += 1
+                # 截断 token 序列
+                entry["tokens"] = tokens[:max_char_len]
+                # 调整实体标注：丢掉越界的 span
+                chunks = entry.get("chunks", [])
+                new_chunks = []
+                for label, start, end in chunks:
+                    if end <= max_char_len:
+                        new_chunks.append((label, start, end))
+                entry["chunks"] = new_chunks
+    return num_truncated
 
 
 def main():
@@ -177,6 +241,26 @@ def main():
 
     train_data, dev_data, test_data = load_redjujube_data(args.data_dir)
     logger.info(f"加载数据: train={len(train_data)}, dev={len(dev_data)}, test={len(test_data)}")
+
+    # 截断过长序列，避免 BERT 位置编码溢出
+    num_trunc = truncate_long_sequences(
+        (train_data, dev_data, test_data), max_char_len=args.max_len
+    )
+    if num_trunc > 0:
+        logger.info(f"截断过长样本: {num_trunc} 条 (max_len={args.max_len})")
+
+    # 数据增强
+    if args.use_augment:
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '_3DATA_PROCESS'))
+        from augment_redjujube import augment_eznlp_data
+        original_size = len(train_data)
+        train_data = augment_eznlp_data(
+            train_data, 
+            aug_ratio=args.aug_ratio,
+            replace_prob=args.aug_prob,
+            seed=args.seed
+        )
+        logger.info(f"✅ 数据增强完成: {original_size} -> {len(train_data)} 条")
 
     if args.expert_dict_path is not None:
         lexicon = load_expert_lexicon(args.expert_dict_path, with_type=args.with_type)

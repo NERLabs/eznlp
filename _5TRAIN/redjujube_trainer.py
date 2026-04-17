@@ -21,6 +21,78 @@ from eznlp.training import Trainer
 from eznlp.utils.transition import ChunksTagsTranslator  # 新增：BMES chunks→tags 转换工具
 
 
+class FGM:
+    """FGM 对抗训练 - Fast Gradient Method
+    
+    在嵌入层施加梯度方向的微小扰动，提升模型鲁棒性。
+    """
+    
+    def __init__(self, model, epsilon=1.0, emb_name='embeddings'):
+        self.model = model
+        self.epsilon = epsilon
+        self.emb_name = emb_name
+        self.backup = {}
+    
+    def attack(self):
+        """对嵌入层施加对抗扰动"""
+        for name, param in self.model.named_parameters():
+            if param.requires_grad and self.emb_name in name:
+                self.backup[name] = param.data.clone()
+                if param.grad is not None:
+                    norm = torch.norm(param.grad)
+                    if norm != 0 and not torch.isnan(norm):
+                        r_at = self.epsilon * param.grad / norm
+                        param.data.add_(r_at)
+    
+    def restore(self):
+        """恢复嵌入层原始参数"""
+        for name, param in self.model.named_parameters():
+            if name in self.backup:
+                param.data = self.backup[name]
+        self.backup = {}
+
+
+class EMA:
+    """EMA 指数移动平均
+    
+    对模型权重做指数移动平均，平滑训练过程，减少过拟合。
+    """
+    
+    def __init__(self, model, decay=0.999):
+        self.model = model
+        self.decay = decay
+        self.shadow = {}
+        self.backup = {}
+        self._register()
+    
+    def _register(self):
+        """注册所有可训练参数的影子副本"""
+        for name, param in self.model.named_parameters():
+            if param.requires_grad:
+                self.shadow[name] = param.data.clone()
+    
+    def update(self):
+        """更新影子参数"""
+        for name, param in self.model.named_parameters():
+            if param.requires_grad:
+                new_avg = (1.0 - self.decay) * param.data + self.decay * self.shadow[name]
+                self.shadow[name] = new_avg.clone()
+    
+    def apply_shadow(self):
+        """将影子参数应用到模型（评估时使用）"""
+        for name, param in self.model.named_parameters():
+            if param.requires_grad:
+                self.backup[name] = param.data.clone()
+                param.data = self.shadow[name]
+    
+    def restore(self):
+        """恢复原始参数（评估后使用）"""
+        for name, param in self.model.named_parameters():
+            if name in self.backup:
+                param.data = self.backup[name]
+        self.backup = {}
+
+
 class RedJujubeTrainerConfig:
     """训练器配置类"""
     
@@ -45,6 +117,22 @@ class RedJujubeTrainerConfig:
         self.grad_clip = args.grad_clip
         self.num_grad_acc_steps = getattr(args, 'num_grad_acc_steps', 1)
         self.use_amp = getattr(args, 'use_amp', False)
+        
+        # FGM 对抗训练参数
+        self.use_fgm = getattr(args, 'use_fgm', True)
+        self.fgm_epsilon = getattr(args, 'fgm_epsilon', 1.0)
+        
+        # EMA 参数
+        self.use_ema = getattr(args, 'use_ema', True)
+        self.ema_decay = getattr(args, 'ema_decay', 0.999)
+        
+        # BMES Aux Loss 参数（默认禁用）
+        self.bmes_aux_lambda = getattr(args, 'bmes_aux_lambda', 0.0)
+        self.bmes_label_aux_lambda = getattr(args, 'bmes_label_aux_lambda', 0.0)
+        
+        # R-Drop 正则化参数
+        self.use_rdrop = getattr(args, 'use_rdrop', False)
+        self.rdrop_alpha = getattr(args, 'rdrop_alpha', 0.5)
         
         # 显示和评估参数
         self.disp_every_steps = getattr(args, 'disp_every_steps', 50)
@@ -258,6 +346,13 @@ class RedJujubeNERTrainer:
         self.logger.info("实例化模型...")
         model = model_config.instantiate().to(self.config.device)
         
+        # 打印模型结构
+        self.logger.info("\n" + "=" * 70)
+        self.logger.info("模型结构:")
+        self.logger.info("=" * 70)
+        self.logger.info(model)
+        self.logger.info("=" * 70 + "\n")
+        
         total_params = sum(p.numel() for p in model.parameters())
         trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
         self.logger.info(f"总参数量: {total_params:,}")
@@ -276,16 +371,16 @@ class RedJujubeNERTrainer:
         bmes_prior[3, 3] = 1.0
         # 行归一化成概率分布
         bmes_prior = bmes_prior / bmes_prior.sum(dim=-1, keepdim=True)
-        # 全局先验型 aux loss 权重
-        bmes_aux_lambda = 0.01
+        # 全局先验型 aux loss 权重（从配置读取）
+        bmes_aux_lambda = self.config.bmes_aux_lambda
 
         # === Label-aware BMES aux loss 配置 ===
         # chunks -> BMES token 标签
         bmes_translator = ChunksTagsTranslator(scheme="BMES", sep="-", breaking_for_types=True)
         # BMES 标签前缀到通道下标
         bmes_tag2idx = {"B": 0, "M": 1, "E": 2, "S": 3}
-        # label-aware aux loss 权重（建议比全局先验更小）
-        bmes_label_aux_lambda = 0.005
+        # label-aware aux loss 权重（从配置读取）
+        bmes_label_aux_lambda = self.config.bmes_label_aux_lambda
         
         # 4. 构建优化器和调度器
         self.logger.info("构建优化器和调度器...")
@@ -336,6 +431,22 @@ class RedJujubeNERTrainer:
         best_epoch = 0
         global_step = 0
         
+        # 初始化 FGM 对抗训练
+        fgm = None
+        if self.config.use_fgm:
+            fgm = FGM(model, epsilon=self.config.fgm_epsilon)
+            self.logger.info(f"✅ FGM 对抗训练已启用 (epsilon={self.config.fgm_epsilon})")
+        
+        # 初始化 EMA
+        ema = None
+        if self.config.use_ema:
+            ema = EMA(model, decay=self.config.ema_decay)
+            self.logger.info(f"✅ EMA 已启用 (decay={self.config.ema_decay})")
+        
+        # 初始化 R-Drop 正则化
+        if self.config.use_rdrop:
+            self.logger.info(f"✅ R-Drop 正则化已启用 (alpha={self.config.rdrop_alpha})")
+        
         for epoch in range(1, self.config.num_epochs + 1):
             self.logger.info(f"\n===== Epoch {epoch}/{self.config.num_epochs} =====")
             
@@ -350,6 +461,16 @@ class RedJujubeNERTrainer:
                 with torch.amp.autocast('cuda', enabled=self.config.use_amp):
                     losses, states = model(batch, return_states=True)
                     main_loss = losses.mean()
+                    
+                    # ===== R-Drop 正则化：两次前向传播取 loss 平均 =====
+                    rdrop_loss = 0.0
+                    if self.config.use_rdrop:
+                        # 第二次前向传播（不同的 dropout mask）
+                        losses2, states2 = model(batch, return_states=True)
+                        loss2 = losses2.mean()
+                        # 两次 loss 取平均（简化版 R-Drop，不需要 KL 散度）
+                        main_loss = (main_loss + loss2) / 2.0
+                        rdrop_loss = loss2.item()  # 用于日志记录
                     
                     # ===== BMES 通道注意力 aux loss：全局先验 + label-aware =====
                     aux_prior_loss = 0.0
@@ -427,12 +548,25 @@ class RedJujubeNERTrainer:
                 # 反向传播
                 loss.backward()
                 
+                # FGM 对抗训练
+                if fgm is not None:
+                    fgm.attack()
+                    with torch.amp.autocast('cuda', enabled=self.config.use_amp):
+                        losses_adv, _ = model(batch, return_states=True)
+                        loss_adv = losses_adv.mean()
+                    loss_adv.backward()
+                    fgm.restore()
+                
                 if self.config.grad_clip > 0:
                     torch.nn.utils.clip_grad_norm_(model.parameters(), self.config.grad_clip)
                 
                 optimizer.step()
                 scheduler.step()
                 optimizer.zero_grad()
+                
+                # EMA 更新
+                if ema is not None:
+                    ema.update()
                 
                 global_step += 1
                 epoch_losses.append(loss.item())
@@ -442,6 +576,8 @@ class RedJujubeNERTrainer:
                     self.writer.add_scalar("train/loss", loss.item(), global_step)
                     self.writer.add_scalar("train/bmes_aux_prior", float(aux_prior_loss), global_step)
                     self.writer.add_scalar("train/bmes_aux_label", float(aux_label_loss), global_step)
+                    if self.config.use_rdrop:
+                        self.writer.add_scalar("train/rdrop_loss2", float(rdrop_loss), global_step)
                     current_lr = scheduler.get_last_lr()[0]
                     self.writer.add_scalar("train/lr", current_lr, global_step)
             
@@ -451,6 +587,10 @@ class RedJujubeNERTrainer:
                 self.writer.add_scalar("epoch/train_loss", train_loss, epoch)
             
             # 验证
+            # 评估时使用 EMA 权重
+            if ema is not None:
+                ema.apply_shadow()
+            
             eval_result = trainer.eval_epoch(dev_loader)
             if isinstance(eval_result, tuple):
                 dev_loss = eval_result[0]
@@ -469,8 +609,13 @@ class RedJujubeNERTrainer:
                 best_dev_f1 = dev_f1
                 best_epoch = epoch
                 model_path = f"{self.config.save_dir}/{model_config.name}.pth"
+                # 如果使用 EMA，此时模型已应用 EMA 权重，直接保存
                 torch.save(model, model_path)
                 self.logger.info(f"✅ 保存最佳模型 (epoch {epoch}, F1={dev_f1:.4f})")
+            
+            # 恢复原始权重继续训练
+            if ema is not None:
+                ema.restore()
         
         # 9. 加载最佳模型并在测试集上评估
         self.logger.info(f"\n最优验证 F1: {best_dev_f1:.4f} (epoch {best_epoch})")

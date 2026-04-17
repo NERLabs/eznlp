@@ -1,11 +1,27 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-RedJujube NER 训练脚本 - 自动词典 + 边界选择组合
+通用 NER 训练脚本 - 专家词典 + 边界选择组合
+
+基于 train_redjujube_expert_boundary.py，支持任意 BMES 格式的 NER 数据集。
 
 支持功能：
 - ExpertDict: 自动从训练集提取的专家词典嵌入
 - BoundarySelection: 边界选择解码器 (支持边界平滑)
+- 通用数据加载: 支持指定任意 BMES 文件路径
+
+使用示例：
+# 方式1: 指定具体文件路径（推荐）
+python train_general_expert_boundary.py \
+    --train_file path/to/train.bmes \
+    --dev_file path/to/dev.bmes \
+    --test_file path/to/test.bmes \
+    --save_dir results/
+
+# 方式2: 兼容旧模式（从目录读取 redjujube_*.bmes）
+python train_general_expert_boundary.py \
+    --data_dir path/to/data/ \
+    --save_dir results/
 """
 
 import argparse
@@ -30,15 +46,52 @@ from eznlp.model import (
 )
 from eznlp.token import LexiconTokenizer
 
-from redjujube_trainer import (
-    RedJujubeTrainerConfig,
-    LoggerManager,
-    RedJujubeNERTrainer,
-)
+# 尝试导入 redjujube_trainer，如果不存在则使用通用日志
+try:
+    from redjujube_trainer import (
+        RedJujubeTrainerConfig,
+        LoggerManager,
+        RedJujubeNERTrainer,
+    )
+    HAS_REDJUJUBE_TRAINER = True
+except ImportError:
+    HAS_REDJUJUBE_TRAINER = False
+    # 创建简单的日志管理器
+    class LoggerManager:
+        @staticmethod
+        def setup_logger(save_dir):
+            os.makedirs(save_dir, exist_ok=True)
+            logger = logging.getLogger("ner_trainer")
+            logger.setLevel(logging.INFO)
+            # 清除已有 handler
+            logger.handlers.clear()
+            # 文件 handler
+            fh = logging.FileHandler(os.path.join(save_dir, "train.log"), encoding="utf-8")
+            fh.setLevel(logging.INFO)
+            # 控制台 handler
+            ch = logging.StreamHandler()
+            ch.setLevel(logging.INFO)
+            # 格式
+            formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+            fh.setFormatter(formatter)
+            ch.setFormatter(formatter)
+            logger.addHandler(fh)
+            logger.addHandler(ch)
+            return logger
 
 
-def load_redjujube_data(data_dir):
-    """加载 RedJujube 数据集"""
+def load_data(train_file=None, dev_file=None, test_file=None, data_dir=None):
+    """加载 BMES 格式的 NER 数据集
+    
+    Args:
+        train_file: 训练集文件路径
+        dev_file: 验证集文件路径
+        test_file: 测试集文件路径
+        data_dir: 数据目录（回退模式，读取 redjujube_*.bmes）
+        
+    Returns:
+        train_data, dev_data, test_data
+    """
     io = ConllIO(
         text_col_id=0,
         tag_col_id=1,
@@ -47,9 +100,20 @@ def load_redjujube_data(data_dir):
         token_sep="",
         pad_token="<pad>",
     )
-    train_data = io.read(os.path.join(data_dir, "redjujube_train.bmes"))
-    dev_data = io.read(os.path.join(data_dir, "redjujube_dev.bmes"))
-    test_data = io.read(os.path.join(data_dir, "redjujube_test.bmes"))
+    
+    # 优先使用指定的文件路径
+    if train_file and dev_file and test_file:
+        train_data = io.read(train_file)
+        dev_data = io.read(dev_file)
+        test_data = io.read(test_file)
+    elif data_dir:
+        # 回退到旧模式：从目录读取 redjujube_*.bmes
+        train_data = io.read(os.path.join(data_dir, "redjujube_train.bmes"))
+        dev_data = io.read(os.path.join(data_dir, "redjujube_dev.bmes"))
+        test_data = io.read(os.path.join(data_dir, "redjujube_test.bmes"))
+    else:
+        raise ValueError("必须指定 --train_file/--dev_file/--test_file 或 --data_dir")
+    
     return train_data, dev_data, test_data
 
 
@@ -88,44 +152,6 @@ def extract_auto_lexicon(train_data, min_freq=2):
     
     lexicon = [word for word, count in entity_counter.items() if count >= min_freq]
     return lexicon
-
-
-def extract_type_aware_lexicon(train_data, min_freq=2, rare_min_freq=1):
-    """从训练数据提取类型感知词典：低频类别使用更低的阈值保留更多实体
-    
-    稀少类别（FER/TAX/WED/NUT，训练集唯一实体 ≤ 110）使用 rare_min_freq，
-    其余类别使用 min_freq。
-    
-    Args:
-        train_data: 训练数据列表
-        min_freq: 常见类别的最小频次阈值
-        rare_min_freq: 稀少类别的最小频次阈值
-        
-    Returns:
-        list: 自动词典词表
-    """
-    from collections import Counter, defaultdict
-    # 稀少类别：训练集实体数少，min_freq=1 保留更多覆盖
-    RARE_TYPES = {'FER', 'TAX', 'WED', 'NUT'}
-    
-    # 按类别统计实体频次
-    type_entity_counter = defaultdict(Counter)
-    for entry in train_data:
-        chunks = entry.get("chunks", [])
-        tokens = entry["tokens"]
-        for label, start, end in chunks:
-            entity_text = "".join(str(tokens[i]) for i in range(start, end))
-            if entity_text:
-                type_entity_counter[label][entity_text] += 1
-    
-    lexicon_set = set()
-    for etype, counter in type_entity_counter.items():
-        threshold = rare_min_freq if etype in RARE_TYPES else min_freq
-        for word, count in counter.items():
-            if count >= threshold:
-                lexicon_set.add(word)
-    
-    return sorted(lexicon_set)
 
 
 def build_expert_boundary_config(args):
@@ -211,9 +237,13 @@ def build_expert_boundary_config(args):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="RedJujube NER - ExpertDict + BoundarySelection")
+    parser = argparse.ArgumentParser(description="通用 NER - ExpertDict + BoundarySelection")
     
-    parser.add_argument("--data_dir", type=str, required=True, help="数据目录")
+    # 数据路径参数（支持两种模式）
+    parser.add_argument("--train_file", type=str, default=None, help="训练集 BMES 文件路径")
+    parser.add_argument("--dev_file", type=str, default=None, help="验证集 BMES 文件路径")
+    parser.add_argument("--test_file", type=str, default=None, help="测试集 BMES 文件路径")
+    parser.add_argument("--data_dir", type=str, default=None, help="数据目录（回退模式，读取 redjujube_*.bmes）")
     parser.add_argument("--save_dir", type=str, required=True, help="保存目录")
     
     # 添加专家词典控制开关
@@ -222,8 +252,6 @@ def parse_args():
     
     parser.add_argument("--expert_dict_path", type=str, default=None, help="专家词典路径(可选，默认自动提取)")
     parser.add_argument("--min_freq", type=int, default=2, help="自动提取词典的最小频次")
-    parser.add_argument("--type_aware_minfreq", action="store_true", default=False,
-                        help="类型感知min_freq：FER/TAX/WED/NUT稀少类别使用min_freq=1，其余使用--min_freq")
     
     parser.add_argument("--bert_arch", type=str, default="hfl/chinese-macbert-base")
     parser.add_argument("--hid_dim", type=int, default=256)
@@ -362,6 +390,13 @@ def truncate_long_sequences(datasets, max_char_len: int = 510):
 def main():
     args = parse_args()
     
+    # 验证数据路径参数
+    has_files = args.train_file and args.dev_file and args.test_file
+    has_dir = args.data_dir is not None
+    
+    if not has_files and not has_dir:
+        raise ValueError("必须指定 --train_file/--dev_file/--test_file 或 --data_dir")
+    
     # ===== 统一控制随机性，提升可复现性 =====
     # Python 自身
     random.seed(args.seed)
@@ -378,8 +413,6 @@ def main():
     # cuDNN 确定性设置（会略微牺牲一点速度）
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
-    # 如需更严格，可以打开下面这一行（遇到不支持的算子会报警/报错）
-    # torch.use_deterministic_algorithms(True, warn_only=True)
     # ======================================
     
     timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -394,26 +427,41 @@ def main():
     logger = LoggerManager.setup_logger(save_dir)
     
     logger.info("=" * 70)
-    logger.info(f"RedJujube NER - {'专家词典 + 边界选择' if getattr(args, 'use_expert_dict', True) else '纯 BERT + 边界选择'}")
+    logger.info(f"通用 NER - {'专家词典 + 边界选择' if getattr(args, 'use_expert_dict', True) else '纯 BERT + 边界选择'}")
     logger.info("=" * 70)
     logger.info(f"边界平滑: sb_epsilon={args.sb_epsilon}, sb_size={args.sb_size}")
     logger.info(f"保存目录: {save_dir}")
     
-    train_data, dev_data, test_data = load_redjujube_data(args.data_dir)
+    # 加载数据
+    train_data, dev_data, test_data = load_data(
+        train_file=args.train_file,
+        dev_file=args.dev_file,
+        test_file=args.test_file,
+        data_dir=args.data_dir
+    )
     logger.info(f"加载数据: train={len(train_data)}, dev={len(dev_data)}, test={len(test_data)}")
+    
+    # 显示数据来源
+    if args.train_file:
+        logger.info(f"数据来源: {args.train_file}, {args.dev_file}, {args.test_file}")
+    else:
+        logger.info(f"数据来源: {args.data_dir}/redjujube_*.bmes")
 
-    # 数据增强
+    # 数据增强（如果可用）
     if args.use_augment:
-        sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '_3DATA_PROCESS'))
-        from augment_redjujube import augment_eznlp_data
-        original_size = len(train_data)
-        train_data = augment_eznlp_data(
-            train_data, 
-            aug_ratio=args.aug_ratio,
-            replace_prob=args.aug_prob,
-            seed=args.seed
-        )
-        logger.info(f"✅ 数据增强完成: {original_size} -> {len(train_data)} 条")
+        try:
+            sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '_3DATA_PROCESS'))
+            from augment_redjujube import augment_eznlp_data
+            original_size = len(train_data)
+            train_data = augment_eznlp_data(
+                train_data, 
+                aug_ratio=args.aug_ratio,
+                replace_prob=args.aug_prob,
+                seed=args.seed
+            )
+            logger.info(f"✅ 数据增强完成: {original_size} -> {len(train_data)} 条")
+        except ImportError:
+            logger.warning("⚠️ 无法导入 augment_redjujube，跳过数据增强")
 
     # 对过长样本做统一截断，避免超过 BERT 的 512 上限
     num_trunc = truncate_long_sequences(
@@ -427,12 +475,8 @@ def main():
             lexicon = load_expert_lexicon(args.expert_dict_path)
             logger.info(f"加载专家词典: {len(lexicon)} 个词")
         else:
-            if getattr(args, "type_aware_minfreq", False):
-                lexicon = extract_type_aware_lexicon(train_data, min_freq=args.min_freq, rare_min_freq=1)
-                logger.info(f"自动提取词典(类型感知): {len(lexicon)} 个词 (FER/TAX/WED/NUT min_freq=1, 其余 min_freq={args.min_freq})")
-            else:
-                lexicon = extract_auto_lexicon(train_data, min_freq=args.min_freq)
-                logger.info(f"自动提取词典: {len(lexicon)} 个词 (min_freq={args.min_freq})")
+            lexicon = extract_auto_lexicon(train_data, min_freq=args.min_freq)
+            logger.info(f"自动提取词典: {len(lexicon)} 个词 (min_freq={args.min_freq})")
             auto_dict_path = os.path.join(save_dir, "auto_lexicon.txt")
             os.makedirs(save_dir, exist_ok=True)
             with open(auto_dict_path, "w", encoding="utf-8") as f:
@@ -449,6 +493,13 @@ def main():
         logger.info("ℹ️ 运行纯 BERT + 边界选择基准模型")
 
     model_config = build_expert_boundary_config(args)
+    
+    # 检查训练器是否可用
+    if not HAS_REDJUJUBE_TRAINER:
+        raise ImportError(
+            "无法导入 redjujube_trainer 模块。请确保 redjujube_trainer.py 在 _5TRAIN 目录中，"
+            "或者将其添加到 PYTHONPATH。"
+        )
     
     train_config = RedJujubeTrainerConfig(args, save_dir, model_name)
     trainer = RedJujubeNERTrainer(train_config, logger)

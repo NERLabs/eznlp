@@ -1,0 +1,384 @@
+<mxfile host="app.diagrams.net" modified="2026-03-31T00:00:00.000Z" agent="Qoder" version="22.1.0" type="device">
+  <diagram name="EDBS Model Architecture" id="edbs-model">
+    <mxGraphModel dx="1400" dy="1600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="1600" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- ========== 输出层 (最上方) ========== -->
+        <mxCell id="output_layer" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="200" y="40" width="800" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="output_label" value="输出层 (Output Layer)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1;fontColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="220" y="50" width="200" height="30" as="geometry" />
+        </mxCell>
+        
+        <!-- 命名实体输出 -->
+        <mxCell id="output_entities" value="命名实体输出&#xa;Named Entity Output&#xa;格式: (label, start, end, conf)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="800" y="70" width="180" height="50" as="geometry" />
+        </mxCell>
+        
+        <!-- SoftLabelFocalLoss -->
+        <mxCell id="loss_layer" value="SoftLabelFocalLoss&#xa;gamma=2.0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="580" y="70" width="140" height="50" as="geometry" />
+        </mxCell>
+        
+        <!-- Span打分/边界选择 -->
+        <mxCell id="span_scoring" value="Span打分 + 边界平滑&#xa;sb_epsilon=0.1, sb_size=2&#xa;边界平滑标签软化" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="380" y="60" width="170" height="70" as="geometry" />
+        </mxCell>
+        
+        <!-- ========== 解码层 ========== -->
+        <mxCell id="decoder_layer" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="200" y="160" width="800" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="decoder_label" value="边界选择解码器 (Boundary Selection Decoder)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1;fontColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="220" y="170" width="400" height="30" as="geometry" />
+        </mxCell>
+        
+        <!-- FFNEncoder start -->
+        <mxCell id="ffn_start" value="FFNEncoder (start)&#xa;Linear(1068→150)&#xa;+ ReLU + Dropout" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="240" y="210" width="130" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- FFNEncoder end -->
+        <mxCell id="ffn_end" value="FFNEncoder (end)&#xa;Linear(1068→150)&#xa;+ ReLU + Dropout" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="240" y="280" width="130" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Size Embedding -->
+        <mxCell id="size_emb" value="Size Embedding&#xa;Embedding(8,25)&#xa;Span长度特征" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="400" y="245" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- 双仿射注意力机制 -->
+        <mxCell id="bilinear" value="双仿射注意力机制 (Bilinear Attention)&#xa;&#xa;scores₁ = h_start @ U @ h_endᵀ&#xa;scores₂ = W @ [h_start; h_end; size_emb] + b&#xa;&#xa;U: (voc_dim, 150, 150)&#xa;W: (voc_dim, 325)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="550" y="200" width="260" height="120" as="geometry" />
+        </mxCell>
+        
+        <!-- 打分矩阵示意 -->
+        <mxCell id="score_matrix" value="打分矩阵&#xa;(batch, seq, seq, voc_dim)&#xa;上三角有效span" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="840" y="220" width="140" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- ========== 特征融合层 ========== -->
+        <mxCell id="fusion_layer" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="200" y="340" width="800" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="fusion_label" value="特征融合层 (Feature Fusion Layer)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1;fontColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="220" y="350" width="300" height="30" as="geometry" />
+        </mxCell>
+        
+        <!-- SequenceGroupAggregating -->
+        <mxCell id="seq_agg" value="SequenceGroupAggregating&#xa;mean pooling&#xa;BERT输出聚合" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="240" y="390" width="140" height="55" as="geometry" />
+        </mxCell>
+        
+        <!-- 特征拼接 -->
+        <mxCell id="concat" value="特征拼接 Concat&#xa;&#xa;H_fused = [OneHot; ExpertDict; BERT]&#xa;维度: 100 + 200 + 768 = 1068" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="420" y="380" width="260" height="70" as="geometry" />
+        </mxCell>
+        
+        <!-- 维度说明 -->
+        <mxCell id="dim_note" value="输出维度: 1068-d" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="720" y="395" width="130" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- ========== 专家词典特征层 ========== -->
+        <mxCell id="expert_layer" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="200" y="480" width="800" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="expert_label" value="专家词典特征层 ExpertDict (BMES四通道)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1;fontColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="220" y="490" width="400" height="30" as="geometry" />
+        </mxCell>
+        
+        <!-- 词典匹配 -->
+        <mxCell id="dict_match" value="词典匹配&#xa;LexiconTokenizer&#xa;每个位置匹配词典词" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="220" y="530" width="120" height="55" as="geometry" />
+        </mxCell>
+        
+        <!-- BMES四通道 -->
+        <mxCell id="bmes_title" value="BMES四通道分离" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="380" y="520" width="120" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- B通道 -->
+        <mxCell id="b_channel" value="B通道&#xa;Begin位置&#xa;Emb(1815,50)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="370" y="545" width="80" height="50" as="geometry" />
+        </mxCell>
+        
+        <!-- M通道 -->
+        <mxCell id="m_channel" value="M通道&#xa;Middle位置&#xa;Emb(1815,50)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="460" y="545" width="80" height="50" as="geometry" />
+        </mxCell>
+        
+        <!-- E通道 -->
+        <mxCell id="e_channel" value="E通道&#xa;End位置&#xa;Emb(1815,50)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="550" y="545" width="80" height="50" as="geometry" />
+        </mxCell>
+        
+        <!-- S通道 -->
+        <mxCell id="s_channel" value="S通道&#xa;Single位置&#xa;Emb(1815,50)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="640" y="545" width="80" height="50" as="geometry" />
+        </mxCell>
+        
+        <!-- 加权池化 -->
+        <mxCell id="weighted_pool" value="加权平均池化&#xa;wtd_mean_pooling&#xa;按词频加权" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="370" y="605" width="350" height="35" as="geometry" />
+        </mxCell>
+        
+        <!-- 四通道拼接 -->
+        <mxCell id="channel_concat" value="四通道拼接 → 输出200维&#xa;(batch, seq_len, 200)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="370" y="650" width="350" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- BMES说明 -->
+        <mxCell id="bmes_note" value="B: 实体起始&#xa;M: 实体中间&#xa;E: 实体结束&#xa;S: 单字实体" style="text;html=1;strokeColor=#6c8ebf;fillColor=#dae8fc;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;spacingLeft=5;" vertex="1" parent="1">
+          <mxGeometry x="750" y="530" width="100" height="70" as="geometry" />
+        </mxCell>
+        
+        <!-- ========== 嵌入层 ========== -->
+        <mxCell id="embed_layer" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="200" y="700" width="800" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="embed_label" value="嵌入层 (Embedding Layer)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1;fontColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="220" y="710" width="250" height="30" as="geometry" />
+        </mxCell>
+        
+        <!-- OneHotEmbedder -->
+        <mxCell id="onehot" value="OneHotEmbedder&#xa;字符嵌入&#xa;Embedding(2887, 100)&#xa;输出: 100-d" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="240" y="750" width="150" height="55" as="geometry" />
+        </mxCell>
+        
+        <!-- BertLikeEmbedder -->
+        <mxCell id="bert" value="BertLikeEmbedder&#xa;MacBERT-base&#xa;hidden_size=768&#xa;输出: 768-d" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="420" y="750" width="150" height="55" as="geometry" />
+        </mxCell>
+        
+        <!-- 专家词典嵌入 -->
+        <mxCell id="expert_emb" value="ExpertDict Embedding&#xa;词典嵌入&#xa;vocab=1815, dim=50&#xa;输出: 200-d (4×50)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="600" y="750" width="150" height="55" as="geometry" />
+        </mxCell>
+        
+        <!-- 维度汇总 -->
+        <mxCell id="embed_dim" value="总维度:&#xa;100+768+200&#xa;= 1068-d" style="text;html=1;strokeColor=#9673a6;fillColor=#e1d5e7;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="780" y="755" width="100" height="45" as="geometry" />
+        </mxCell>
+        
+        <!-- ========== 输入层 ========== -->
+        <mxCell id="input_layer" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="200" y="840" width="800" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="input_label" value="输入层 (Input Layer)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="220" y="850" width="200" height="30" as="geometry" />
+        </mxCell>
+        
+        <!-- 输入文本 -->
+        <mxCell id="input_tokens" value="输入文本序列 tokens&#xa;例: 假 高 粱 ( 石 茅 ) 可 以 用 草 甘 膦 防 治" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="240" y="885" width="350" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- 词典输入 -->
+        <mxCell id="dict_input" value="专家词典&#xa;expert_lexicon.txt&#xa;1815个领域词汇" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="620" y="880" width="150" height="45" as="geometry" />
+        </mxCell>
+        
+        <!-- BERT词典 -->
+        <mxCell id="bert_vocab" value="BERT词表&#xa;chinese-macbert-base" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="800" y="880" width="130" height="45" as="geometry" />
+        </mxCell>
+        
+        <!-- ========== 左侧层级标签 ========== -->
+        <mxCell id="layer_output" value="输出层" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="40" y="65" width="80" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="layer_decoder" value="解码层" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="40" y="220" width="80" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="layer_fusion" value="融合层" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="40" y="385" width="80" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="layer_expert" value="词典层" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="40" y="565" width="80" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="layer_embed" value="嵌入层" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="745" width="80" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="layer_input" value="输入层" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="875" width="80" height="30" as="geometry" />
+        </mxCell>
+        
+        <!-- ========== 连接线 ========== -->
+        <!-- 输入层到嵌入层 -->
+        <mxCell id="arrow_input_embed1" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#82b366;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="415" y="885" as="sourcePoint" />
+            <mxPoint x="415" y="805" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrow_input_embed2" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#6c8ebf;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="695" y="880" as="sourcePoint" />
+            <mxPoint x="695" y="805" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrow_input_embed3" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#9673a6;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="865" y="880" as="sourcePoint" />
+            <mxPoint x="865" y="805" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- 嵌入层到专家词典层 -->
+        <mxCell id="arrow_embed_expert" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#6c8ebf;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="675" y="750" as="sourcePoint" />
+            <mxPoint x="675" y="690" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- 专家词典层到融合层 -->
+        <mxCell id="arrow_expert_fusion" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#82b366;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="545" y="700" as="sourcePoint" />
+            <mxPoint x="545" y="450" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- 融合层到解码层 -->
+        <mxCell id="arrow_fusion_decoder" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d6b656;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="550" y="450" as="sourcePoint" />
+            <mxPoint x="550" y="320" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- 解码层到输出层 -->
+        <mxCell id="arrow_decoder_output" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#b85450;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="680" y="200" as="sourcePoint" />
+            <mxPoint x="680" y="100" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- OneHot到融合层 -->
+        <mxCell id="arrow_onehot_fusion" value="" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#9673a6;dashed=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="315" y="750" as="sourcePoint" />
+            <mxPoint x="315" y="450" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- BERT到融合层 -->
+        <mxCell id="arrow_bert_fusion" value="" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#9673a6;dashed=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="495" y="750" as="sourcePoint" />
+            <mxPoint x="380" y="445" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- 词典匹配到四通道 -->
+        <mxCell id="arrow_match_channels" value="" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#6c8ebf;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="340" y="557" as="sourcePoint" />
+            <mxPoint x="370" y="557" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- 四通道到加权池化 -->
+        <mxCell id="arrow_channel_pool" value="" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#6c8ebf;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="410" y="595" as="sourcePoint" />
+            <mxPoint x="410" y="605" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrow_channel_pool2" value="" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#6c8ebf;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="500" y="595" as="sourcePoint" />
+            <mxPoint x="500" y="605" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrow_channel_pool3" value="" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#6c8ebf;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="590" y="595" as="sourcePoint" />
+            <mxPoint x="590" y="605" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrow_channel_pool4" value="" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#6c8ebf;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="680" y="595" as="sourcePoint" />
+            <mxPoint x="680" y="605" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- 加权池化到拼接 -->
+        <mxCell id="arrow_pool_concat" value="" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#6c8ebf;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="545" y="640" as="sourcePoint" />
+            <mxPoint x="545" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- FFN到双仿射 -->
+        <mxCell id="arrow_ffn_bilinear" value="" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#9673a6;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="370" y="240" as="sourcePoint" />
+            <mxPoint x="550" y="240" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrow_ffn_bilinear2" value="" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#9673a6;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="370" y="310" as="sourcePoint" />
+            <mxPoint x="550" y="290" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Size Emb到双仿射 -->
+        <mxCell id="arrow_size_bilinear" value="" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#666666;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="520" y="275" as="sourcePoint" />
+            <mxPoint x="550" y="275" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- 双仿射到打分矩阵 -->
+        <mxCell id="arrow_bilinear_score" value="" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#9673a6;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="810" y="260" as="sourcePoint" />
+            <mxPoint x="840" y="260" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- 打分矩阵到边界平滑 -->
+        <mxCell id="arrow_score_smooth" value="" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#9673a6;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="840" y="260" as="sourcePoint" />
+            <mxPoint x="550" y="120" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- 边界平滑到Loss -->
+        <mxCell id="arrow_smooth_loss" value="" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#d6b656;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="465" y="95" as="sourcePoint" />
+            <mxPoint x="580" y="95" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Loss到输出 -->
+        <mxCell id="arrow_loss_output" value="" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#b85450;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="720" y="95" as="sourcePoint" />
+            <mxPoint x="800" y="95" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- 模型名称标注 -->
+        <mxCell id="model_name" value="EDBS Model&#xa;ExpertDict + Boundary Selection" style="text;html=1;strokeColor=#b85450;fillColor=#f8cecc;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=14;fontStyle=1;fontColor=#b85450;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="900" y="40" width="180" height="50" as="geometry" />
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

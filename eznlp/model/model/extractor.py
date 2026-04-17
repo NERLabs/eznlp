@@ -215,15 +215,15 @@ class Extractor(ModelBase):
     def _get_full_embedded(self, batch: Batch):
         embedded = []
 
-        if hasattr(self, "ohots"):
+        if hasattr(self, "ohots") and len(self.ohots) > 0:
             ohots_embedded = [self.ohots[f](batch.ohots[f]) for f in self.ohots]
             embedded.extend(ohots_embedded)
 
-        if hasattr(self, "mhots"):
+        if hasattr(self, "mhots") and len(self.mhots) > 0:
             mhots_embedded = [self.mhots[f](batch.mhots[f]) for f in self.mhots]
             embedded.extend(mhots_embedded)
 
-        if hasattr(self, "nested_ohots"):
+        if hasattr(self, "nested_ohots") and len(self.nested_ohots) > 0:
             # 改成逐个特征处理, 以便在ExpertDict上挂载BMES通道特征
             for f in self.nested_ohots:
                 out = self.nested_ohots[f](**batch.nested_ohots[f], seq_lens=batch.seq_lens)
@@ -243,6 +243,11 @@ class Extractor(ModelBase):
                             f
                         ].last_channel_attn_weights
 
+        # 如果没有任何嵌入特征，返回空张量
+        if len(embedded) == 0:
+            batch_size, seq_len = batch.tokens['input_ids'].shape[:2]
+            return None  # 返回None，由调用方处理
+        
         return torch.cat(embedded, dim=-1)
 
     def _get_full_hidden(self, batch: Batch):
@@ -260,15 +265,21 @@ class Extractor(ModelBase):
         parts = []
 
         # 1) 嵌入侧 (ohots / mhots / nested_ohots)
+        # 检查是否有任何嵌入特征，且不为空
         has_any_embedder = any(
-            hasattr(self, name) for name in ExtractorConfig._embedder_names
+            hasattr(self, name) and 
+            (not isinstance(getattr(self, name), torch.nn.ModuleDict) or len(getattr(self, name)) > 0)
+            for name in ExtractorConfig._embedder_names
         )
         if has_any_embedder:
             embedded = self._get_full_embedded(batch)
-            if hasattr(self, "intermediate1"):
-                embedder_hidden = self.intermediate1(embedded, batch.mask)
+            if embedded is not None:
+                if hasattr(self, "intermediate1"):
+                    embedder_hidden = self.intermediate1(embedded, batch.mask)
+                else:
+                    embedder_hidden = embedded
             else:
-                embedder_hidden = embedded
+                embedder_hidden = None
 
         # 2) 预训练侧 (elmo / bert_like / flair_fw / flair_bw)
         for name in ExtractorConfig._pretrained_names:

@@ -18,7 +18,7 @@ from .crf import CRF
 from .distance import MultiKernelMaxMeanDiscrepancyLoss
 from .dropout import CombinedDropout, LockedDropout, WordDropout
 from .embedding import SinusoidPositionalEncoding
-from .loss import FocalLoss, SmoothLabelCrossEntropyLoss, SoftLabelCrossEntropyLoss
+from .loss import FocalLoss, SmoothLabelCrossEntropyLoss, SoftLabelCrossEntropyLoss, SoftLabelFocalLoss
 from .query_bert_like import QueryBertLikeEncoder
 
 __all__ = [
@@ -42,6 +42,7 @@ __all__ = [
     "TriAffineFusor",
     "QuadAffineFusor",
     "SoftLabelCrossEntropyLoss",
+    "SoftLabelFocalLoss",
     "SmoothLabelCrossEntropyLoss",
     "FocalLoss",
     "MultiKernelMaxMeanDiscrepancyLoss",

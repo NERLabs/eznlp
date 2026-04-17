@@ -123,12 +123,43 @@ class BoundarySelectionDecoderConfig(SingleDecoderConfigBase, BoundariesDecoderM
         # Boundary smoothing epsilon
         self.sb_epsilon = kwargs.pop("sb_epsilon", 0.0)
         self.sb_size = kwargs.pop("sb_size", 1)
+        self.sb_size_map = kwargs.pop("sb_size_map", None)  # dict: {label_str: int} 或 None
         self.sb_adj_factor = kwargs.pop("sb_adj_factor", 1.0)
+        
+        # Long entity optimization techniques
+        self.enhanced_size_emb = kwargs.pop("enhanced_size_emb", False)
+        self.use_lognscaling = kwargs.pop("use_lognscaling", False)
+        self.lognscaling_base = kwargs.pop("lognscaling_base", 512)
+        self.max_span_width = kwargs.pop("max_span_width", None)
+        
+        # NOTE: fl_gamma is handled by parent class SingleDecoderConfigBase
+        # Do not pop it here, let parent class set self.fl_gamma
+        
         super().__init__(**kwargs)
 
     @property
     def name(self):
         return self._name_sep.join([self.reduction.arch, self.criterion])
+
+    @property
+    def valid(self):
+        """Check if the config is valid.
+        
+        Override base class to allow optional None attributes:
+        - sb_size_map: Optional type-specific size mapping
+        - idx2label: Built during build_vocab
+        - overlapping_level: Built during build_vocab  
+        - max_len: Built during build_vocab
+        """
+        optional_none_attrs = {'sb_size_map', 'idx2label', 'overlapping_level', 'max_len', 'enhanced_size_emb', 'use_lognscaling', 'lognscaling_base', 'max_span_width'}
+        for name, attr in self.__dict__.items():
+            if name in optional_none_attrs:
+                continue
+            if attr is None:
+                return False
+            elif hasattr(attr, 'valid') and not attr.valid:
+                return False
+        return True
 
     def __repr__(self):
         repr_attr_dict = {
@@ -160,7 +191,12 @@ class BoundarySelectionDecoderConfig(SingleDecoderConfigBase, BoundariesDecoderM
         elif self.criterion.lower().startswith(("sb", "sl")):
             # For boundary/label smoothing, the `Boundaries` object has been accordingly changed;
             # hence, do not use `SmoothLabelCrossEntropyLoss`
-            return SoftLabelCrossEntropyLoss(**kwargs)
+            if self.fl_gamma > 0:
+                # Use Soft Label Focal Loss when fl_gamma is positive
+                from ...nn.modules.loss import SoftLabelFocalLoss
+                return SoftLabelFocalLoss(gamma=self.fl_gamma, **kwargs)
+            else:
+                return SoftLabelCrossEntropyLoss(**kwargs)
         else:
             return super().instantiate_criterion(**kwargs)
 
@@ -199,6 +235,26 @@ class BoundarySelectionDecoderConfig(SingleDecoderConfigBase, BoundariesDecoderM
 
 
 class BoundarySelectionDecoder(DecoderBase, BoundariesDecoderMixin):
+    """边界选择解码器
+    
+    兼容性说明：旧模型可能没有 self.config 属性，
+    _get_config_attr 方法提供安全的默认值访问。
+    """
+    
+    def _get_config_attr(self, attr_name, default=None):
+        """安全获取 config 属性，兼容旧模型
+        
+        Args:
+            attr_name: 属性名
+            default: 默认值
+            
+        Returns:
+            属性值或默认值
+        """
+        if hasattr(self, 'config') and self.config is not None:
+            return getattr(self.config, attr_name, default)
+        return default
+    
     def __init__(self, config: BoundarySelectionDecoderConfig):
         super().__init__()
         self.multilabel = config.multilabel
@@ -216,6 +272,22 @@ class BoundarySelectionDecoder(DecoderBase, BoundariesDecoderMixin):
                 config.max_size_id + 1, config.size_emb_dim
             )
             reinit_embedding_(self.size_embedding)
+        
+        # 技术1: 参数化 Size Embedding (残差 MLP 增强)
+        if config.enhanced_size_emb and config.size_emb_dim > 0:
+            self.size_mlp = torch.nn.Sequential(
+                torch.nn.Linear(config.size_emb_dim, config.size_emb_dim * 2),
+                torch.nn.GELU(),
+                torch.nn.Linear(config.size_emb_dim * 2, config.size_emb_dim)
+            )
+            # 零初始化最后一层，确保初始行为等同于无 MLP
+            torch.nn.init.zeros_(self.size_mlp[-1].weight)
+            torch.nn.init.zeros_(self.size_mlp[-1].bias)
+        else:
+            self.size_mlp = None
+        
+        # 保存 config 引用以便在 compute_scores 中使用
+        self.config = config
 
         self.register_buffer(
             "_span_size_ids",
@@ -270,13 +342,23 @@ class BoundarySelectionDecoder(DecoderBase, BoundariesDecoderMixin):
         reduced_start = self.reduction_start(self.in_dropout(full_hidden), batch.mask)
         reduced_end = self.reduction_end(self.in_dropout(full_hidden), batch.mask)
 
+        # 技术2: LogN-Scaling - 对长序列稳定打分
+        seq_len = full_hidden.size(1)
+        use_lognscaling = self._get_config_attr('use_lognscaling', False)
+        lognscaling_base = self._get_config_attr('lognscaling_base', 512)
+        if use_lognscaling and seq_len > lognscaling_base:
+            log_scaling = math.log(seq_len) / math.log(lognscaling_base)
+            U_scaled = self.U / (log_scaling ** 0.5)
+        else:
+            U_scaled = self.U
+        
         # reduced_start: (batch, start_step, red_dim) -> (batch, 1, start_step, red_dim)
         # reduced_end: (batch, end_step, red_dim) -> (batch, 1, red_dim, end_step)
         # scores1: (batch, 1, start_step, red_dim) * (voc_dim, red_dim, red_dim) * (batch, 1, red_dim, end_step) -> (batch, voc_dim, start_step, end_step)
         scores1 = (
             self.hid_dropout(reduced_start)
             .unsqueeze(1)
-            .matmul(self.U)
+            .matmul(U_scaled)
             .matmul(self.hid_dropout(reduced_end).permute(0, 2, 1).unsqueeze(1))
         )
 
@@ -298,6 +380,9 @@ class BoundarySelectionDecoder(DecoderBase, BoundariesDecoderMixin):
             size_embedded = self.size_embedding(
                 self._get_span_size_ids(full_hidden.size(1))
             )
+            # 技术1: 参数化 Size Embedding - 残差 MLP 增强
+            if self.size_mlp is not None:
+                size_embedded = size_embedded + self.size_mlp(size_embedded)
             # reduced_cat: (batch, start_step, end_step, red_dim*2 + emb_dim)
             reduced_cat = torch.cat(
                 [
@@ -418,7 +503,22 @@ class BoundarySelectionDecoder(DecoderBase, BoundariesDecoderMixin):
 
         # scores: (batch, start_step, end_step, voc_dim)
         scores = scores1.permute(0, 2, 3, 1) + scores2.squeeze(-1) + scores_bmes
-        return scores + self.b
+        scores = scores + self.b
+        
+        # 技术3: Span 长度限制
+        max_span_width = self._get_config_attr('max_span_width', None)
+        if max_span_width is not None:
+            # 创建 span 长度掩码
+            # i_indices: (seq_len, 1), j_indices: (1, seq_len)
+            i_indices = torch.arange(seq_len, device=scores.device).unsqueeze(1)
+            j_indices = torch.arange(seq_len, device=scores.device).unsqueeze(0)
+            span_lengths = j_indices - i_indices + 1  # (seq_len, seq_len)
+            invalid_mask = (span_lengths > max_span_width)  # True = 需要屏蔽
+            # scores shape: (batch, seq_len, seq_len, voc_dim)
+            # 对超长 span 的所有标签得分设为 -inf
+            scores = scores.masked_fill(invalid_mask.unsqueeze(0).unsqueeze(-1), float('-inf'))
+        
+        return scores
 
     def forward(
         self,

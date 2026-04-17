@@ -267,6 +267,23 @@ class ExpertDictConfig(NestedOneHotConfig):
         self.channel_attn_dropout = kwargs.pop("channel_attn_dropout", 0.1)
         self.channel_attn_version = kwargs.pop("channel_attn_version", "v1")
         
+        # 自动调整 num_heads 使其能整除 emb_dim
+        if self.use_channel_attention:
+            emb_dim = kwargs.get("emb_dim", 50)
+            if emb_dim % self.channel_attn_heads != 0:
+                # 寻找能整除 emb_dim 的最大头数（不超过原始设置）
+                original_heads = self.channel_attn_heads
+                for h in range(original_heads, 0, -1):
+                    if emb_dim % h == 0:
+                        self.channel_attn_heads = h
+                        break
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(
+                    f"channel_attn_heads adjusted from {original_heads} to {self.channel_attn_heads} "
+                    f"(emb_dim={emb_dim} must be divisible by num_heads)"
+                )
+        
         # BMES 跨位置编码器配置（方案B）
         self.use_cross_position_encoder = kwargs.pop("use_cross_position_encoder", False)
         self.cross_position_encoder_type = kwargs.pop("cross_position_encoder_type", "lstm")

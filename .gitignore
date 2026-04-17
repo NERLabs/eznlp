@@ -125,4 +125,7 @@ data/*
 projects/*
 *.md
 *.pth
-
+*/tensorboard/*
+experiments/*
+！*/results/*
+experiments/EXP-009-PDA-SLPS-FWV/results/model1_slps_20260317-164253/tensorboard/events.out.tfevents.1773736983.SRJ.780956.0
