@@ -19,7 +19,8 @@ import numpy as np
 import transformers
 
 # 添加项目路径
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, project_root)
 
 from eznlp.io import ConllIO
 from eznlp.model import (
@@ -34,7 +35,7 @@ from eznlp.token import LexiconTokenizer
 from eznlp.dataset import Dataset
 from eznlp.training import Trainer
 from eznlp.config import ConfigDict
-from utils import load_vectors
+from _8TOOL.utils import load_vectors
 
 
 def setup_logger(save_dir):
@@ -64,7 +65,7 @@ def load_expert_lexicon(dict_path):
 
 
 def load_hz_data(data_dir):
-    """加载 HZ 数据集"""
+    """加载 NER 数据集（支持HZ和RedJujube）"""
     io = ConllIO(
         text_col_id=0,
         tag_col_id=1,
@@ -74,9 +75,19 @@ def load_hz_data(data_dir):
         pad_token="<pad>"
     )
     
-    train_data = io.read(f"{data_dir}/hz_train.bmes")
-    dev_data = io.read(f"{data_dir}/hz_dev.bmes")
-    test_data = io.read(f"{data_dir}/hz_test.bmes")
+    # 根据目录名称自动选择文件名前缀
+    if "RedJujube" in data_dir or "redjujube" in data_dir.lower():
+        train_file = f"{data_dir}/redjujube_train.bmes"
+        dev_file = f"{data_dir}/redjujube_dev.bmes"
+        test_file = f"{data_dir}/redjujube_test.bmes"
+    else:
+        train_file = f"{data_dir}/hz_train.bmes"
+        dev_file = f"{data_dir}/hz_dev.bmes"
+        test_file = f"{data_dir}/hz_test.bmes"
+    
+    train_data = io.read(train_file)
+    dev_data = io.read(dev_file)
+    test_data = io.read(test_file)
     
     return train_data, dev_data, test_data
 

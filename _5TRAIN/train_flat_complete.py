@@ -141,6 +141,8 @@ def load_bmes_data(file_path):
 def evaluate(model, dataloader, device, bert_model=None, bert_tokenizer=None, use_bert=False, idx2label=None, model_type='flat'):
     """评估模型（使用与 eznlp 相同的实体级 F1 计算）"""
     model.eval()
+    if bert_model is not None:
+        bert_model.eval()
     
     all_preds = []
     all_targets = []
@@ -158,14 +160,21 @@ def evaluate(model, dataloader, device, bert_model=None, bert_tokenizer=None, us
             
             if model_type == 'flat_inter':
                 # BERT 内嵌模式：直接传 chars
+                # 计算 loss（临时切换到训练模式以获取 loss）
+                was_training = model.training
                 model.train()
-                output = model(lattice, seq_len, lex_num, pos_s, pos_e, target, chars=batch['chars'])
-                total_loss += output['loss'].item()
+                output_loss = model(lattice, seq_len, lex_num, pos_s, pos_e, target, chars=batch['chars'])
+                total_loss += output_loss['loss'].item()
                 num_batches += 1
                 
+                # 推理
                 model.eval()
-                output = model(lattice, seq_len, lex_num, pos_s, pos_e, chars=batch['chars'])
-                preds = output['pred']
+                output_pred = model(lattice, seq_len, lex_num, pos_s, pos_e, chars=batch['chars'])
+                preds = output_pred['pred']
+                
+                # 恢复之前状态
+                if was_training:
+                    model.train()
             else:
                 # 原始模式：外部处理 BERT
                 bert_embed = None
@@ -205,14 +214,21 @@ def evaluate(model, dataloader, device, bert_model=None, bert_tokenizer=None, us
                     for i, emb in enumerate(bert_embeds):
                         bert_embed[i, :len(emb)] = emb
                 
+                # 计算 loss（临时切换到训练模式以获取 loss）
+                was_training = model.training
                 model.train()
-                output = model(lattice, seq_len, lex_num, pos_s, pos_e, target, bert_embed=bert_embed)
-                total_loss += output['loss'].item()
+                output_loss = model(lattice, seq_len, lex_num, pos_s, pos_e, target, bert_embed=bert_embed)
+                total_loss += output_loss['loss'].item()
                 num_batches += 1
                 
+                # 推理
                 model.eval()
-                output = model(lattice, seq_len, lex_num, pos_s, pos_e, bert_embed=bert_embed)
-                preds = output['pred']
+                output_pred = model(lattice, seq_len, lex_num, pos_s, pos_e, bert_embed=bert_embed)
+                preds = output_pred['pred']
+                
+                # 恢复之前状态
+                if was_training:
+                    model.train()
             
             # 收集预测和目标（按字符位置）
             for i, (pred, length) in enumerate(zip(preds, seq_len)):
@@ -764,15 +780,22 @@ def train(args):
                 
                 if dev_metrics['f1'] > best_f1:
                     best_f1 = dev_metrics['f1']
-                    # 保存完整模型对象和配置，使用 .pth 扩展名
+                    # 保存模型 state_dict 和配置
                     best_model_path = os.path.join(save_dir, 'best_model.pth')
                     config_path = os.path.join(save_dir, 'config.pth')
-                    torch.save(model, best_model_path)
+                    torch.save(
+                        {
+                            'model_state_dict': model.state_dict(),
+                            'model_type': model_type,
+                        },
+                        best_model_path,
+                    )
                     torch.save(
                         {
                             'args': vars(args),
                             'char_vocab': processor.char_vocab,
                             'label_vocab': processor.label_vocab,
+                            'idx2label': processor.idx2label,
                         },
                         config_path,
                     )
@@ -808,20 +831,94 @@ def train(args):
     print("最终测试")
     print("="*70)
     
-    # 加载最佳模型（完整模型对象）
+    # 加载配置
+    config_path = os.path.join(save_dir, 'config.pth')
+    config = torch.load(config_path, map_location=device, weights_only=False)
+    
+    # 重新初始化 BERT（如果使用）
+    test_bert_model = None
+    test_bert_tokenizer = None
+    if args.use_bert:
+        from transformers import BertModel, BertTokenizer
+        test_bert_tokenizer = BertTokenizer.from_pretrained(args.bert_model)
+        test_bert_model = BertModel.from_pretrained(args.bert_model)
+        test_bert_model.eval()
+        test_bert_model.to(device)
+        
+        # 加载最佳 BERT 权重
+        bert_save_path = os.path.join(save_dir, 'best_bert.pth')
+        if os.path.exists(bert_save_path):
+            test_bert_model.load_state_dict(torch.load(bert_save_path, map_location=device))
+            print(f"  ✅ 已加载 BERT 最佳权重")
+    
+    # 重新创建模型并加载权重
     best_model_path = os.path.join(save_dir, 'best_model.pth')
-    # PyTorch 2.6 默认 weights_only=True，需要显式关闭以加载完整模型对象
-    model = torch.load(best_model_path, map_location=device, weights_only=False)
+    checkpoint = torch.load(best_model_path, map_location=device, weights_only=False)
+    
+    # 根据模型类型重建
+    if model_type == 'flat_inter':
+        # BERT 内嵌模式需要从 config 获取 bert_config
+        bert_config = None
+        if args.use_bert:
+            import transformers
+            from eznlp.model.bert_like import BertLikeConfig
+            bert_like = transformers.AutoModel.from_pretrained(args.bert_model)
+            tokenizer = transformers.AutoTokenizer.from_pretrained(args.bert_model)
+            bert_config = BertLikeConfig(
+                tokenizer=tokenizer,
+                bert_like=bert_like,
+                freeze=False,
+                mix_layers="top",
+            )
+        
+        model = FLATWithInterAttention(
+            vocab_size=len(config['char_vocab']),
+            label_size=len(config['label_vocab']),
+            hidden_size=768 if args.use_bert else args.hidden_size,
+            embed_size=args.embed_size,
+            num_heads=8 if args.use_bert else args.num_heads,
+            num_inter_layers=args.num_layers,
+            ff_size=args.ff_size if args.ff_size > 0 else 768 * 4,
+            max_seq_len=args.max_seq_len,
+            dropout=args.dropout,
+            use_bert=args.use_bert,
+            bert_config=bert_config,
+            use_ffn=True,
+        ).to(device)
+    else:
+        model = FLATModel(
+            vocab_size=len(config['char_vocab']),
+            label_size=len(config['label_vocab']),
+            hidden_size=args.hidden_size,
+            embed_size=args.embed_size,
+            num_heads=args.num_heads,
+            num_layers=args.num_layers,
+            ff_size=args.ff_size,
+            max_seq_len=args.max_seq_len,
+            dropout=args.dropout,
+            use_bigram=False,
+            use_bert=args.use_bert,
+            bert_hidden_size=768 if args.use_bert else 0,
+            four_pos_fusion=args.four_pos_fusion,
+        ).to(device)
+    
+    # 加载最佳权重
+    model.load_state_dict(checkpoint['model_state_dict'])
     model.to(device)
     model.eval()
+    
+    print(f"  ✅ 已加载最佳模型权重")
+    
+    # 测试集评估
     test_metrics = evaluate(
         model,
         test_loader,
         device,
-        bert_model,
-        bert_tokenizer,
-        args.use_bert,
-        processor.idx2label,
+        bert_model=test_bert_model,
+        bert_tokenizer=test_bert_tokenizer,
+        use_bert=args.use_bert,
+        idx2label=config['idx2label'],
+        model_type=model_type,
     )
     
     # 将最终测试结果写入日志
