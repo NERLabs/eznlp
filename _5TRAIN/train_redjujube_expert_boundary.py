@@ -288,6 +288,10 @@ def parse_args():
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--use_tensorboard", action="store_true", default=True)
     parser.add_argument("--no_tensorboard", dest="use_tensorboard", action="store_false")
+
+    # 过拟合诊断：每 epoch 在测试集上评估（默认关闭，仅供诊断使用）
+    parser.add_argument("--eval_test_each_epoch", action="store_true", default=False,
+                        help="每个 epoch 都在测试集上评估，用于诊断过拟合（不影响选模型，仅用于绘制曲线）")
     
     # FGM 对抗训练参数
     parser.add_argument("--use_fgm", action="store_true", default=True,

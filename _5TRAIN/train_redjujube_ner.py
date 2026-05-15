@@ -95,7 +95,7 @@ def build_expert_dict_config(args):
         nested_ohots["expert_dict"] = expert_dict_config
 
     encoder_config = EncoderConfig(
-        arch="LSTM",
+        arch=args.encoder_arch,
         hid_dim=args.hid_dim,
         num_layers=args.num_layers,
         in_drop_rates=(args.dropout, 0.0, 0.0),
@@ -124,6 +124,10 @@ def parse_args():
     parser.add_argument("--save_dir", type=str, required=True, help="保存目录")
     parser.add_argument("--with_type", action="store_true", default=False, help="使用带类型词典")
     parser.add_argument("--bert_arch", type=str, default="hfl/chinese-macbert-base")
+    parser.add_argument("--encoder_arch", type=str, default="LSTM",
+                        choices=["LSTM", "GRU", "FFN", "Identity"],
+                        help="编码层架构: LSTM(默认,向后兼容)/GRU/FFN/Identity。"
+                             "用 FFN 与 BS-Decoder 路线对齐做干净的解码器消融")
     parser.add_argument("--hid_dim", type=int, default=256)
     parser.add_argument("--num_layers", type=int, default=1)
     parser.add_argument("--dropout", type=float, default=0.5)
@@ -226,7 +230,8 @@ def main():
     if args.expert_dict_path is not None:
         model_name = "expert_dict_typed" if args.with_type else "expert_dict"
     else:
-        model_name = "bert_bilstm_crf"
+        enc_tag = {"LSTM": "bilstm", "GRU": "bigru", "FFN": "ffn", "Identity": "noenc"}.get(args.encoder_arch, args.encoder_arch.lower())
+        model_name = f"bert_{enc_tag}_crf"
         
     save_dir = os.path.join(args.save_dir, f"{model_name}_{timestamp}")
     
@@ -274,7 +279,7 @@ def main():
                 entry["tokens"].build_expert_dict_tags(tokenizer.tokenize)
         logger.info("✅ 专家词典特征添加完成")
     else:
-        logger.info("ℹ️ 未提供专家词典，运行 BERT + BiLSTM + CRF 基准模型")
+        logger.info(f"ℹ️ 未提供专家词典，运行 BERT + {args.encoder_arch} + CRF 基准模型")
 
     model_config = build_expert_dict_config(args)
     

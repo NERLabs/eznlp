@@ -137,6 +137,9 @@ class RedJujubeTrainerConfig:
         # 显示和评估参数
         self.disp_every_steps = getattr(args, 'disp_every_steps', 50)
         self.eval_every_steps = getattr(args, 'eval_every_steps', 200)
+
+        # 每 epoch 在测试集上评估（用于诊断过拟合，默认关闭）
+        self.eval_test_each_epoch = getattr(args, 'eval_test_each_epoch', False)
         
         # TensorBoard 配置
         self.use_tensorboard = getattr(args, 'use_tensorboard', True)
@@ -430,6 +433,11 @@ class RedJujubeNERTrainer:
         best_dev_f1 = 0.0
         best_epoch = 0
         global_step = 0
+
+        # 每 epoch 指标记录（用于诊断过拟合）
+        epoch_metrics = []
+        best_test_f1_seen = 0.0
+        best_test_f1_epoch = 0
         
         # 初始化 FGM 对抗训练
         fgm = None
@@ -612,7 +620,38 @@ class RedJujubeNERTrainer:
                 # 如果使用 EMA，此时模型已应用 EMA 权重，直接保存
                 torch.save(model, model_path)
                 self.logger.info(f"✅ 保存最佳模型 (epoch {epoch}, F1={dev_f1:.4f})")
-            
+
+            # 每 epoch 在测试集上评估（仅诊断用，不影响选模型）
+            epoch_test_loss = None
+            epoch_test_f1 = None
+            if self.config.eval_test_each_epoch:
+                test_eval = trainer.eval_epoch(test_loader)
+                if isinstance(test_eval, tuple):
+                    epoch_test_loss = float(test_eval[0])
+                    epoch_test_f1 = float(test_eval[1]) if len(test_eval) > 1 else 0.0
+                else:
+                    epoch_test_loss = float(test_eval)
+                    epoch_test_f1 = 0.0
+                self.logger.info(
+                    f"📊 [诊断] Test Loss: {epoch_test_loss:.4f}, Test F1: {epoch_test_f1:.4f}"
+                )
+                if self.writer:
+                    self.writer.add_scalar("test_each_epoch/loss", epoch_test_loss, epoch)
+                    self.writer.add_scalar("test_each_epoch/f1", epoch_test_f1, epoch)
+                if epoch_test_f1 > best_test_f1_seen:
+                    best_test_f1_seen = epoch_test_f1
+                    best_test_f1_epoch = epoch
+
+            # 记录每 epoch 指标
+            epoch_metrics.append({
+                "epoch": epoch,
+                "train_loss": float(train_loss),
+                "dev_loss": float(dev_loss),
+                "dev_f1": float(dev_f1),
+                "test_loss": epoch_test_loss,
+                "test_f1": epoch_test_f1,
+            })
+
             # 恢复原始权重继续训练
             if ema is not None:
                 ema.restore()
@@ -661,6 +700,16 @@ class RedJujubeNERTrainer:
             'trainable_params': trainable_params,
             'args': vars(self.config.args)
         }
+
+        # 注入每 epoch 诊断指标（如启用了 eval_test_each_epoch）
+        if epoch_metrics:
+            results['epoch_metrics'] = epoch_metrics
+        if self.config.eval_test_each_epoch:
+            results['best_test_f1_seen'] = float(best_test_f1_seen)
+            results['best_test_f1_epoch'] = int(best_test_f1_epoch)
+            self.logger.info(
+                f"\n📊 [诊断] 训练过程中观测到的最高 Test F1: {best_test_f1_seen:.4f} (epoch {best_test_f1_epoch})"
+            )
         
         with open(f"{self.config.save_dir}/results.json", 'w') as f:
             json.dump(results, f, indent=2, ensure_ascii=False)
