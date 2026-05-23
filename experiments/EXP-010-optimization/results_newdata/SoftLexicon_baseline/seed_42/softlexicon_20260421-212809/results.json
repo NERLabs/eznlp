@@ -1,0 +1,37 @@
+{
+  "model_type": "SoftLexicon",
+  "test_loss": 37.77001221974691,
+  "test_metrics": [
+    0.8475067996373528
+  ],
+  "total_params": 104663746,
+  "trainable_params": 104663746,
+  "args": {
+    "data_dir": "_2DATA/RedJujube",
+    "expert_dict_path": "data/HZ/expert_lexicon.txt",
+    "save_dir": "experiments/EXP-010-optimization/results_newdata/SoftLexicon_baseline/seed_42",
+    "bert_arch": "/home/shiwenlong/.cache/huggingface/hub/models--hfl--chinese-macbert-base/snapshots/a986e004d2a7f2a1c2f5a3edef4e20604a974ed1",
+    "bert_drop_rate": 0.2,
+    "hid_dim": 256,
+    "num_layers": 1,
+    "dropout": 0.5,
+    "expert_dict_dim": 50,
+    "num_epochs": 30,
+    "batch_size": 16,
+    "lr": 0.002,
+    "finetune_lr": 2e-05,
+    "weight_decay": 0.0001,
+    "grad_clip": 5.0,
+    "num_grad_acc_steps": 1,
+    "use_amp": false,
+    "disp_every_steps": 50,
+    "eval_every_steps": 200,
+    "run_baseline": false,
+    "run_expert_dict": false,
+    "run_softlexicon": true,
+    "run_softlexicon_trainlex": false,
+    "softlex_train_path": "data/HZ/softlexicon_train.txt",
+    "run_both": false,
+    "seed": 42
+  }
+}

@@ -1,0 +1,23 @@
+# Numeric Consistency Validation
+
+- PASS: Chinese abstract main F1 contains `88.28%±0.22%`
+- PASS: English abstract main F1 contains `88.28%±0.22%`
+- PASS: Table/result main F1 contains `88.28±0.22`
+- PASS: Conclusion main F1 contains `88.28%±0.22%`
+- PASS: BiLSTM-CRF gain contains `9.59`
+- PASS: BERT-wwm-ext gain contains `2.80`
+- PASS: MacBERT gain contains `2.71`
+- PASS: representative analysis contains `89.51`
+- PASS: representative analysis contains `87.58`
+- PASS: representative analysis contains `88.54`
+- PASS: public dataset MSRA value `95.19±0.22` appears in abstract and Table 8
+- PASS: public dataset WeiboNER value `72.27±1.03` appears in abstract and Table 8
+- PASS: public dataset ResumeNER value `96.13±0.29` appears in abstract and Table 8
+- PASS: public dataset Boson value `85.60±0.12` appears in abstract and Table 8
+- PASS: public dataset CLUENER value `80.06±0.38` appears in abstract and Table 8
+- PASS: lexicon strategy section contains `5 317`
+- PASS: lexicon strategy section contains `77.75`
+- PASS: lexicon strategy section contains `31.04`
+- PASS: lexicon strategy section contains `16.94`
+- PASS: lexicon strategy section contains `62.76`
+- PASS: representative-run table states its different statistical scope

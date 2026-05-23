@@ -1,0 +1,18 @@
+dataset=redjujube
+beta_short=0.98 beta_long=0.98
+base_k=2
+w_short=0.5 w_long=0.5
+size_penalty=0.0
+long_min_len=6
+max_len=10
+ok=True
+base_dev_score=0.18357058875999396
+final_dev_score=0.22462706958904954
+base_train_P=0.44905397437958944
+base_train_Rshort=0.8531414020682846
+base_train_Rlong=0.31043956043956045
+base_train_lex_size=1828
+final_train_P=0.46451113353199275
+final_train_Rshort=0.9856051551213428
+final_train_Rlong=0.760989010989011
+final_train_lex_size=5049

@@ -1,0 +1,162 @@
+# 红枣栽培 NER 投稿稿结果注册表
+
+本文档用于执行 `plans/农业机械学报投稿论文_goal计划.md` 的 Phase 1：证据归档与数值统一。所有进入投稿稿的结果必须能追溯到本表中的本地文件或现有论文表格。
+
+## 1. 采用原则
+
+1. 摘要、结论和主对比表优先采用 **3 个随机种子均值 ± 标准差**，避免用单次最优结果作为主结论。
+2. 单次实验结果可用于分类分析、案例分析和误差分析，但不能与均值结果混写。
+3. 现有主稿中的 `EDBP/EDBS` 统一为 **EDBP**，中文统一为“专家词典与边界预测模型”。
+4. “边界预测”是论文问题表述；代码实现对应 `BoundarySelectionDecoder`，正文表述为“边界预测模块采用边界选择解码形式”。
+5. 当前投稿稿先采用现有主稿中已经整理过的 RJND 结果，不将 2026-03 数据重构后的新数据结果直接替换主结果，除非后续完成全表重算。
+
+## 2. RJND 主结果
+
+### 2.1 主对比结果，建议进入摘要和结论
+
+| 模型 | P/% | R/% | F1/% | 证据来源 | 采用状态 | 说明 |
+|---|---:|---:|---:|---|---|---|
+| BiLSTM-CRF | - | - | 78.69 | `docs/paper/基于词典和边界预测的红枣栽培命名实体识别.md` 表 6 | 采用 | 作为无预训练弱基线 |
+| BERT-wwm-ext+BiLSTM+CRF | - | - | 85.48±0.25 | 同上，表 6 | 采用 | 3 seeds 强基线 |
+| MacBERT-base+BiLSTM+CRF | - | - | 85.57±0.29 | 同上，表 6 | 采用 | 3 seeds 强基线，摘要中的主要对照 |
+| EDBP/EDBS 完整模型 | - | - | 88.28±0.22 | `experiments/EXP-010-optimization/results_newdata/Q_bs_focal/` | **主采用** | 3 seeds 均值，投稿稿主结果 |
+
+主结论计算：
+
+- EDBP 相对 BiLSTM-CRF：88.28 - 78.69 = **+9.59** 个百分点。
+- EDBP 相对 BERT-wwm-ext+BiLSTM+CRF：88.28 - 85.48 = **+2.80** 个百分点。
+- EDBP 相对 MacBERT-base+BiLSTM+CRF：88.28 - 85.57 = **+2.71** 个百分点。
+
+### 2.1.1 主对比三种子原始结果与显著性检验
+
+2026-05-23 重新整理 `results_newdata` 后，定位到投稿稿表 3 对应的三种子原始结果。该组结果与投稿稿当前主表数值一致，可用于支撑配对 t 检验。
+
+| 模型 | seed 42 | seed 43 | seed 44 | 均值±标准差/% | 结果路径 |
+|---|---:|---:|---:|---:|---|
+| BiLSTM-CRF | 78.30 | 78.84 | 78.92 | 78.69±0.34 | `experiments/EXP-010-optimization/results_newdata/G_bilstm_baseline/` |
+| BERT-wwm-ext+BiLSTM+CRF | 85.21 | 85.54 | 85.69 | 85.48±0.25 | `experiments/EXP-010-optimization/results_newdata/CRF_nodict_bertwwm/` |
+| MacBERT-base+BiLSTM+CRF | 85.36 | 85.90 | 85.45 | 85.57±0.29 | `experiments/EXP-010-optimization/results_newdata/CRF_nodict/` |
+| EDBP | 88.16 | 88.54 | 88.15 | 88.28±0.22 | `experiments/EXP-010-optimization/results_newdata/Q_bs_focal/` |
+
+配对 t 检验结果：
+
+- EDBP vs. BiLSTM-CRF：均值差 9.60 个百分点，p=0.0004。
+- EDBP vs. BERT-wwm-ext+BiLSTM+CRF：均值差 2.80 个百分点，p=0.0036。
+- EDBP vs. MacBERT-base+BiLSTM+CRF：均值差 2.71 个百分点，p=0.0003。
+
+说明：投稿稿表 3 改用 `results_newdata/Q_bs_focal/` 原始三种子重算结果 `88.28±0.22`，以保证主结果、原始结果路径和显著性检验口径一致。
+
+### 2.2 单次分类分析结果，不进入摘要主结果
+
+| 指标 | 数值 | 证据来源 | 采用状态 | 说明 |
+|---|---:|---|---|---|
+| Precision | 89.51 | `docs/paper/基于词典和边界预测的红枣栽培命名实体识别.md` 表 3/表 5 | 限分类分析采用 | 单次或特定实验配置结果 |
+| Recall | 87.58 | 同上 | 限分类分析采用 | 单次或特定实验配置结果 |
+| F1 | 88.54 | 同上 | 限分类分析采用 | 不作为摘要主结果，避免与 88.28±0.22 冲突 |
+
+处理决策：
+
+- 摘要写：EDBP 在 RJND 上 F1 为 **88.28%±0.22%**。
+- 分类分析写：在代表性运行中，整体 P/R/F1 为 **89.51%/87.58%/88.54%**。
+- 不再写“摘要 P/R/F1 分别达到 89.51、87.58、88.54”作为全局主结论。
+
+## 3. 消融实验结果
+
+| 方法 | 词典 | 边界预测 | Focal Loss | F1/% | 证据来源 | 采用状态 |
+|---|---|---|---|---:|---|---|
+| BERT+LSTM+CRF | 否 | 否 | - | 85.57 | `docs/paper/基于词典和边界预测的红枣栽培命名实体识别.md` 表 2 | 采用 |
+| +专家词典 | 是 | 否 | - | 86.71 | 同上 | 采用 |
+| +边界预测 | 否 | 是 | 否 | 86.68 | 同上 | 采用 |
+| +专家词典+边界预测 | 是 | 是 | 否 | 87.66 | 同上 | 采用 |
+| +边界预测+Focal | 否 | 是 | 是 | 86.58 | 同上 | 采用 |
+| +专家词典+边界预测+Focal | 是 | 是 | 是 | 88.28 | 同上 | 采用 |
+
+关键计算：
+
+- 专家词典单独增益：86.71 - 85.57 = **+1.14**。
+- 边界预测单独增益：86.68 - 85.57 = **+1.11**。
+- 词典 + 边界预测协同增益：87.66 - 85.57 = **+2.09**。
+- Focal Loss 在词典 + 边界预测条件下增益：88.28 - 87.66 = **+0.62**。
+
+## 4. 词典构建策略结果
+
+词典构建策略采用 `experiments/EXP-011-lexicon_strategy/analysis/candidate_proxy_table.csv` 中 RedJujube 行。该表为训练集词典匹配代理指标，用于解释为何主模型保留最小词频阈值为 1 的专家词典；不作为测试集 NER 主性能。
+
+| 最小词频阈值 | 词典规模 | 短实体覆盖率/% | 长实体覆盖率/% | 短实体匹配 F1/% | 长实体匹配 F1/% | 平衡 F1/% | 采用状态 |
+|---:|---:|---:|---:|---:|---:|---:|---|
+| 1 | 5 317 | 100.00 | 77.75 | 61.69 | 81.67 | 62.76 | 主模型采用 |
+| 2 | 1 842 | 85.45 | 31.04 | 58.51 | 45.11 | 57.79 | 对比 |
+| 3 | 1 087 | 78.61 | 16.94 | 56.73 | 28.14 | 55.19 | 对比 |
+
+处理决策：
+
+- 投稿稿新增词典构建策略对比表，说明低频复合术语对词典覆盖的影响。
+- 表中数值只用于词典阈值选择解释，不与表 3 的测试集 F1 直接比较。
+
+## 5. 解码器与损失函数对比
+
+| 解码器/损失 | P/% | R/% | F1/% | 证据来源 | 采用状态 |
+|---|---:|---:|---:|---|---|
+| CRF | 86.32 | 87.80 | 87.05 | `docs/paper/基于词典和边界预测的红枣栽培命名实体识别.md` 表 3 | 采用 |
+| 边界预测 | 90.12 | 85.61 | 87.81 | 同上 | 采用 |
+| 边界预测 + Focal Loss | 89.51 | 87.58 | 88.54 | 同上 | 限该表采用 |
+
+解释口径：
+
+- 该表用于说明 Focal Loss 对召回率的提升，不能与三种子均值主表混为同一统计口径。
+- 投稿稿中需要在表注中注明“该表为代表性运行结果”。
+
+## 6. 公开数据集泛化结果
+
+现有主稿整理结果如下：
+
+| 数据集 | EDBP F1/% | 证据来源 | 采用状态 |
+|---|---:|---|---|
+| MSRA | 95.19±0.22 | `docs/paper/基于词典和边界预测的红枣栽培命名实体识别.md` 表 8 | 采用 |
+| WeiboNER | 72.27±1.03 | 同上 | 采用 |
+| ResumeNER | 96.13±0.29 | 同上 | 采用 |
+| Boson | 85.60±0.12 | 同上 | 采用 |
+| CLUENER | 80.06±0.38 | 同上 | 采用 |
+
+本地结果校验：
+
+- MSRA seed 42/43/44：`experiments/EXP-010-optimization/results_public/msra_bs_dict_focal/`
+- WeiboNER seed 42/43/44：`experiments/EXP-010-optimization/results_public/weibo_bs_dict_focal/`
+- ResumeNER seed 42/43/44：`experiments/EXP-010-optimization/results_public/resume_bs_dict_focal/`
+- Boson seed 42/43/44：`experiments/EXP-010-optimization/results_public/boson_bs_dict_focal/`
+- CLUENER seed 42/43/44：`experiments/EXP-010-optimization/results_public/clue_bs_dict_focal/`
+
+注意：
+
+- 部分目录存在同 seed 重跑结果，投稿稿采用已在主稿中汇总的均值表。
+- 后续若要严格重算均值，需要先确定每个 seed 采用哪一次运行，避免重复运行污染均值。
+
+## 7. 2026-03 新数据结果
+
+| 实验组 | 代表文件 | 结果 | 采用状态 | 原因 |
+|---|---|---|---|---|
+| H_bs_baseline | `experiments/EXP-010-optimization/results_newdata/H_bs_baseline/` | test F1 约 87.55-87.81 | 暂不进入主稿 | 数据重构后样本粒度变化，不能与旧稿 RJND 主表混用 |
+| Q_bs_focal | `experiments/EXP-010-optimization/results_newdata/Q_bs_focal/` | test F1 约 88.15-88.54 | 暂不进入主稿 | 与旧稿主表统计口径不同 |
+| Q_bs_focal_attnv1 | `experiments/EXP-010-optimization/results_newdata/Q_bs_focal_attnv1_s*/` | test F1 约 88.10-88.73 | 可作为后续补充实验候选 | 若采用需重写方法为 CA-BMES，并补消融 |
+
+相关风险报告：
+
+- `docs/RedJujube_DatasetAnalysis_Report_2026-03-18.md`
+- `experiments/EXP-010-optimization/REDJUJUBE_DEV_TEST_ANALYSIS.md`
+- `experiments/EXP-010-optimization/QUICK_SUMMARY_ZH.txt`
+- `experiments/EXP-010-optimization/SUMMARY_TABLES.txt`
+
+处理决策：
+
+- 当前投稿稿不混入新旧数据结果。
+- 若后续决定使用新数据版本，需要重新生成完整论文结果表，包括数据集统计、主对比、消融、公开数据集泛化与显著性分析。
+
+## 8. 投稿稿统一写法
+
+推荐摘要结果句：
+
+> 结果表明，EDBP 在 RJND 数据集上的 F1 值达到 88.28%±0.22%，较 BiLSTM-CRF、BERT-wwm-ext+BiLSTM+CRF 和 MacBERT-base+BiLSTM+CRF 分别提升 9.59、2.80 和 2.71 个百分点。
+
+推荐结果分析补充句：
+
+> 在代表性运行的分类统计中，EDBP 的精确率、召回率和 F1 值分别为 89.51%、87.58% 和 88.54%，其中病虫害、虫害、部位等类别取得较高识别效果，低频肥料和分类实体仍是主要误差来源。

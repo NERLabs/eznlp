@@ -1,0 +1,15 @@
+dataset,type,k_t,long_gold_count_approx
+redjujube,AGR,1,118
+redjujube,CUL,1,43
+redjujube,DIS,1,27
+redjujube,DRU,1,233
+redjujube,EQU,1,153
+redjujube,FER,1,33
+redjujube,LOC,1,372
+redjujube,NUT,3,40
+redjujube,PAR,2,22
+redjujube,PER,1,8
+redjujube,PES,3,11
+redjujube,PRO,1,21
+redjujube,TAX,1,11
+redjujube,WED,1,0

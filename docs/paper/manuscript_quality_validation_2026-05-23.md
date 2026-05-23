@@ -1,0 +1,24 @@
+# Manuscript Quality Validation
+
+- PASS: title CJK length is 24, within 24
+- PASS: required heading appears in order: # 基于专家词典与边界预测的红枣栽培命名实体识别方法
+- PASS: required heading appears in order: ## 摘要
+- PASS: required heading appears in order: ## Abstract
+- PASS: required heading appears in order: ## 0 引言
+- PASS: required heading appears in order: ## 1 材料与方法
+- PASS: required heading appears in order: ## 2 结果与分析
+- PASS: required heading appears in order: ## 3 讨论
+- PASS: required heading appears in order: ## 4 结论
+- PASS: required heading appears in order: ## 参考文献
+- PASS: Chinese keyword count is 6, within 6
+- PASS: English keyword count is 6, within 6
+- PASS: Chinese abstract contains no citations or display formulas
+- PASS: English abstract covers method sequence and results
+- PASS: reference count is 28, at least 25
+- PASS: no Mermaid code fence
+- PASS: no generic code fence
+- PASS: no old model abbreviation EDBS
+- PASS: no project-management TODO marker
+- PASS: no draft placeholder
+- PASS: expert dictionary wording avoids claiming a manual expert knowledge base
+- PASS: agricultural information application context is explicit

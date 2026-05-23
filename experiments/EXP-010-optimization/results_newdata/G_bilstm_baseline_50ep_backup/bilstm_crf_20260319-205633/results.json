@@ -1,0 +1,25 @@
+{
+  "model_type": "bilstm_crf",
+  "best_dev_f1": 0.7621679064824655,
+  "best_epoch": 49,
+  "test_loss": 20.89613660176595,
+  "test_f1": 0.7601503759398495,
+  "total_params": 383682,
+  "trainable_params": 383682,
+  "args": {
+    "data_dir": "_2DATA/RedJujube",
+    "save_dir": "experiments/EXP-010-optimization/results_newdata/G_bilstm_baseline",
+    "emb_dim": 100,
+    "hid_dim": 256,
+    "num_layers": 2,
+    "dropout": 0.5,
+    "num_epochs": 50,
+    "batch_size": 16,
+    "lr": 0.001,
+    "finetune_lr": 1e-05,
+    "weight_decay": 0.0001,
+    "grad_clip": 5.0,
+    "seed": 42,
+    "use_tensorboard": true
+  }
+}

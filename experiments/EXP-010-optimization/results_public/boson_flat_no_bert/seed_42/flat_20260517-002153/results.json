@@ -1,0 +1,15 @@
+{
+  "model_config": {
+    "hidden_size": 256,
+    "num_layers": 1,
+    "num_heads": 4,
+    "dropout": 0.15
+  },
+  "test_metrics": {
+    "loss": 4.525606725526893,
+    "precision": 0.6637666325486182,
+    "recall": 0.5941365093907467,
+    "f1": 0.6270244138264444
+  },
+  "best_dev_f1": 0.6433632498819084
+}

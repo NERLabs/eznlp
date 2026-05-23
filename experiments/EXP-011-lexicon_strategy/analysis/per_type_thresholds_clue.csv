@@ -1,0 +1,11 @@
+dataset,type,k_t,long_gold_count_approx
+clue,ADDRESS,2,657
+clue,BOOK,2,605
+clue,COMPANY,1,686
+clue,GAME,1,889
+clue,GOVERNMENT,1,520
+clue,MOVIE,1,631
+clue,NAME,1,341
+clue,ORGANIZATION,1,416
+clue,POSITION,1,93
+clue,SCENE,1,281

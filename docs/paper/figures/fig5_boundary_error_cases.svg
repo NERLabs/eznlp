@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620" viewBox="0 0 1200 620">
+  <defs>
+    <style>
+      .title { font-family: "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", Arial, sans-serif; font-size: 24px; font-weight: 700; fill: #222; }
+      .label { font-family: "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", Arial, sans-serif; font-size: 17px; fill: #222; }
+      .small { font-family: "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", Arial, sans-serif; font-size: 14px; fill: #333; }
+      .tiny { font-family: "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", Arial, sans-serif; font-size: 12px; fill: #555; }
+      .box { stroke: #2f3b52; stroke-width: 1.5; rx: 8; ry: 8; }
+      .tag { stroke: #555; stroke-width: 1; rx: 5; ry: 5; }
+    </style>
+  </defs>
+  <rect width="1200" height="620" fill="#fff"/>
+  <text x="600" y="42" text-anchor="middle" class="title">典型低频实体与边界错误示例</text>
+  <text x="600" y="68" text-anchor="middle" class="small">Typical Low-frequency Entity and Boundary Error Cases</text>
+
+  <rect x="70" y="115" width="1060" height="120" fill="#f8f8f8" class="box"/>
+  <text x="95" y="145" class="label">案例 1：肥料类低频复合实体漏检</text>
+  <rect x="95" y="166" width="155" height="32" fill="#ffe6e6" class="tag"/>
+  <text x="172" y="188" text-anchor="middle" class="small">中性有机肥料</text>
+  <rect x="265" y="166" width="42" height="32" fill="#fff1db" class="tag"/>
+  <text x="286" y="188" text-anchor="middle" class="small">FER</text>
+  <text x="325" y="187" class="small">金标：[96,102] FER；预测：无对应实体。</text>
+  <text x="95" y="218" class="tiny">错误类型：低频复合实体漏检；证据：redjujube_test.json 第 175 条，model2_predictions.json</text>
+
+  <rect x="70" y="260" width="1060" height="120" fill="#f8f8f8" class="box"/>
+  <text x="95" y="290" class="label">案例 2：肥料类语义边界复杂</text>
+  <rect x="95" y="311" width="165" height="32" fill="#ffe6e6" class="tag"/>
+  <text x="177" y="333" text-anchor="middle" class="small">生理酸性肥料</text>
+  <rect x="275" y="311" width="42" height="32" fill="#fff1db" class="tag"/>
+  <text x="296" y="333" text-anchor="middle" class="small">FER</text>
+  <text x="335" y="332" class="small">金标：[178,184] FER；预测：无对应实体。</text>
+  <text x="95" y="363" class="tiny">错误类型：复合修饰结构漏检；证据：redjujube_test.json 第 175 条，model2_predictions.json</text>
+
+  <rect x="70" y="405" width="1060" height="120" fill="#f8f8f8" class="box"/>
+  <text x="95" y="435" class="label">案例 3：肥料名称边界合并</text>
+  <rect x="95" y="456" width="70" height="32" fill="#ffe6e6" class="tag"/>
+  <text x="130" y="478" text-anchor="middle" class="small">硫酸钾</text>
+  <rect x="175" y="456" width="70" height="32" fill="#ffe6e6" class="tag"/>
+  <text x="210" y="478" text-anchor="middle" class="small">固体肥</text>
+  <rect x="262" y="456" width="128" height="32" fill="#dff0ff" class="tag"/>
+  <text x="326" y="478" text-anchor="middle" class="small">硫酸钾固体肥</text>
+  <text x="410" y="477" class="small">金标：[165,168]、[168,171]；预测：[165,171]，相邻肥料实体被合并。</text>
+  <text x="95" y="508" class="tiny">错误类型：相邻同类实体边界合并；证据：redjujube_test.json 第 175 条，model2_predictions.json</text>
+
+  <rect x="70" y="548" width="1060" height="36" fill="#eef6ff" class="box"/>
+  <text x="600" y="571" text-anchor="middle" class="small">改进方向：降低低频类别词典阈值、引入类别自适应词典构建、扩充 FER/TAX 等低频实体样本。</text>
+</svg>

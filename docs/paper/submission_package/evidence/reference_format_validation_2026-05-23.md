@@ -1,0 +1,110 @@
+# Reference Format Validation
+
+- PASS: reference count is 28, at least 25
+- PASS: reference numbering is continuous
+- PASS: [1] has literature type marker [J]
+- PASS: [1] has publication year 2019
+- PASS: [1] has DOI or URL
+- PASS: [2] has literature type marker [J]
+- PASS: [2] has publication year 2022
+- PASS: [2] has DOI or URL
+- PASS: [3] has literature type marker [J]
+- PASS: [3] has publication year 2022
+- PASS: [3] has DOI or URL
+- PASS: [4] has literature type marker [J]
+- PASS: [4] has publication year 2022
+- PASS: [4] has DOI or URL
+- PASS: [5] has literature type marker [J]
+- PASS: [5] has publication year 2024
+- PASS: [5] has DOI or URL
+- PASS: [6] has literature type marker [J]
+- PASS: [6] has publication year 2025
+- PASS: [6] has DOI or URL
+- PASS: [7] has literature type marker [C]
+- PASS: [7] has publication year 2019
+- PASS: [7] has DOI or URL
+- PASS: [7] English author names are uppercase
+- PASS: [8] has literature type marker [J]
+- PASS: [8] has publication year 2021
+- PASS: [8] has DOI or URL
+- PASS: [8] English author names are uppercase
+- PASS: [9] has literature type marker [C]
+- PASS: [9] has publication year 2020
+- PASS: [9] has DOI or URL
+- PASS: [9] English author names are uppercase
+- PASS: [10] has literature type marker [EB/OL]
+- PASS: [10] has publication year 1991
+- PASS: [10] has DOI or URL
+- PASS: [10] English author names are uppercase
+- PASS: [11] has literature type marker [C]
+- PASS: [11] has publication year 2016
+- PASS: [11] has DOI or URL
+- PASS: [11] English author names are uppercase
+- PASS: [12] has literature type marker [C]
+- PASS: [12] has publication year 2016
+- PASS: [12] has DOI or URL
+- PASS: [12] English author names are uppercase
+- PASS: [13] has literature type marker [C]
+- PASS: [13] has publication year 2018
+- PASS: [13] has DOI or URL
+- PASS: [13] English author names are uppercase
+- PASS: [14] has literature type marker [C]
+- PASS: [14] has publication year 2020
+- PASS: [14] has DOI or URL
+- PASS: [14] English author names are uppercase
+- PASS: [15] has literature type marker [C]
+- PASS: [15] has publication year 2020
+- PASS: [15] has DOI or URL
+- PASS: [15] English author names are uppercase
+- PASS: [16] has literature type marker [C]
+- PASS: [16] has publication year 2020
+- PASS: [16] has DOI or URL
+- PASS: [16] English author names are uppercase
+- PASS: [17] has literature type marker [C]
+- PASS: [17] has publication year 2017
+- PASS: [17] has DOI or URL
+- PASS: [17] English author names are uppercase
+- PASS: [18] has literature type marker [C]
+- PASS: [18] has publication year 2017
+- PASS: [18] has DOI or URL
+- PASS: [18] English author names are uppercase
+- PASS: [19] has literature type marker [C]
+- PASS: [19] has publication year 2018
+- PASS: [19] has DOI or URL
+- PASS: [19] English author names are uppercase
+- PASS: [20] has literature type marker [C]
+- PASS: [20] has publication year 2020
+- PASS: [20] has DOI or URL
+- PASS: [20] English author names are uppercase
+- PASS: [21] has literature type marker [J]
+- PASS: [21] has publication year 2022
+- PASS: [21] has DOI or URL
+- PASS: [21] English author names are uppercase
+- PASS: [22] has literature type marker [C]
+- PASS: [22] has publication year 2021
+- PASS: [22] has DOI or URL
+- PASS: [22] English author names are uppercase
+- PASS: [23] has literature type marker [EB/OL]
+- PASS: [23] has publication year 2019
+- PASS: [23] has DOI or URL
+- PASS: [23] English author names are uppercase
+- PASS: [24] has literature type marker [J]
+- PASS: [24] has publication year 2023
+- PASS: [24] has DOI or URL
+- PASS: [25] has literature type marker [J]
+- PASS: [25] has publication year 2023
+- PASS: [25] has DOI or URL
+- PASS: [26] has literature type marker [J]
+- PASS: [26] has publication year 2025
+- PASS: [26] has DOI or URL
+- PASS: [27] has literature type marker [J]
+- PASS: [27] has publication year 2024
+- PASS: [27] has DOI or URL
+- PASS: [27] English author names are uppercase
+- PASS: [28] has literature type marker [J]
+- PASS: [28] has publication year 2025
+- PASS: [28] has DOI or URL
+- PASS: [28] English author names are uppercase
+- PASS: reference list includes both journal and conference literature
+- PASS: recent references since 2020: 18
+- PASS: foreign-language references: 19

@@ -1,0 +1,60 @@
+# Submission Package Validation (draft)
+
+- PASS: required file exists: README.md
+- PASS: required file exists: 农业机械学报_红枣NER_投稿稿_期刊格式初稿.docx
+- PASS: required file exists: 农业机械学报_红枣NER_投稿稿_期刊格式初稿.pdf
+- PASS: required file exists: 农业机械学报_红枣NER_投稿稿.md
+- PASS: required file exists: 农业机械学报_红枣NER_投稿信息补全表.md
+- PASS: required file exists: submission_info.example.json
+- PASS: required file exists: tools/fill_docx_front_matter.py
+- PASS: required file exists: tools/validate_submission_info.py
+- PASS: required file exists: tools/validate_references.py
+- PASS: required file exists: tools/validate_reference_format.py
+- PASS: required file exists: tools/validate_numeric_consistency.py
+- PASS: required file exists: tools/validate_figures_tables.py
+- PASS: required file exists: tools/validate_equations_symbols.py
+- PASS: required file exists: tools/validate_docx_layout.py
+- PASS: required file exists: tools/validate_manuscript_quality.py
+- PASS: required file exists: tools/md_to_html.py
+- PASS: required file exists: tools/run_all_submission_checks.py
+- PASS: required file exists: tools/validate_reproducibility_paths.py
+- PASS: required file exists: tools/validate_rendered_pdf.py
+- PASS: required file exists: official_docs/论文编改专项核对表_2018-8-20.pdf
+- PASS: required file exists: official_docs/论文写作模板_2019.pdf
+- PASS: required file exists: evidence/reference_audit_round1.md
+- PASS: required file exists: evidence/render_audit_2026-05-23.md
+- PASS: required file exists: evidence/paper_result_registry.md
+- PASS: required file exists: evidence/农业机械学报_红枣NER_官方核对附录.md
+- PASS: required file exists: evidence/full_submission_check_report_2026-05-23.md
+- PASS: required file exists: evidence/reproducibility_statement.md
+- PASS: required file exists: evidence/reproducibility_validation_2026-05-23.md
+- PASS: required file exists: evidence/rendered_pdf_validation_2026-05-23.md
+- PASS: required file exists: evidence/docx_layout_validation_2026-05-23.md
+- PASS: required file exists: figures_png/fig1_edbp_architecture.png
+- PASS: required file exists: figures_png/fig2_bmes_dictionary_encoding.png
+- PASS: required file exists: figures_png/fig3_boundary_prediction_decoder.png
+- PASS: required file exists: figures_png/fig4_entity_f1_by_category.png
+- PASS: required file exists: figures_png/fig5_boundary_error_cases.png
+- PASS: DOCX contains 5 embedded media files
+- PASS: DOCX contains 8 tables
+- PASS: DOCX contains: 基于专家词典与边界预测的红枣栽培命名实体识别方法
+- PASS: DOCX contains: Named Entity Recognition Method for Red Jujube Cultivation
+- PASS: DOCX contains: 88.28%±0.35%
+- PASS: DOCX contains: 10.6041/j.issn.1000-1298.2025.11.050
+- WARN: DOCX draft placeholders remain: 待作者补充, 待作者确认, To be completed
+- PASS: Markdown contains 28 references
+- PASS: Markdown does not contain stale author name 张华洋
+- PASS: Markdown in-text citations cover references in ascending order
+- PASS: Markdown key numeric claims are internally consistent
+- PASS: Markdown references pass basic format gates
+- PASS: Markdown figure/table numbering, mentions, and files are consistent
+- PASS: Markdown equations, symbol appendix, and DOCX equation numbers are consistent
+- PASS: DOCX layout gates pass
+- PASS: Markdown passes manuscript quality gates
+- PASS: submission_info.example.json has the required schema
+- PASS: PDF metadata readable
+- PASS: PDF text contains: 88.28%±0.35%
+- PASS: PDF text contains: 参考文献
+- PASS: PDF text contains: 10.6041/j.issn.1000-1298.2025.11.050
+- PASS: PDF render quality gates pass
+- PASS: handoff zip integrity test passed

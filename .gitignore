@@ -130,3 +130,5 @@ experiments/*
 ！*/results/*
 experiments/EXP-009-PDA-SLPS-FWV/results/model1_slps_20260317-164253/tensorboard/events.out.tfevents.1773736983.SRJ.780956.0
 *.pdf
+docs/paper/*
+融合专家词典与边界选择的红枣栽培命名实体识别方法.docx

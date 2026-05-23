@@ -1,0 +1,36 @@
+# Figure and Table Validation
+
+- PASS: figure captions are continuous: 图 1-5
+- PASS: table captions are continuous: 表 1-8
+- PASS: 图 1 is mentioned before its caption
+- PASS: 图 2 is mentioned before its caption
+- PASS: 图 3 is mentioned before its caption
+- PASS: 图 4 is mentioned before its caption
+- PASS: 图 5 is mentioned before its caption
+- PASS: 表 1 is mentioned before its caption
+- PASS: 表 1 has a Markdown table body
+- PASS: 表 2 is mentioned before its caption
+- PASS: 表 2 has a Markdown table body
+- PASS: 表 3 is mentioned before its caption
+- PASS: 表 3 has a Markdown table body
+- PASS: 表 4 is mentioned before its caption
+- PASS: 表 4 has a Markdown table body
+- PASS: 表 5 is mentioned before its caption
+- PASS: 表 5 has a Markdown table body
+- PASS: 表 6 is mentioned before its caption
+- PASS: 表 6 has a Markdown table body
+- PASS: 表 7 is mentioned before its caption
+- PASS: 表 7 has a Markdown table body
+- PASS: 表 8 is mentioned before its caption
+- PASS: 表 8 has a Markdown table body
+- PASS: manuscript contains 5 figure image references
+- PASS: figure reference 1 filename matches figure number
+- PASS: figure file available for 图 1: /home/shiwenlong/NERlabs/eznlp/docs/paper/figures/fig1_edbp_architecture.svg
+- PASS: figure reference 2 filename matches figure number
+- PASS: figure file available for 图 2: /home/shiwenlong/NERlabs/eznlp/docs/paper/figures/fig2_bmes_dictionary_encoding.svg
+- PASS: figure reference 3 filename matches figure number
+- PASS: figure file available for 图 3: /home/shiwenlong/NERlabs/eznlp/docs/paper/figures/fig3_boundary_prediction_decoder.svg
+- PASS: figure reference 4 filename matches figure number
+- PASS: figure file available for 图 4: /home/shiwenlong/NERlabs/eznlp/docs/paper/figures/fig4_entity_f1_by_category.svg
+- PASS: figure reference 5 filename matches figure number
+- PASS: figure file available for 图 5: /home/shiwenlong/NERlabs/eznlp/docs/paper/figures/fig5_boundary_error_cases.svg

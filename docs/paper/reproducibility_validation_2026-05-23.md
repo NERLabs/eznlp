@@ -1,0 +1,37 @@
+# Reproducibility Path Validation
+
+- PASS: reproducibility statement exists: /home/shiwenlong/NERlabs/eznlp/docs/paper/reproducibility_statement.md
+- PASS: path exists: Taskfile.yml
+- PASS: path exists: _5TRAIN/train_redjujube_ner.py
+- PASS: path exists: _5TRAIN/train_redjujube_expert_boundary.py
+- PASS: path exists: _5TRAIN/train_general_expert_boundary.py
+- PASS: path exists: _1CONFIG/redjujube/run_public_all_sequential.sh
+- PASS: path exists: _1CONFIG/redjujube/run_bs_optimization_experiments.sh
+- PASS: path exists: _2DATA/RedJujube/redjujube_train.bmes
+- PASS: path exists: _2DATA/RedJujube/redjujube_dev.bmes
+- PASS: path exists: _2DATA/RedJujube/redjujube_test.bmes
+- PASS: path exists: _2DATA/RedJujube/expert_lexicon_auto_min1.txt
+- PASS: path exists: _2DATA/MSRA
+- PASS: path exists: _2DATA/WeiboNER
+- PASS: path exists: _2DATA/ResumeNER
+- PASS: path exists: _2DATA/boson
+- PASS: path exists: _2DATA/clue
+- PASS: path exists: _3DATA_PROCESS/extract_lexicon_from_training.py
+- PASS: path exists: eznlp/model/encoder.py
+- PASS: path exists: eznlp/model/nested_embedder.py
+- PASS: path exists: eznlp/model/decoder/boundary_selection.py
+- PASS: path exists: docs/paper/基于词典和边界预测的红枣栽培命名实体识别.md
+- PASS: path exists: docs/paper/paper_result_registry.md
+- PASS: path exists: experiments/EXP-011-lexicon_strategy/analysis/candidate_proxy_table.csv
+- PASS: path exists: experiments/EXP-010-optimization/QUICK_SUMMARY_ZH.txt
+- PASS: result directory has results.json: experiments/EXP-010-optimization/results/Q_bs_focal
+- PASS: result directory has results.json: experiments/EXP-010-optimization/results_public/msra_bs_dict_focal
+- PASS: result directory has results.json: experiments/EXP-010-optimization/results_public/weibo_bs_dict_focal
+- PASS: result directory has results.json: experiments/EXP-010-optimization/results_public/resume_bs_dict_focal
+- PASS: result directory has results.json: experiments/EXP-010-optimization/results_public/boson_bs_dict_focal
+- PASS: result directory has results.json: experiments/EXP-010-optimization/results_public/clue_bs_dict_focal
+- PASS: statement contains: 88.28%±0.22%
+- PASS: statement contains: 89.51/87.58/88.54
+- PASS: statement contains: 5 317
+- PASS: statement contains: results_newdata
+- PASS: statement contains: hfl/chinese-macbert-base
