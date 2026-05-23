@@ -46,6 +46,28 @@
 
 说明：投稿稿表 3 改用 `results_newdata/Q_bs_focal/` 原始三种子重算结果 `88.28±0.22`，以保证主结果、原始结果路径和显著性检验口径一致。
 
+### 2.1.2 RJND seed=42 经典词典与 lattice 基线补充检索
+
+2026-05-23 按 `RJND/RedJujube + seed=42 + test F1` 口径检索本地结果。下表只登记 RedJujube 主数据集结果，不混入 MSRA、Resume、Boson、CLUENER 或旧 cache 结果。
+
+| 模型名 | 数据集路径/名称 | seed | 测试集 F1/% | 结果文件路径 | 是否使用 BERT/MacBERT | 是否使用外部词典/训练集词典 | 状态 |
+|---|---|---:|---:|---|---|---|---|
+| BiLSTM-CRF | `_2DATA/RedJujube` | 42 | 78.30 | `experiments/EXP-010-optimization/results_newdata/G_bilstm_baseline/bilstm_crf_20260319-211534/results.json` | 否 | 否 | 表 3 seed=42 单次值 |
+| BERT-wwm-ext+BiLSTM+CRF | `_2DATA/RedJujube` | 42 | 85.21 | `experiments/EXP-010-optimization/results_newdata/CRF_nodict_bertwwm/bert_bilstm_crf_20260331-132603/results.json` | 是，`hfl/chinese-bert-wwm-ext` | 否 | 表 3 seed=42 单次值 |
+| MacBERT-base+BiLSTM+CRF | `_2DATA/RedJujube` | 42 | 85.36 | `experiments/EXP-010-optimization/results_newdata/CRF_nodict/bert_bilstm_crf_20260319-211534/results.json` | 是，`hfl/chinese-macbert-base` | 否 | 表 3 seed=42 单次值 |
+| EDBP | `_2DATA/RedJujube` | 42 | 88.16 | `experiments/EXP-010-optimization/results_newdata/Q_bs_focal/expert_boundary_20260319-182029/results.json` | 是，`hfl/chinese-macbert-base` | 是，训练集自动专家词典；`min_freq=2`，1842 个词，保存为同目录 `auto_lexicon.txt` | 表 3 seed=42 单次值 |
+| SoftLexicon / BERT-SoftLexicon | `_2DATA/RedJujube` | 42 | 84.75 | `experiments/EXP-010-optimization/results_newdata/SoftLexicon_baseline/seed_42/softlexicon_20260421-212809/results.json` | 是，MacBERT-base 本地快照 | 是，`data/HZ/expert_lexicon.txt` 与 `data/HZ/softlexicon_train.txt`；非 RJND 训练集词典 | 可作为经典 SoftLexicon 对照，但词典来源需在表注说明 |
+| FLAT | `_2DATA/RedJujube` | 42 | 79.78 | `experiments/baselines/flat_no_bert_v2/flat_20260506-101813/results.json` | 否 | 是，外部 lattice 词表/向量 `assets/vectors/ctb.50d.vec`，698668 词 | 可作为无 BERT FLAT 对照 |
+| BERT-FLAT / FLAT+BERT | `_2DATA/RedJujube` | 42 | 79.40 | `experiments/baselines/flat_bert_fixed/flat_20260423-211828/results.json` | 是，MacBERT-base 本地快照 | 是，外部 lattice 词表/向量 `assets/vectors/ctb.50d.vec`，698668 词 | 可作为 BERT-FLAT 对照 |
+| LatticeLSTM | `_2DATA/RedJujube` | 42 | 待补 | 未找到 RJND 结果文件 | 否 | 目标模型通常使用外部 gazetteer；本地代码默认 `data/ctb.50d.vec` | 仅找到 `projects/LatticeLSTM-master` 代码和 Resume/demo 数据，无 RedJujube 结果 |
+| NFLAT | `_2DATA/RedJujube` | 42 | 待补 | 未找到 RJND 结果文件 | 否 | 目标代码默认使用 YangJie/CTB lattice 词表与词向量 | 仅找到 `projects/NFLAT4CNER-main/nflat_msra_result.txt`，属于 MSRA，已排除 |
+
+补实验状态：
+
+- LatticeLSTM 当前不能直接补跑：`projects/LatticeLSTM-master/main.py` 为 Python 2/PyTorch 0.3 风格，`seed_num=100` 写死；服务器 `/usr/bin/python2` 无 `torch`，现有 conda 环境也未发现 Python 2.7 的 torch。需要先恢复旧环境或将代码迁移到 Python 3/PyTorch 当前接口，并将 seed 改为 42。
+- NFLAT 当前不能直接补跑：`projects/NFLAT4CNER-main/main.py` 只支持 `weibo/resume/ontonotes/msra`，seed 写死为 2022；最接近的 `flat37` 环境有 torch 1.2.0 和 FastNLP 0.5.0，但缺 Python 3.7 可用的 `prettytable`，并且当前 `torch.cuda.is_available()` 为 `False`。需要先补 RedJujube 数据配置、seed 参数和 Python 3.7 依赖，再在 GPU 可用时训练。
+- `cache/redjujube_softlexicon_*` 与 `cache/flat_complete*` 中存在更高 F1 的旧结果，但不属于本次统一的 `results_newdata`/表 3 口径，暂不登记为投稿主证据。
+
 ### 2.2 单次分类分析结果，不进入摘要主结果
 
 | 指标 | 数值 | 证据来源 | 采用状态 | 说明 |
