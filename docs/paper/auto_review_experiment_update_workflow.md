@@ -179,11 +179,11 @@ DOCX 数值检查使用 Python `zipfile`，不要依赖 `unzip`。
 
 只有重新从最新 DOCX 渲染并验证通过的 PDF 才能放入最终查看目录。
 
-当前若缺少 LibreOffice，先安装：
+当前若缺少 LibreOffice 或 PDF 检查工具，先安装：
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y libreoffice-writer libreoffice-java-common
+sudo apt-get install -y libreoffice-writer libreoffice-java-common poppler-utils
 ```
 
 旧 PDF 不得作为最新论文判断依据。

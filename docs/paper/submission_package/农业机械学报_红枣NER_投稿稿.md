@@ -2,13 +2,13 @@
 
 ## 摘要
 
-针对红枣栽培技术文本中领域术语密集、实体类别分布不均衡和传统序列标注解码器难以全局判断实体边界等问题，提出一种基于专家词典与边界预测的红枣栽培命名实体识别方法（Expert Dictionary and Boundary Prediction，EDBP）。围绕红枣栽培品种、部位、病虫害、药剂、农事操作等关键知识单元，构建涵盖 14 个实体类别的红枣栽培命名实体识别数据集 RJND；从训练集自动抽取领域实体构建专家词典，采用 BMES 四通道结构编码词典匹配位置，将领域词典先验融合到字符语义表示中；将命名实体识别建模为片段分类任务，采用边界预测解码器对候选实体起止位置进行联合打分，并引入 Focal Loss 缓解类别不平衡对低频实体识别的影响。结果表明，EDBP 在 RJND 数据集上的 F1 值达到 88.16%，较 BiLSTM-CRF、BERT-wwm-ext+BiLSTM+CRF、MacBERT-base+BiLSTM+CRF、SoftLexicon、FLAT 和 FLAT+BERT 分别提升 9.86、2.95、2.80、3.41、8.38 和 8.76 个百分点；在 MSRA、WeiboNER、ResumeNER、Boson 和 CLUENER 公开数据集上的 F1 值分别为 95.19%±0.22%、72.27%±1.03%、96.13%±0.29%、85.60%±0.12% 和 80.06%±0.38%。研究表明，专家词典特征与边界预测解码器能够有效提升红枣栽培领域实体识别精度，可为红枣栽培知识图谱构建、农业技术智能检索和问答系统提供基础支撑。
+针对红枣栽培技术文本中领域术语密集、实体类别分布不均衡和传统序列标注解码器难以全局判断实体边界等问题，提出一种基于专家词典与边界预测的红枣栽培命名实体识别方法（Expert Dictionary and Boundary Prediction，EDBP）。围绕红枣栽培品种、部位、病虫害、药剂、农事操作等关键知识单元，构建涵盖 14 个实体类别的红枣栽培命名实体识别数据集 RJND；从训练集自动抽取领域实体构建专家词典，采用 BMES 四通道结构编码词典匹配位置，将领域词典先验融合到字符语义表示中；将命名实体识别建模为片段分类任务，采用边界预测解码器对候选实体起止位置进行联合打分，并引入 Focal Loss 缓解类别不平衡对低频实体识别的影响。结果表明，在已完成的当前 RJND 同口径基线中，EDBP 在测试集上的 F1 值达到 88.16%，较 BiLSTM-CRF、BERT-wwm-ext+BiLSTM+CRF、MacBERT-base+BiLSTM+CRF、SoftLexicon、FLAT 和 FLAT+BERT 分别提升 9.86、2.95、2.80、3.41、8.38 和 8.76 个百分点；在 MSRA、WeiboNER、ResumeNER、Boson 和 CLUENER 公开数据集上的 F1 值分别为 95.19%±0.22%、72.27%±1.03%、96.13%±0.29%、85.60%±0.12% 和 80.06%±0.38%。研究表明，专家词典特征与边界预测解码器能够有效提升红枣栽培领域实体识别精度，可为红枣栽培知识图谱构建、农业技术智能检索和问答系统提供基础支撑。
 
 关键词：红枣栽培；命名实体识别；专家词典；边界预测；Focal Loss；农业知识图谱
 
 ## Abstract
 
-To address the problems of dense domain-specific terminology, imbalanced entity categories, and insufficient global boundary modeling in named entity recognition for red jujube cultivation texts, an Expert Dictionary and Boundary Prediction method, named EDBP, was proposed. First, a red jujube cultivation named entity recognition dataset, RJND, was constructed around key knowledge units such as cultivars, plant parts, diseases, pests, pesticides, and cultivation operations. The dataset contains 14 entity categories. Second, domain entities were automatically extracted from the training set to build an expert dictionary. A BMES four-channel structure was used to encode the matched positions of dictionary entries, and the resulting domain priors were fused with contextual character representations. Third, named entity recognition was formulated as a span classification task. A boundary prediction decoder was used to jointly score candidate start and end positions, and Focal Loss was introduced to reduce the influence of category imbalance on low-frequency entities. The results showed that EDBP achieved an F1 score of 88.16% on RJND, outperforming BiLSTM-CRF, BERT-wwm-ext+BiLSTM+CRF, MacBERT-base+BiLSTM+CRF, SoftLexicon, FLAT, and FLAT+BERT by 9.86, 2.95, 2.80, 3.41, 8.38, and 8.76 percentage points, respectively. On the public datasets MSRA, WeiboNER, ResumeNER, Boson, and CLUENER, EDBP achieved F1 scores of 95.19%±0.22%, 72.27%±1.03%, 96.13%±0.29%, 85.60%±0.12%, and 80.06%±0.38%, respectively. The results indicate that expert dictionary features and boundary prediction can effectively improve entity recognition accuracy in red jujube cultivation texts, providing technical support for red jujube cultivation knowledge graph construction, agricultural technology retrieval, and intelligent question answering.
+To address the problems of dense domain-specific terminology, imbalanced entity categories, and insufficient global boundary modeling in named entity recognition for red jujube cultivation texts, an Expert Dictionary and Boundary Prediction method, named EDBP, was proposed. First, a red jujube cultivation named entity recognition dataset, RJND, was constructed around key knowledge units such as cultivars, plant parts, diseases, pests, pesticides, and cultivation operations. The dataset contains 14 entity categories. Second, domain entities were automatically extracted from the training set to build an expert dictionary. A BMES four-channel structure was used to encode the matched positions of dictionary entries, and the resulting domain priors were fused with contextual character representations. Third, named entity recognition was formulated as a span classification task. A boundary prediction decoder was used to jointly score candidate start and end positions, and Focal Loss was introduced to reduce the influence of category imbalance on low-frequency entities. Among the completed same-setting RJND baselines, EDBP achieved a test F1 score of 88.16%, outperforming BiLSTM-CRF, BERT-wwm-ext+BiLSTM+CRF, MacBERT-base+BiLSTM+CRF, SoftLexicon, FLAT, and FLAT+BERT by 9.86, 2.95, 2.80, 3.41, 8.38, and 8.76 percentage points, respectively. On the public datasets MSRA, WeiboNER, ResumeNER, Boson, and CLUENER, EDBP achieved F1 scores of 95.19%±0.22%, 72.27%±1.03%, 96.13%±0.29%, 85.60%±0.12%, and 80.06%±0.38%, respectively. The results indicate that expert dictionary features and boundary prediction can effectively improve entity recognition accuracy in red jujube cultivation texts, providing technical support for red jujube cultivation knowledge graph construction, agricultural technology retrieval, and intelligent question answering.
 
 Keywords: red jujube cultivation; named entity recognition; expert dictionary; boundary prediction; Focal Loss; agricultural knowledge graph
 
@@ -37,7 +37,7 @@ Keywords: red jujube cultivation; named entity recognition; expert dictionary; b
 
 原始书籍和文献文本经 PDF 正文区域裁剪、页眉页脚和目录等非正文内容剔除后，使用 PDF 转文本工具获得初始文本。由于农业专业书籍中存在年代较早、排版复杂和插图表格较多等情况，文本抽取后对 OCR 错字、乱码、断行、重复段落和无关图表文字进行人工校对，并统一中英文标点、计量单位和句子切分规则，形成红枣栽培 NER 语料。
 
-面向红枣栽培知识图谱和智能问答应用需求，结合红枣栽培生产环节与专业书籍中的术语体系，将实体类别划分为 14 类，包括部位、农事操作、品种、时期、设备、地域、病害、药剂、产品/工艺、虫害、营养、肥料、杂草和分类。标注采用“候选实体抽取-词典匹配预标注-人工校验修正”的半自动流程，并使用 BMES 标注体系进行字符级标注，其中 B、M、E、S 分别表示实体开始、中间、结束和单字实体。标注过程中依据统一的实体类别定义和边界判定规则，对机器预标注结果逐句复核；对于并列实体、复合肥料名称、病虫害全称与简称等容易产生边界分歧的样本，结合上下文语义和红枣栽培术语体系进行人工修正，以减少实体边界和类别标注不一致。
+面向红枣栽培知识图谱和智能问答应用需求，参考农业文本实体标注准则中面向知识图谱构建的实体类别划分和标注原则[29]，结合红枣栽培生产环节与专业书籍中的术语体系，将实体类别划分为 14 类，包括部位、农事操作、品种、时期、设备、地域、病害、药剂、产品/工艺、虫害、营养、肥料、杂草和分类。标注采用“候选实体抽取-词典匹配预标注-人工校验修正”的半自动流程，并使用 BMES 标注体系进行字符级标注，其中 B、M、E、S 分别表示实体开始、中间、结束和单字实体。标注过程中依据统一的实体类别定义和边界判定规则，对机器预标注结果逐句复核；对于并列实体、复合肥料名称、病虫害全称与简称等容易产生边界分歧的样本，结合上下文语义和红枣栽培术语体系进行人工修正，以减少实体边界和类别标注不一致。
 
 表 1 给出 RJND 实体类别和数据集分布。数据集按 8:1:1 划分为训练集、验证集和测试集，训练集包含 1 527 个句子，验证集包含 178 个句子，测试集包含 190 个句子。
 
@@ -152,7 +152,7 @@ $$
 
 式中，$H^{fused}$ 为融合上下文语义和专家词典特征后的序列表示；$H^{start}$ 和 $H^{end}$ 分别为候选起始位置和结束位置表示；$W_s$、$W_e$、$b_s$ 和 $b_e$ 为前馈映射参数；$s_{i,j,c}$ 为候选片段 $(i,j)$ 属于类别 $c$ 的得分；$U_c$ 为类别 $c$ 对应的双线性参数；$W_c$ 和 $b_c$ 为线性项参数。模型在所有候选片段中选择得分最高且满足约束的实体片段作为输出。
 
-在实现中，边界预测解码器还引入 span 长度嵌入，用于提供候选片段长度先验；训练时支持边界平滑和 Focal Loss，当 Focal Loss 聚焦因子大于 0 时采用软标签 Focal Loss 形式优化边界分类目标。
+在实现中，边界预测解码器还引入 span 长度嵌入，用于提供候选片段长度先验；训练时支持边界平滑[30]和 Focal Loss，当 Focal Loss 聚焦因子大于 0 时采用软标签 Focal Loss 形式优化边界分类目标。
 
 图 3 为边界预测解码器结构，以 span 矩阵形式展示候选边界对。
 
@@ -163,7 +163,7 @@ Fig. 3 Structure of the boundary prediction decoder
 
 ### 1.5 Focal Loss 与训练目标
 
-红枣栽培实体类别存在明显长尾分布，低频类别如 TAX、FER、WED 样本较少。为降低易分类样本对训练目标的主导作用，引入 Focal Loss：
+红枣栽培实体类别存在明显长尾分布，低频类别如 TAX、FER、WED 样本较少。已有研究表明，NLP 序列标注和阅读理解任务中的正负样本不平衡会使训练目标被大量易分类样本主导[31]。为降低易分类样本对训练目标的主导作用，引入 Focal Loss：
 
 $$
 L=-\alpha_t(1-p_t)^\gamma \log(p_t)
@@ -349,7 +349,7 @@ EDBP 输出的实体可作为红枣栽培知识图谱的节点基础，为后续
 
 本文面向红枣栽培技术文本知识结构化需求，构建了包含 14 个实体类别的 RJND 数据集，提出了基于专家词典与边界预测的命名实体识别方法 EDBP。主要结论如下：
 
-1. EDBP 在 RJND 数据集上取得 88.16% 的 F1 值，较 MacBERT-base+BiLSTM+CRF 强基线提升 2.80 个百分点，说明专家词典先验和边界预测机制能够有效提升红枣栽培实体识别精度。
+1. 在已完成的当前 RJND 同口径主对比中，EDBP 取得 88.16% 的 F1 值，较 MacBERT-base+BiLSTM+CRF 强基线提升 2.80 个百分点，说明专家词典先验和边界预测机制能够有效提升红枣栽培实体识别精度。
 2. 消融实验表明，专家词典、边界预测和 Focal Loss 均对模型性能有贡献，其中专家词典与边界预测具有协同作用，Focal Loss 在二者基础上进一步提升模型对困难样本的识别能力。
 3. 类别分析表明，模型对部位、品种、病害、虫害等类别识别效果较好，对肥料、分类等低频类别仍存在召回不足问题。
 4. 公开数据集泛化实验表明，EDBP 在通用中文 NER 数据集上具有一定泛化能力，但在红枣栽培等专业农业文本中的增益更明显。
@@ -413,3 +413,9 @@ EDBP 输出的实体可作为红枣栽培知识图谱的节点基础，为后续
 [27] TANG W T, WEN X H, HU Z L. Named entity recognition for crop diseases and pests based on gated fusion unit and Manhattan attention[J]. Agriculture, 2024, 14(9): 1565. DOI: 10.3390/agriculture14091565.
 
 [28] LIU R L, GUO X C, ZHU H M, et al. A text-speech multimodal Chinese named entity recognition model for crop diseases and pests[J]. Scientific Reports, 2025, 15: 5429. DOI: 10.1038/s41598-025-88874-9.
+
+[29] 陈晓晋, 唐球, 王耀君. 面向农业知识图谱构建的文本实体标注准则构建及应用[J]. 电子技术应用, 2023, 49(5): 1-7. DOI: 10.16157/j.issn.0258-7998.233824.
+
+[30] ZHU E W, LI J P. Boundary smoothing for named entity recognition[C]//Proceedings of the 60th Annual Meeting of the Association for Computational Linguistics. Dublin: ACL, 2022: 7096-7108. DOI: 10.18653/v1/2022.acl-long.490.
+
+[31] LI X Y, SUN X F, MENG Y X, et al. Dice loss for data-imbalanced NLP tasks[C]//Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics. Online: ACL, 2020: 465-476. DOI: 10.18653/v1/2020.acl-main.45.

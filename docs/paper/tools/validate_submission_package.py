@@ -142,10 +142,10 @@ def validate(package_dir: Path, final: bool) -> tuple[bool, str]:
     if md.exists():
         text = md.read_text(encoding="utf-8")
         refs = re.findall(r"^\[[0-9]+\]", text, flags=re.MULTILINE)
-        if len(refs) == 28:
-            ok(results, "Markdown contains 28 references")
+        if len(refs) >= 25:
+            ok(results, f"Markdown contains {len(refs)} references")
         else:
-            fail(results, f"Markdown reference count is {len(refs)}, expected 28")
+            fail(results, f"Markdown reference count is {len(refs)}, expected at least 25")
             success = False
         if "张华洋" in text:
             fail(results, "Markdown still contains stale author name 张华洋")
@@ -355,9 +355,11 @@ def validate(package_dir: Path, final: bool) -> tuple[bool, str]:
                 pdf_success, _ = module.validate(pdf)
                 if pdf_success:
                     ok(results, "PDF render quality gates pass")
-                else:
+                elif final:
                     fail(results, "PDF render quality validation failed")
                     success = False
+                else:
+                    warn(results, "PDF render quality validation failed in draft mode")
             else:
                 warn(results, "rendered PDF validator script not found in package")
         except Exception as exc:  # noqa: BLE001

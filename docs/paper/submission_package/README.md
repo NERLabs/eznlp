@@ -1,14 +1,16 @@
 # 《农业机械学报》投稿交接包
 
-生成日期：2026-05-23
+生成日期：2026-05-24
 
 ## 1. 优先使用文件
 
 1. `农业机械学报_红枣NER_投稿稿_期刊格式初稿.docx`
    - 当前最接近投稿形态的 Word 初稿。
    - 已包含英文题名、作者/单位/基金/中图分类号占位、公式编号、三线表边框、5 张嵌入图和 8 张表。
+   - 已包含 2026-05-24 更新的当前 RJND 同口径基线限定、词典频次对比表和摘要证据边界修订。
 2. `农业机械学报_红枣NER_投稿稿_期刊格式初稿.pdf`
-   - 由 LibreOffice 渲染的预览稿，用于快速检查页数、图表和正文显示。
+   - 当前最新 PDF 预览稿。
+   - 已从最新 DOCX 重新渲染，并通过 PDF 文本与图像质量门禁。
 3. `农业机械学报_红枣NER_投稿信息补全表.md`
    - 作者、单位、基金、中图分类号、作者简介和通信作者信息补全表。
 4. `submission_info.example.json`
@@ -56,7 +58,7 @@ python3 tools/validate_submission_info.py submission_info.json
 python3 tools/build_final_submission_package.py \
   --info submission_info.json \
   --output-dir ../final_submission_package \
-  --zip ../农业机械学报_红枣NER_终稿交接包_2026-05-23.zip
+  --zip ../农业机械学报_红枣NER_终稿交接包_2026-05-24.zip
 ```
 
 替换后可运行投稿包验证：
@@ -77,17 +79,17 @@ python3 tools/validate_submission_package.py .
 python3 tools/run_all_submission_checks.py
 ```
 
-## 6. 已验证
+## 6. 当前已验证
 
 1. Word 初稿 zip 结构通过。
 2. Word 初稿内含 5 张嵌入图和 8 张表。
-3. Word 初稿内检出英文题名、作者占位、中图分类号占位、公式编号和主结果 88.16%。
-4. PDF 预览为 A4，共 14 页。
-5. PDF 中图像约 300 dpi。
+3. Word 初稿内检出英文题名、作者占位、中图分类号占位、公式编号、主结果 88.16% 和表 5 最新数值 `84.36`、`87.51`、`86.95`。
+4. 当前最新 Markdown、HTML、DOCX 和 PDF 已同步。
+5. PDF 预览为 A4，共 12 页，包含 5 张高于 250 ppi 的图像。
 6. 参考文献 [26] 已修正作者名并补 DOI `10.6041/j.issn.1000-1298.2025.11.050`。
 7. 草稿模式投稿包验证通过，唯一警告为作者信息占位未替换。
 8. 终稿构建总控脚本已用测试作者信息跑通，终稿模式验证可通过。
-9. 正文引用编号已补齐并验证，正文引用覆盖文末 [1]-[28]，首次引用顺序递增。
+9. 正文引用编号已补齐并验证，正文引用覆盖文末 [1]-[31]，首次引用顺序递增。
 10. 摘要、结果表、泛化实验和结论中的核心数值已通过一致性验证。
 11. 正文图 1-5、表 1-8 的编号、双语题名、正文先导引用和图件文件已通过一致性验证。
 12. 词典构建策略表已补入主稿，数据来自 EXP-011 词典策略分析结果。
@@ -97,4 +99,8 @@ python3 tools/run_all_submission_checks.py
 16. 公式和符号门禁已通过，覆盖 10 个展示公式、28 个符号和 DOCX 连续公式编号。
 17. 全量投稿检查已通过，报告见 `evidence/full_submission_check_report_2026-05-23.md`。
 18. 复现实验说明和关键路径校验已完成，报告见 `evidence/reproducibility_validation_2026-05-23.md`。
-19. PDF 渲染质量门禁已通过，报告见 `evidence/rendered_pdf_validation_2026-05-23.md`。
+19. 最新 PDF 渲染质量门禁已通过，覆盖核心文本、表 5 最新数值、参考文献和图像分辨率，报告见 `evidence/rendered_pdf_validation_2026-05-24.md`。
+
+## 7. PDF 使用规则
+
+当前包内 PDF 已可作为当前查看预览。正式投稿前仍需在作者信息补齐后重新构建终稿 PDF，并再次运行 `tools/validate_submission_package.py . --final`。

@@ -13,9 +13,13 @@ REQUIRED_TEXT = [
     "基于专家词典与边界预测的红枣栽培命名实体识别方法",
     "Named Entity Recognition Method for Red Jujube Cultivation",
     "88.16%",
+    "84.36",
+    "87.51",
+    "86.95",
     "表 5 词典构建策略对比",
     "表 8 公开数据集泛化实验结果",
     "参考文献",
+    "Dice loss",
     "10.6041/j.issn.1000-1298.2025.11.050",
 ]
 
