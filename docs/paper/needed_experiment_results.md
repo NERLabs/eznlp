@@ -39,12 +39,38 @@ Precision 和 Recall 由 `research/evaluation/test_redjujube_baseline.py`
 |---|---:|---|---:|---:|---:|---|---|---|---|
 | Boundary Smoothing | 42 | 否 | 87.36 | 85.61 | 86.48 | `experiments/EXP-010-optimization/results_needed_20260524/BS_nodict_seed42_current/bert_bs_pure_20260524-164044/results.json` | `docs/paper/plans/2026-05-24-needed-experiments-execution.md` | `research/evaluation/test_redjujube_baseline.py --model_type baseline` | 已完成；表 3 补强候选 |
 
-### 1.3 优先模型查询结论（2026-05-24）
+### 1.3 SoftLexicon 与 AdaSeq 当前路径结果（2026-05-24）
+
+下表均使用 `datasets/raw/RedJujube`、seed=42 和 test split 实体级严格指标。
+SoftLexicon 两个版本均由
+`research/configs/hz/train_hz_ner_baseline_vs_expert_dict.py` 输出 P/R/F1；
+其中 `SoftLexicon-TrainLex` 的匹配词表来自
+`datasets/raw/RedJujube/softlexicon_train.txt`，嵌入初始化仍使用中文 50d 词向量。
+AdaSeq 的旧失败由 BMES 标签直接喂入 conll builder 引起，改为 BIO 转换后得到可登记结果。
+
+| 模型 | seed | 数据/转换 | P/% | R/% | F1/% | result_path | 状态 |
+|---|---:|---|---:|---:|---:|---|---|
+| SoftLexicon-TrainLex | 42 | 当前 RedJujube + 训练集词表 | 84.42 | 86.71 | 85.55 | `experiments/EXP-010-optimization/results_needed_20260524/SoftLexicon_trainlex_seed42_current/softlexicon_trainlex_20260524-171342/results.json` | 已完成；优先替代旧 HZ 词典 SoftLexicon |
+| SoftLexicon-External | 42 | 当前 RedJujube + `assets/vectors/ctb.50d.vec` 词表 | 84.32 | 85.65 | 84.98 | `experiments/EXP-010-optimization/results_needed_20260524/SoftLexicon_external_seed42_current/softlexicon_20260524-173106/results.json` | 已完成；外部词典对照 |
+| AdaSeq BERT-CRF | 42 | 当前 RedJujube BMES -> BIO | 84.42 | 85.90 | 85.16 | `experiments/EXP-010-optimization/results_needed_20260524/AdaSeq_bert_crf_seed42_current/metrics_summary.json` | 已完成；旧 BMES 断言失败已解除 |
+
+### 1.4 优先模型查询结论（2026-05-24）
 
 - `Boundary Smoothing`：旧路径中可找到 `experiments/EXP-010-optimization/results_newdata/BS_nodict/bert_bs_pure_20260319-223631/results.json` 等 seed=42 结果，但其 `args.data_dir` 为 `_2DATA/RedJujube`。当前工作树中 `_2DATA/RedJujube/redjujube_*.bmes` 缺失，仅有 `.orig`/`.bak`，且这些备份与 `datasets/raw/RedJujube` 的行数和 sha256 均不一致。因此旧路径结果只作筛查参考，已用当前路径重新补跑上表结果。
-- `BERT+SoftLexicon / SoftLexicon+BERT`：可找到 `experiments/EXP-010-optimization/results_newdata/SoftLexicon_baseline/seed_42/softlexicon_20260421-212809/results.json`，seed=42，F1=84.75，但 `args.data_dir` 为 `_2DATA/RedJujube`，且 `softlex_train_path=data/HZ/softlexicon_train.txt`，词典不是 RJND 训练集词典。该结果可作经典 SoftLexicon 筛查对照，严格当前路径正文主表需在表注说明词典和路径限制，或另行补跑 `datasets/raw/RedJujube` 训练集词典版。
-- `BERT-MRC` / `BERT-MRC+DSC`：`_9LOGS/dice_loss_redjujube_train.log` 显示训练读取 `_2DATA/redjujube/mrc-ner.train` 与 `_2DATA/redjujube/mrc-ner.dev` 后在 `_5TRAIN/tasks/mrc_ner/train.py` 的 `compute_loss` 抛出 `ValueError`，未产生可登记的 test P/R/F1。
-- `RA_NER / AdaSeq BERT-CRF`：`_9LOGS/adaseq_redjujube_train.log` 显示 AdaSeq 数据集生成阶段因 BMES 标签序列断言失败而中止，未产生可登记的 test P/R/F1。
+- `BERT+SoftLexicon / SoftLexicon+BERT`：旧
+  `results_newdata/SoftLexicon_baseline/seed_42` 结果仅作历史筛查；当前路径已补跑
+  `SoftLexicon-TrainLex` 和 `SoftLexicon-External`，见 1.3。
+- `BERT-MRC` / `BERT-MRC+DSC`：旧 `ValueError` 已定位为
+  `span_loss_candidates=pred_and_gold` 不被 `compute_loss` 支持，并已在
+  `/home/shiwenlong/NERlabs/dice_loss_for_NLP/_5TRAIN/tasks/mrc_ner/train.py`
+  修复为 `gold_pred` 默认值，同时修复随机矩阵 `.cuda()` 的设备问题。完整
+  `BERT-MRC+DSC` 当前路径长实验正在 tmux `rjnd-mrc-dsc-20260524` 中运行：
+  `dice_ohem=0`、`train_batch_size=4`、`accumulate_grad_batches=8`、输出目录
+  `/home/shiwenlong/NERlabs/dice_loss_for_NLP/_9LOG/mrc_ner/redjujube_current_dice_noohem_bs4_seed42_20260524`。
+  已验证 batch=4 的 20-step GPU smoke 可完成训练/验证/测试链路；最终 test P/R/F1
+  尚未产生。
+- `RA_NER / AdaSeq BERT-CRF`：旧 BMES 断言失败已通过 BMES->BIO 转换解除；
+  当前路径 seed=42 test P/R/F1=84.42/85.90/85.16。
 
 执行约定：后续长实验统一使用 tmux 后台会话，查询使用 `tmux ls`、
 `tmux capture-pane -pt <session> -S -80` 和对应 `training.log`。
@@ -97,7 +123,8 @@ Precision 和 Recall 由 `research/evaluation/test_redjujube_baseline.py`
 | BiLSTM-CRF | 42 | 78.30 | 已采用 |
 | BERT-wwm-ext+BiLSTM+CRF | 42 | 85.21 | 已采用 |
 | MacBERT-base+BiLSTM+CRF | 42 | 85.36 | 已采用 |
-| SoftLexicon | 42 | 84.75 | 已采用 |
+| SoftLexicon-TrainLex | 42 | 85.55 | 当前路径已完成；建议替代旧 HZ 词典 SoftLexicon |
+| AdaSeq BERT-CRF | 42 | 85.16 | 当前路径已完成；BMES->BIO 转换后可登记 |
 | FLAT | 42 | 79.78 | 已采用 |
 | FLAT+BERT | 42 | 79.40 | 已采用 |
 | EDBP | 42 | 88.16 | 已采用；专家词典 `min_freq=2`，词典规模 1 842 |

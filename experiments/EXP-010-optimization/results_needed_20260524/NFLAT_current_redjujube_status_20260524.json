@@ -1,0 +1,18 @@
+{
+  "model_type": "NFLAT",
+  "seed": 42,
+  "dataset": "datasets/raw/RedJujube",
+  "source_path": "references/external_projects/NFLAT4CNER-main",
+  "environment": "flat37",
+  "status": "adapter_prepared_not_trained",
+  "changes": [
+    "added redjujube dataset choice",
+    "added seed argument",
+    "added n_epochs argument",
+    "added refresh_data argument",
+    "pointed vector paths to local assets/vectors and projects/data"
+  ],
+  "dependency_fix": "installed prettytable in flat37 so FastNLP imports",
+  "verification": "py_compile passed for main.py and utils/paths.py",
+  "blocker": "full training deferred while BERT-MRC+DSC occupies GPU"
+}

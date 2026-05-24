@@ -19,7 +19,9 @@ import numpy as np
 import transformers
 
 # 添加项目路径
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+project_root = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 sys.path.insert(0, project_root)
 
 from eznlp.io import ConllIO
@@ -33,6 +35,7 @@ from eznlp.model import (
 from eznlp.model.decoder import SequenceTaggingDecoderConfig
 from eznlp.token import LexiconTokenizer
 from eznlp.dataset import Dataset
+from eznlp.metrics import precision_recall_f1_report
 from eznlp.training import Trainer
 from eznlp.config import ConfigDict
 from research.tools.utils import load_vectors
@@ -353,6 +356,20 @@ def train_model(config, train_data, dev_data, test_data, args, logger, save_dir,
     
     logger.info("在测试集上评估...")
     test_loss, *test_metrics = trainer.eval_epoch(test_loader)
+
+    test_preds = trainer.predict(test_set, batch_size=args.batch_size)
+    test_gold = [entry["chunks"] for entry in test_set.data]
+    _, ave_scores = precision_recall_f1_report(
+        test_gold, test_preds, macro_over="types"
+    )
+    micro_scores = {
+        key: float(value) if key in {"precision", "recall", "f1"} else int(value)
+        for key, value in ave_scores["micro"].items()
+    }
+    macro_scores = {
+        key: float(value)
+        for key, value in ave_scores["macro"].items()
+    }
     
     logger.info(f"\n{'='*70}")
     logger.info("测试集结果:")
@@ -360,6 +377,12 @@ def train_model(config, train_data, dev_data, test_data, args, logger, save_dir,
     if test_metrics:
         for i, metric in enumerate(test_metrics):
             logger.info(f"  Metric {i}: {metric:.4f}")
+    logger.info(
+        "  Micro P/R/F1: "
+        f"{micro_scores['precision']:.4f}/"
+        f"{micro_scores['recall']:.4f}/"
+        f"{micro_scores['f1']:.4f}"
+    )
     logger.info(f"{'='*70}\n")
     
     # 保存结果
@@ -367,6 +390,11 @@ def train_model(config, train_data, dev_data, test_data, args, logger, save_dir,
         'model_type': model_name,
         'test_loss': float(test_loss),
         'test_metrics': [float(m) for m in test_metrics] if test_metrics else [],
+        'test_precision': micro_scores['precision'],
+        'test_recall': micro_scores['recall'],
+        'test_f1': micro_scores['f1'],
+        'test_micro': micro_scores,
+        'test_macro': macro_scores,
         'total_params': total_params,
         'trainable_params': trainable_params,
         'args': vars(args)

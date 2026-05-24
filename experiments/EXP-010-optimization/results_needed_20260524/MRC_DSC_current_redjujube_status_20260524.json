@@ -1,0 +1,48 @@
+{
+  "model_type": "BERT-MRC+DSC",
+  "seed": 42,
+  "dataset": "datasets/raw/RedJujube",
+  "mrc_data_dir": "/home/shiwenlong/NERlabs/dice_loss_for_NLP/_2DATA/redjujube",
+  "external_code_path": "/home/shiwenlong/NERlabs/dice_loss_for_NLP/_5TRAIN/tasks/mrc_ner/train.py",
+  "fixed_old_failure": {
+    "span_loss_candidates_default": "changed from pred_and_gold to gold_pred",
+    "random_matrix_device": "changed from cuda() to target_tensor.device"
+  },
+  "failed_full_attempts": [
+    {
+      "output_dir": "/home/shiwenlong/NERlabs/dice_loss_for_NLP/_9LOG/mrc_ner/redjujube_current_dice_seed42_20260524",
+      "loss_type": "dice",
+      "dice_ohem": 0.3,
+      "train_batch_size": 10,
+      "failure": "PyTorch nonzero INT_MAX limit in Dice OHEM span loss"
+    },
+    {
+      "output_dir": "/home/shiwenlong/NERlabs/dice_loss_for_NLP/_9LOG/mrc_ner/redjujube_current_dice_noohem_seed42_20260524",
+      "loss_type": "dice",
+      "dice_ohem": 0.0,
+      "train_batch_size": 10,
+      "failure": "CUDA out of memory while another 7.3GB GPU process was resident"
+    }
+  ],
+  "verified_smoke": {
+    "loss_type": "dice",
+    "dice_ohem": 0.0,
+    "train_batch_size": 4,
+    "accumulate_grad_batches": 8,
+    "limit_train_batches": 20,
+    "limit_val_batches": 2,
+    "limit_test_batches": 2,
+    "status": "completed train/validation/test chain on GPU"
+  },
+  "running_full_experiment": {
+    "tmux_session": "rjnd-mrc-dsc-20260524",
+    "output_dir": "/home/shiwenlong/NERlabs/dice_loss_for_NLP/_9LOG/mrc_ner/redjujube_current_dice_noohem_bs4_seed42_20260524",
+    "loss_type": "dice",
+    "dice_ohem": 0.0,
+    "train_batch_size": 4,
+    "accumulate_grad_batches": 8,
+    "max_epochs": 10,
+    "status": "running",
+    "final_metric_source": "eval_result_log.txt after TEST INFO appears"
+  }
+}

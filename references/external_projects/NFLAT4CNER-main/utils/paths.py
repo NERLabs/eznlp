@@ -1,11 +1,19 @@
 
+yangjie_rich_pretrain_unigram_path = (
+    '/home/shiwenlong/NERlabs/eznlp/assets/vectors/'
+    'gigaword_chn.all.a2b.uni.ite50.vec'
+)
+yangjie_rich_pretrain_bigram_path = (
+    '/home/shiwenlong/NERlabs/eznlp/assets/vectors/'
+    'gigaword_chn.all.a2b.bi.ite50.vec'
+)
+yangjie_rich_pretrain_word_path = (
+    '/home/shiwenlong/NERlabs/eznlp/assets/vectors/ctb.50d.vec'
+)
 
-
-yangjie_rich_pretrain_unigram_path = '../data/gigaword_chn.all.a2b.uni.ite50.vec'
-yangjie_rich_pretrain_bigram_path = '../data/gigaword_chn.all.a2b.bi.ite50.vec'
-yangjie_rich_pretrain_word_path = '../data/ctb.50d.vec'
-
-yangjie_rich_pretrain_char_and_word_path = '../data/yangjie_word_char_mix.txt'
+yangjie_rich_pretrain_char_and_word_path = (
+    '/home/shiwenlong/NERlabs/eznlp/projects/data/yangjie_word_char_mix.txt'
+)
 lk_word_path = '/data/ws/sgns.merge.word'
 tencet_word_path = '/data/ws/Tencent_AILab_ChineseEmbedding.txt'
 
@@ -40,5 +48,11 @@ data_filename = {
                 "train": "train_dev.char.bmes_clip",
                 "dev": "test.char.bmes_clip",
                 "test": "test.char.bmes_clip",
-            }
+            },
+            "redjujube": {
+                "path": '/home/shiwenlong/NERlabs/eznlp/datasets/raw/RedJujube',
+                "train": "redjujube_train.bmes",
+                "dev": "redjujube_dev.bmes",
+                "test": "redjujube_test.bmes",
+            },
         }

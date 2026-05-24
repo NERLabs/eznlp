@@ -1,0 +1,53 @@
+{
+  "model_type": "SoftLexicon-TrainLex",
+  "test_loss": 35.9947722752889,
+  "test_metrics": [
+    0.8554954954954955
+  ],
+  "test_precision": 0.8442389758179232,
+  "test_recall": 0.8670562454346238,
+  "test_f1": 0.8554954954954955,
+  "test_micro": {
+    "n_gold": 2738,
+    "n_pred": 2812,
+    "n_true_positive": 2374,
+    "precision": 0.8442389758179232,
+    "recall": 0.8670562454346238,
+    "f1": 0.8554954954954955
+  },
+  "test_macro": {
+    "precision": 0.8237210508323182,
+    "recall": 0.831559788759378,
+    "f1": 0.8260166487261166
+  },
+  "total_params": 109044546,
+  "trainable_params": 109044546,
+  "args": {
+    "data_dir": "datasets/raw/RedJujube",
+    "expert_dict_path": "data/HZ/expert_lexicon.txt",
+    "save_dir": "experiments/EXP-010-optimization/results_needed_20260524/SoftLexicon_trainlex_seed42_current",
+    "bert_arch": "hfl/chinese-macbert-base",
+    "bert_drop_rate": 0.2,
+    "hid_dim": 256,
+    "num_layers": 1,
+    "dropout": 0.5,
+    "expert_dict_dim": 50,
+    "num_epochs": 30,
+    "batch_size": 16,
+    "lr": 0.002,
+    "finetune_lr": 2e-05,
+    "weight_decay": 0.0001,
+    "grad_clip": 5.0,
+    "num_grad_acc_steps": 1,
+    "use_amp": false,
+    "disp_every_steps": 50,
+    "eval_every_steps": 200,
+    "run_baseline": false,
+    "run_expert_dict": false,
+    "run_softlexicon": false,
+    "run_softlexicon_trainlex": true,
+    "softlex_train_path": "datasets/raw/RedJujube/softlexicon_train.txt",
+    "run_both": false,
+    "seed": 42
+  }
+}

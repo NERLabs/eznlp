@@ -13,17 +13,26 @@ from modules.utils import set_rng_seed, MyEvaluateCallback
 from utils.load_data import load_data, equip_chinese_ner_with_lexicon, load_yangjie_rich_pretrain_word_list
 from utils.paths import *
 
-device = 0
-refresh_data = False
 parser = argparse.ArgumentParser()
 
-parser.add_argument('--dataset', type=str, default='weibo', choices=['weibo', 'resume', 'ontonotes', 'msra'])
+parser.add_argument(
+    '--dataset',
+    type=str,
+    default='weibo',
+    choices=['weibo', 'resume', 'ontonotes', 'msra', 'redjujube'],
+)
 parser.add_argument('--lexicon_name', default='yj', choices=['lk','yj','tx'])
 parser.add_argument('--only_lexicon_in_train', default=False)
 parser.add_argument('--label_type', default='ALL', help='NE|NM|ALL')
+parser.add_argument('--seed', type=int, default=2022)
+parser.add_argument('--n_epochs', type=int, default=None)
+parser.add_argument('--device', type=int, default=0)
+parser.add_argument('--refresh_data', action='store_true')
 
 args = parser.parse_args()
 dataset = args.dataset
+device = args.device
+refresh_data = args.refresh_data
 
 pos_embed = None
 
@@ -52,7 +61,7 @@ softmax_axis = -1
 is_less_head = 1
 use_bigram = 1
 
-seed = 2022
+seed = args.seed
 set_rng_seed(seed)
 
 num_layers = 1
@@ -112,6 +121,22 @@ elif dataset == 'msra':
     word_embed_dropout = 0.4
     n_heads = 8
     head_dims = 32
+elif dataset == 'redjujube':
+    attn_dropout = 0
+    batch_size = 16
+    char_embed_dropout = 0.4
+    dropout = 0.2
+    fc_dropout = 0
+    is_less_head = 1
+    lr = 0.002
+    use_bigram = 1
+    warmup_steps = 0.2
+    word_embed_dropout = 0.4
+    n_heads = 8
+    head_dims = 32
+
+if args.n_epochs is not None:
+    n_epochs = args.n_epochs
 
 args.init = 'uniform'
 

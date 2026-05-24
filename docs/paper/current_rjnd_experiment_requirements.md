@@ -49,7 +49,9 @@
 | BERT-wwm-ext+BiLSTM+CRF | 42 | 85.21 | 已登记 |
 | MacBERT-base+BiLSTM+CRF | 42 | 85.36 | 已登记 |
 | Boundary Smoothing | 42 | 86.48 | 已补跑；当前路径 `datasets/raw/RedJujube`，可作表 3 补强候选 |
-| SoftLexicon | 42 | 84.75 | 已登记 |
+| SoftLexicon-TrainLex | 42 | 85.55 | 已补跑；当前路径 `datasets/raw/RedJujube`，训练集词表版 |
+| SoftLexicon-External | 42 | 84.98 | 已补跑；当前路径 `datasets/raw/RedJujube`，`assets/vectors/ctb.50d.vec` 外部词表版 |
+| AdaSeq BERT-CRF | 42 | 85.16 | 已补跑；BMES 转 BIO 后完成 |
 | FLAT | 42 | 79.78 | 已登记 |
 | FLAT+BERT | 42 | 79.40 | 已登记 |
 | EDBP | 42 | 88.16 | 已登记，`min_freq=2`，词典规模 1 842 |

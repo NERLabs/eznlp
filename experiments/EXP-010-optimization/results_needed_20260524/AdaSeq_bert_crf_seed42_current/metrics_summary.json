@@ -1,0 +1,15 @@
+{
+  "model_type": "AdaSeq BERT-CRF",
+  "seed": 42,
+  "dataset": "datasets/raw/RedJujube",
+  "converted_dataset": "/home/shiwenlong/NERlabs/AdaSeq/adaseq/data/redjujube_bio",
+  "data_conversion": "BMES-to-BIO conversion for AdaSeq conll builder",
+  "bert_backbone": "hfl/chinese-macbert-base",
+  "config_path": "/home/shiwenlong/NERlabs/AdaSeq/examples/bert_crf/configs/redjujube.yaml",
+  "source_metrics_path": "/home/shiwenlong/NERlabs/AdaSeq/experiments/redjujube_bert_crf/260421215039.098706/metrics.json",
+  "test_precision": 0.84422,
+  "test_recall": 0.85902,
+  "test_f1": 0.85156,
+  "test_accuracy": 0.95243,
+  "status": "completed_current_redjujube_after_bmes_to_bio_conversion"
+}
