@@ -55,6 +55,7 @@
 | BiLSTM-CRF | 42 | 78.30 | 否 | 否 | `experiments/EXP-010-optimization/results_newdata/G_bilstm_baseline/.../results.json` | 表 3 采用 |
 | BERT-wwm-ext+BiLSTM+CRF | 42 | 85.21 | BERT-wwm-ext | 否 | `experiments/EXP-010-optimization/results_newdata/CRF_nodict_bertwwm/.../results.json` | 表 3 采用 |
 | MacBERT-base+BiLSTM+CRF | 42 | 85.36 | MacBERT-base | 否 | `experiments/EXP-010-optimization/results_newdata/CRF_nodict/.../results.json` | 表 3 采用 |
+| Boundary Smoothing | 42 | 86.48 | MacBERT-base | 否 | `experiments/EXP-010-optimization/results_needed_20260524/BS_nodict_seed42_current/bert_bs_pure_20260524-164044/results.json` | 表 3 补强候选；当前路径补跑 |
 | SoftLexicon | 42 | 84.75 | MacBERT-base | HZ SoftLexicon/专家词典 | `experiments/EXP-010-optimization/results_newdata/SoftLexicon_baseline/seed_42/.../results.json` | 表 3 采用 |
 | FLAT | 42 | 79.78 | 否 | CTB lattice 词表 | `experiments/baselines/flat_no_bert_v2/.../results.json` | 表 3 采用 |
 | FLAT+BERT | 42 | 79.40 | MacBERT-base | CTB lattice 词表 | `experiments/baselines/flat_bert_fixed/.../results.json` | 表 3 采用 |
@@ -67,6 +68,7 @@
 - EDBP 相对 BiLSTM-CRF：88.16 - 78.30 = **+9.86** 个百分点。
 - EDBP 相对 BERT-wwm-ext+BiLSTM+CRF：88.16 - 85.21 = **+2.95** 个百分点。
 - EDBP 相对 MacBERT-base+BiLSTM+CRF：88.16 - 85.36 = **+2.80** 个百分点。
+- EDBP 相对 Boundary Smoothing：88.16 - 86.48 = **+1.68** 个百分点。
 - EDBP 相对 SoftLexicon：88.16 - 84.75 = **+3.41** 个百分点。
 - EDBP 相对 FLAT：88.16 - 79.78 = **+8.38** 个百分点。
 - EDBP 相对 FLAT+BERT：88.16 - 79.40 = **+8.76** 个百分点。
@@ -74,6 +76,7 @@
 处理决策：
 
 - 投稿稿表 3 使用本节 seed=42 扩展主对比结果，不再在该表中使用 `±` 或配对 t 检验。
+- `Boundary Smoothing` 为 2026-05-24 当前路径补跑结果，可供论文端决定是否补入表 3；若补入，摘要和结论需同步加入相对提升 **+1.68** 个百分点。
 - 三种子结果保留为历史稳定性证据，但不作为扩展表 3 的展示口径。
 
 ### 2.1.2 RJND seed=42 经典词典与 lattice 基线补充检索
@@ -85,6 +88,7 @@
 | BiLSTM-CRF | `_2DATA/RedJujube` | 42 | 78.30 | `experiments/EXP-010-optimization/results_newdata/G_bilstm_baseline/bilstm_crf_20260319-211534/results.json` | 否 | 否 | 表 3 seed=42 单次值 |
 | BERT-wwm-ext+BiLSTM+CRF | `_2DATA/RedJujube` | 42 | 85.21 | `experiments/EXP-010-optimization/results_newdata/CRF_nodict_bertwwm/bert_bilstm_crf_20260331-132603/results.json` | 是，`hfl/chinese-bert-wwm-ext` | 否 | 表 3 seed=42 单次值 |
 | MacBERT-base+BiLSTM+CRF | `_2DATA/RedJujube` | 42 | 85.36 | `experiments/EXP-010-optimization/results_newdata/CRF_nodict/bert_bilstm_crf_20260319-211534/results.json` | 是，`hfl/chinese-macbert-base` | 否 | 表 3 seed=42 单次值 |
+| Boundary Smoothing | `datasets/raw/RedJujube` | 42 | 86.48 | `experiments/EXP-010-optimization/results_needed_20260524/BS_nodict_seed42_current/bert_bs_pure_20260524-164044/results.json` | 是，`hfl/chinese-macbert-base` | 否 | 2026-05-24 当前路径补跑；P/R/F1=87.36/85.61/86.48，可作表 3 补强候选 |
 | EDBP | `_2DATA/RedJujube` | 42 | 88.16 | `experiments/EXP-010-optimization/results_newdata/Q_bs_focal/expert_boundary_20260319-182029/results.json` | 是，`hfl/chinese-macbert-base` | 是，训练集自动专家词典；`min_freq=2`，1842 个词，保存为同目录 `auto_lexicon.txt` | 表 3 seed=42 单次值 |
 | SoftLexicon / BERT-SoftLexicon | `_2DATA/RedJujube` | 42 | 84.75 | `experiments/EXP-010-optimization/results_newdata/SoftLexicon_baseline/seed_42/softlexicon_20260421-212809/results.json` | 是，MacBERT-base 本地快照 | 是，`data/HZ/expert_lexicon.txt` 与 `data/HZ/softlexicon_train.txt`；非 RJND 训练集词典 | 可作为经典 SoftLexicon 对照，但词典来源需在表注说明 |
 | FLAT | `_2DATA/RedJujube` | 42 | 79.78 | `experiments/baselines/flat_no_bert_v2/flat_20260506-101813/results.json` | 否 | 是，外部 lattice 词表/向量 `assets/vectors/ctb.50d.vec`，698668 词 | 可作为无 BERT FLAT 对照 |
@@ -94,6 +98,9 @@
 
 补实验状态：
 
+- `Boundary Smoothing` 已按当前 `datasets/raw/RedJujube`、seed=42、`hfl/chinese-macbert-base`、无专家词典补跑完成。`results.json` 保存 `test_f1=0.8647850950009224`；`research/evaluation/test_redjujube_baseline.py --model_type baseline` 复评得到 Micro P/R/F1=0.8736/0.8561/0.8648。
+- `BERT-MRC` / `BERT-MRC+DSC` 暂无可登记结果：`_9LOGS/dice_loss_redjujube_train.log` 显示 MRC 训练在 `_5TRAIN/tasks/mrc_ner/train.py` 的 `compute_loss` 抛出 `ValueError` 后中止。
+- `RA_NER / AdaSeq BERT-CRF` 暂无可登记结果：`_9LOGS/adaseq_redjujube_train.log` 显示 AdaSeq 数据集生成阶段因 BMES 标签序列断言失败而中止。
 - LatticeLSTM 当前不能直接补跑：`projects/LatticeLSTM-master/main.py` 为 Python 2/PyTorch 0.3 风格，`seed_num=100` 写死；服务器 `/usr/bin/python2` 无 `torch`，现有 conda 环境也未发现 Python 2.7 的 torch。需要先恢复旧环境或将代码迁移到 Python 3/PyTorch 当前接口，并将 seed 改为 42。
 - NFLAT 当前不能直接补跑：`projects/NFLAT4CNER-main/main.py` 只支持 `weibo/resume/ontonotes/msra`，seed 写死为 2022；最接近的 `flat37` 环境有 torch 1.2.0 和 FastNLP 0.5.0，但缺 Python 3.7 可用的 `prettytable`，并且当前 `torch.cuda.is_available()` 为 `False`。需要先补 RedJujube 数据配置、seed 参数和 Python 3.7 依赖，再在 GPU 可用时训练。
 - `cache/redjujube_softlexicon_*` 与 `cache/flat_complete*` 中存在更高 F1 的旧结果，但不属于本次统一的 `results_newdata`/表 3 口径，暂不登记为投稿主证据。

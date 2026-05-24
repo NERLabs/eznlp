@@ -48,6 +48,7 @@
 | BiLSTM-CRF | 42 | 78.30 | 已登记 |
 | BERT-wwm-ext+BiLSTM+CRF | 42 | 85.21 | 已登记 |
 | MacBERT-base+BiLSTM+CRF | 42 | 85.36 | 已登记 |
+| Boundary Smoothing | 42 | 86.48 | 已补跑；当前路径 `datasets/raw/RedJujube`，可作表 3 补强候选 |
 | SoftLexicon | 42 | 84.75 | 已登记 |
 | FLAT | 42 | 79.78 | 已登记 |
 | FLAT+BERT | 42 | 79.40 | 已登记 |
@@ -84,4 +85,3 @@
 | seed 不是 42 的单次结果 | 当前正文表 3 采用 seed=42 单组同口径 |
 | 不同标签集合或不同评估脚本结果 | F1 不可直接比较 |
 | 只报告 dev F1 的结果 | 正文主表需要 test F1 |
-
