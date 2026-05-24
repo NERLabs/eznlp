@@ -1,65 +1,87 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="560" viewBox="0 0 1100 560">
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
   <defs>
     <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
-      <path d="M0,0 L0,6 L9,3 z" fill="#333"/>
+      <path d="M0,0 L0,6 L9,3 z" fill="#374151"/>
     </marker>
     <style>
-      .title { font-family: "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", Arial, sans-serif; font-size: 24px; font-weight: 700; fill: #222; }
-      .label { font-family: "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", Arial, sans-serif; font-size: 17px; fill: #222; }
-      .small { font-family: "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", Arial, sans-serif; font-size: 14px; fill: #333; }
-      .box { stroke: #2f3b52; stroke-width: 1.6; rx: 8; ry: 8; }
-      .line { stroke: #333; stroke-width: 1.8; fill: none; marker-end: url(#arrow); }
+      .title { font-family: "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", Arial, sans-serif; font-size: 26px; font-weight: 700; fill: #1f2937; }
+      .subtitle { font-family: "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", Arial, sans-serif; font-size: 14px; fill: #4b5563; }
+      .label { font-family: "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", Arial, sans-serif; font-size: 17px; font-weight: 700; fill: #111827; }
+      .small { font-family: "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", Arial, sans-serif; font-size: 14px; fill: #374151; }
+      .tiny { font-family: "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", Arial, sans-serif; font-size: 12px; fill: #4b5563; }
+      .box { stroke: #475569; stroke-width: 1.4; fill: #ffffff; }
+      .line { stroke: #374151; stroke-width: 1.8; fill: none; marker-end: url(#arrow); }
+      .grid { stroke: #cbd5e1; stroke-width: 1; fill: none; }
     </style>
   </defs>
-  <rect width="1100" height="560" fill="#fff"/>
-  <text x="550" y="42" text-anchor="middle" class="title">专家词典 BMES 四通道编码过程</text>
-  <text x="550" y="68" text-anchor="middle" class="small">BMES Four-channel Encoding of Expert Dictionary Features</text>
 
-  <rect x="50" y="205" width="150" height="82" fill="#f2f5f9" class="box"/>
-  <text x="125" y="238" text-anchor="middle" class="label">输入字符</text>
-  <text x="125" y="263" text-anchor="middle" class="small">x_i</text>
+  <rect width="1280" height="720" fill="#ffffff"/>
+  <text x="640" y="42" text-anchor="middle" class="title">专家词典 BMES 四通道编码过程</text>
+  <text x="640" y="67" text-anchor="middle" class="subtitle">BMES Four-channel Encoding of Expert Dictionary Features</text>
 
-  <rect x="260" y="180" width="170" height="132" fill="#fff1db" class="box"/>
-  <text x="345" y="222" text-anchor="middle" class="label">专家词典匹配</text>
-  <text x="345" y="249" text-anchor="middle" class="small">由训练集实体</text>
-  <text x="345" y="270" text-anchor="middle" class="small">自动抽取得到</text>
+  <rect x="55" y="102" width="345" height="196" rx="12" fill="#f8fafc" stroke="#cbd5e1"/>
+  <text x="82" y="134" class="label">输入样例</text>
+  <text x="82" y="164" class="small">红枣栽培短语：盛花期喷施硼肥</text>
+  <text x="82" y="194" class="tiny">词典来源：训练集实体自动抽取，不引入测试集实体</text>
+  <g transform="translate(82,220)">
+    <rect x="0" y="0" width="34" height="34" rx="5" fill="#eef2ff" stroke="#cbd5e1"/><text x="17" y="23" text-anchor="middle" class="small">盛</text>
+    <rect x="42" y="0" width="34" height="34" rx="5" fill="#eef2ff" stroke="#cbd5e1"/><text x="59" y="23" text-anchor="middle" class="small">花</text>
+    <rect x="84" y="0" width="34" height="34" rx="5" fill="#eef2ff" stroke="#cbd5e1"/><text x="101" y="23" text-anchor="middle" class="small">期</text>
+    <rect x="126" y="0" width="34" height="34" rx="5" fill="#f8fafc" stroke="#cbd5e1"/><text x="143" y="23" text-anchor="middle" class="small">喷</text>
+    <rect x="168" y="0" width="34" height="34" rx="5" fill="#f8fafc" stroke="#cbd5e1"/><text x="185" y="23" text-anchor="middle" class="small">施</text>
+    <rect x="210" y="0" width="34" height="34" rx="5" fill="#fff7ed" stroke="#cbd5e1"/><text x="227" y="23" text-anchor="middle" class="small">硼</text>
+    <rect x="252" y="0" width="34" height="34" rx="5" fill="#fff7ed" stroke="#cbd5e1"/><text x="269" y="23" text-anchor="middle" class="small">肥</text>
+  </g>
 
-  <rect x="510" y="90" width="145" height="70" fill="#e8f2ff" class="box"/>
-  <text x="582" y="120" text-anchor="middle" class="label">B 通道</text>
-  <text x="582" y="144" text-anchor="middle" class="small">Begin</text>
+  <rect x="455" y="102" width="360" height="196" rx="12" fill="#fff7ed" stroke="#fed7aa"/>
+  <text x="482" y="134" class="label">词典匹配与 BMES 标注</text>
+  <text x="482" y="164" class="small">盛花期：时期实体；硼肥：肥料实体</text>
+  <g transform="translate(482,204)">
+    <text x="0" y="0" class="tiny">字符</text>
+    <text x="0" y="38" class="tiny">标签</text>
+    <text x="0" y="76" class="tiny">通道</text>
+    <g transform="translate(58,-22)">
+      <text x="17" y="22" text-anchor="middle" class="small">盛</text><text x="17" y="60" text-anchor="middle" class="small">B</text><circle cx="17" cy="95" r="12" fill="#dbeafe" stroke="#60a5fa"/><text x="17" y="100" text-anchor="middle" class="tiny">B</text>
+      <text x="59" y="22" text-anchor="middle" class="small">花</text><text x="59" y="60" text-anchor="middle" class="small">M</text><circle cx="59" cy="95" r="12" fill="#dcfce7" stroke="#4ade80"/><text x="59" y="100" text-anchor="middle" class="tiny">M</text>
+      <text x="101" y="22" text-anchor="middle" class="small">期</text><text x="101" y="60" text-anchor="middle" class="small">E</text><circle cx="101" cy="95" r="12" fill="#f3e8ff" stroke="#c084fc"/><text x="101" y="100" text-anchor="middle" class="tiny">E</text>
+      <text x="143" y="22" text-anchor="middle" class="small">喷</text><text x="143" y="60" text-anchor="middle" class="small">O</text><circle cx="143" cy="95" r="12" fill="#f8fafc" stroke="#cbd5e1"/><text x="143" y="100" text-anchor="middle" class="tiny">0</text>
+      <text x="185" y="22" text-anchor="middle" class="small">施</text><text x="185" y="60" text-anchor="middle" class="small">O</text><circle cx="185" cy="95" r="12" fill="#f8fafc" stroke="#cbd5e1"/><text x="185" y="100" text-anchor="middle" class="tiny">0</text>
+      <text x="227" y="22" text-anchor="middle" class="small">硼</text><text x="227" y="60" text-anchor="middle" class="small">B</text><circle cx="227" cy="95" r="12" fill="#dbeafe" stroke="#60a5fa"/><text x="227" y="100" text-anchor="middle" class="tiny">B</text>
+      <text x="269" y="22" text-anchor="middle" class="small">肥</text><text x="269" y="60" text-anchor="middle" class="small">E</text><circle cx="269" cy="95" r="12" fill="#f3e8ff" stroke="#c084fc"/><text x="269" y="100" text-anchor="middle" class="tiny">E</text>
+    </g>
+  </g>
 
-  <rect x="510" y="190" width="145" height="70" fill="#eaf7ea" class="box"/>
-  <text x="582" y="220" text-anchor="middle" class="label">M 通道</text>
-  <text x="582" y="244" text-anchor="middle" class="small">Middle</text>
+  <rect x="880" y="102" width="330" height="196" rx="12" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="907" y="134" class="label">四通道 multi-hot</text>
+  <text x="907" y="164" class="small">O 表示无词典匹配，不作为独立词典通道</text>
+  <g transform="translate(908,198)">
+    <text x="0" y="18" class="tiny">B</text><rect x="30" y="4" width="230" height="18" fill="#e5e7eb"/><rect x="30" y="4" width="26" height="18" fill="#60a5fa"/><rect x="190" y="4" width="26" height="18" fill="#60a5fa"/>
+    <text x="0" y="50" class="tiny">M</text><rect x="30" y="36" width="230" height="18" fill="#e5e7eb"/><rect x="62" y="36" width="26" height="18" fill="#4ade80"/>
+    <text x="0" y="82" class="tiny">E</text><rect x="30" y="68" width="230" height="18" fill="#e5e7eb"/><rect x="94" y="68" width="26" height="18" fill="#c084fc"/><rect x="222" y="68" width="26" height="18" fill="#c084fc"/>
+    <text x="0" y="114" class="tiny">S</text><rect x="30" y="100" width="230" height="18" fill="#e5e7eb"/>
+  </g>
 
-  <rect x="510" y="290" width="145" height="70" fill="#f1e9ff" class="box"/>
-  <text x="582" y="320" text-anchor="middle" class="label">E 通道</text>
-  <text x="582" y="344" text-anchor="middle" class="small">End</text>
+  <rect x="170" y="392" width="250" height="130" rx="12" fill="#ffffff" class="box"/>
+  <text x="295" y="426" text-anchor="middle" class="label">通道嵌入</text>
+  <text x="295" y="454" text-anchor="middle" class="small">e_B, e_M, e_E, e_S</text>
+  <text x="295" y="480" text-anchor="middle" class="tiny">每个通道映射为连续向量</text>
 
-  <rect x="510" y="390" width="145" height="70" fill="#ffecec" class="box"/>
-  <text x="582" y="420" text-anchor="middle" class="label">S 通道</text>
-  <text x="582" y="444" text-anchor="middle" class="small">Single</text>
+  <rect x="515" y="392" width="250" height="130" rx="12" fill="#ffffff" class="box"/>
+  <text x="640" y="426" text-anchor="middle" class="label">拼接表示</text>
+  <text x="640" y="454" text-anchor="middle" class="small">e_B ⊕ e_M ⊕ e_E ⊕ e_S</text>
+  <text x="640" y="480" text-anchor="middle" class="tiny">形成词典位置先验</text>
 
-  <rect x="745" y="175" width="170" height="150" fill="#f8f8f8" class="box"/>
-  <text x="830" y="218" text-anchor="middle" class="label">四通道嵌入</text>
-  <text x="830" y="246" text-anchor="middle" class="small">每通道 50 维</text>
-  <text x="830" y="272" text-anchor="middle" class="small">拼接后 200 维</text>
-  <text x="830" y="298" text-anchor="middle" class="small">e_B ⊕ e_M ⊕ e_E ⊕ e_S</text>
+  <rect x="860" y="392" width="250" height="130" rx="12" fill="#ffffff" class="box"/>
+  <text x="985" y="426" text-anchor="middle" class="label">词典特征</text>
+  <text x="985" y="454" text-anchor="middle" class="small">并入 EDBP 融合层</text>
+  <text x="985" y="480" text-anchor="middle" class="tiny">增强低频农业术语边界</text>
 
-  <rect x="965" y="210" width="70" height="80" fill="#dff3ff" class="box"/>
-  <text x="1000" y="244" text-anchor="middle" class="label">词典</text>
-  <text x="1000" y="269" text-anchor="middle" class="label">特征</text>
+  <path d="M400 200 L455 200" class="line"/>
+  <path d="M815 200 L880 200" class="line"/>
+  <path d="M1045 298 C1000 348 380 340 295 392" class="line"/>
+  <path d="M420 457 L515 457" class="line"/>
+  <path d="M765 457 L860 457" class="line"/>
 
-  <path d="M200 246 L260 246" class="line"/>
-  <path d="M430 246 C470 220 480 140 510 125" class="line"/>
-  <path d="M430 246 L510 225" class="line"/>
-  <path d="M430 246 L510 325" class="line"/>
-  <path d="M430 246 C470 300 480 410 510 425" class="line"/>
-  <path d="M655 125 C700 150 710 190 745 218" class="line"/>
-  <path d="M655 225 L745 245" class="line"/>
-  <path d="M655 325 L745 274" class="line"/>
-  <path d="M655 425 C700 390 710 320 745 296" class="line"/>
-  <path d="M915 250 L965 250" class="line"/>
-
-  <text x="550" y="510" text-anchor="middle" class="small">四通道结构保留实体起始、内部、结束和单字位置先验，为边界预测提供领域约束。</text>
+  <rect x="245" y="600" width="790" height="44" rx="10" fill="#f8fafc" stroke="#cbd5e1"/>
+  <text x="640" y="628" text-anchor="middle" class="small">BMES 四通道保留实体起始、内部、结束和单字匹配信息，为边界预测提供可解释先验。</text>
 </svg>

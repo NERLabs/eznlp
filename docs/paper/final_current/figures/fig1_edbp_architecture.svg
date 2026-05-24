@@ -1,65 +1,90 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620" viewBox="0 0 1200 620">
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
   <defs>
     <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
-      <path d="M0,0 L0,6 L9,3 z" fill="#333"/>
+      <path d="M0,0 L0,6 L9,3 z" fill="#374151"/>
     </marker>
     <style>
-      .title { font-family: "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", Arial, sans-serif; font-size: 24px; font-weight: 700; fill: #222; }
-      .label { font-family: "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", Arial, sans-serif; font-size: 17px; fill: #222; }
-      .small { font-family: "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", Arial, sans-serif; font-size: 14px; fill: #333; }
-      .box { stroke: #2f3b52; stroke-width: 1.6; rx: 8; ry: 8; }
-      .line { stroke: #333; stroke-width: 1.8; fill: none; marker-end: url(#arrow); }
+      .title { font-family: "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", Arial, sans-serif; font-size: 26px; font-weight: 700; fill: #1f2937; }
+      .subtitle { font-family: "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", Arial, sans-serif; font-size: 14px; fill: #4b5563; }
+      .stage { font-family: "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", Arial, sans-serif; font-size: 15px; font-weight: 700; fill: #334155; }
+      .label { font-family: "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", Arial, sans-serif; font-size: 17px; font-weight: 700; fill: #111827; }
+      .small { font-family: "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", Arial, sans-serif; font-size: 14px; fill: #374151; }
+      .tiny { font-family: "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", Arial, sans-serif; font-size: 12px; fill: #4b5563; }
+      .panel { stroke: #cbd5e1; stroke-width: 1.4; fill: #f8fafc; }
+      .box { stroke: #475569; stroke-width: 1.5; fill: #ffffff; }
+      .line { stroke: #374151; stroke-width: 1.8; fill: none; marker-end: url(#arrow); }
+      .thin { stroke: #64748b; stroke-width: 1.2; fill: none; }
     </style>
   </defs>
 
-  <rect width="1200" height="620" fill="#ffffff"/>
-  <text x="600" y="42" text-anchor="middle" class="title">EDBP 模型总体结构</text>
-  <text x="600" y="68" text-anchor="middle" class="small">Expert Dictionary and Boundary Prediction for Red Jujube Cultivation NER</text>
+  <rect width="1280" height="720" fill="#ffffff"/>
+  <text x="640" y="42" text-anchor="middle" class="title">EDBP 模型总体结构</text>
+  <text x="640" y="67" text-anchor="middle" class="subtitle">Expert Dictionary and Boundary Prediction for Red Jujube Cultivation NER</text>
 
-  <rect x="45" y="240" width="145" height="88" fill="#f2f5f9" class="box"/>
-  <text x="117" y="277" text-anchor="middle" class="label">输入文本</text>
-  <text x="117" y="303" text-anchor="middle" class="small">字符序列 X</text>
+  <rect x="35" y="98" width="170" height="500" rx="14" class="panel"/>
+  <text x="120" y="128" text-anchor="middle" class="stage">输入层</text>
+  <rect x="62" y="175" width="116" height="70" rx="8" fill="#eef2ff" class="box"/>
+  <text x="120" y="203" text-anchor="middle" class="label">输入文本</text>
+  <text x="120" y="227" text-anchor="middle" class="small">字符序列 X</text>
+  <g transform="translate(61,285)">
+    <rect x="0" y="0" width="118" height="44" rx="6" fill="#fff" stroke="#cbd5e1"/>
+    <text x="59" y="28" text-anchor="middle" class="small">红枣栽培句子</text>
+  </g>
 
-  <rect x="245" y="132" width="190" height="94" fill="#e8f2ff" class="box"/>
-  <text x="340" y="169" text-anchor="middle" class="label">MacBERT 表示层</text>
-  <text x="340" y="195" text-anchor="middle" class="small">上下文字符表示</text>
+  <rect x="240" y="98" width="295" height="500" rx="14" class="panel"/>
+  <text x="387" y="128" text-anchor="middle" class="stage">双通道编码</text>
+  <rect x="273" y="170" width="230" height="106" rx="8" fill="#e0f2fe" class="box"/>
+  <text x="388" y="204" text-anchor="middle" class="label">MacBERT 表示层</text>
+  <text x="388" y="230" text-anchor="middle" class="small">上下文字符表示</text>
+  <text x="388" y="253" text-anchor="middle" class="tiny">H_context</text>
 
-  <rect x="245" y="345" width="190" height="118" fill="#fff1db" class="box"/>
-  <text x="340" y="383" text-anchor="middle" class="label">专家词典特征层</text>
-  <text x="340" y="409" text-anchor="middle" class="small">训练集自动抽取词典</text>
-  <text x="340" y="434" text-anchor="middle" class="small">BMES 四通道编码</text>
+  <rect x="273" y="365" width="230" height="132" rx="8" fill="#fff7ed" class="box"/>
+  <text x="388" y="399" text-anchor="middle" class="label">专家词典特征层</text>
+  <text x="388" y="425" text-anchor="middle" class="small">训练集自动抽取实体词典</text>
+  <text x="388" y="449" text-anchor="middle" class="small">BMES 四通道编码</text>
+  <text x="388" y="474" text-anchor="middle" class="tiny">B / M / E / S position prior</text>
 
-  <rect x="510" y="238" width="180" height="96" fill="#eaf7ea" class="box"/>
-  <text x="600" y="276" text-anchor="middle" class="label">特征融合层</text>
-  <text x="600" y="302" text-anchor="middle" class="small">拼接上下文语义</text>
-  <text x="600" y="322" text-anchor="middle" class="small">与词典位置先验</text>
+  <rect x="580" y="98" width="190" height="500" rx="14" class="panel"/>
+  <text x="675" y="128" text-anchor="middle" class="stage">特征融合</text>
+  <rect x="610" y="273" width="130" height="116" rx="8" fill="#ecfdf5" class="box"/>
+  <text x="675" y="307" text-anchor="middle" class="label">融合层</text>
+  <text x="675" y="333" text-anchor="middle" class="small">语义表示</text>
+  <text x="675" y="357" text-anchor="middle" class="small">+ 词典先验</text>
+  <text x="675" y="380" text-anchor="middle" class="tiny">H_fused</text>
 
-  <rect x="770" y="160" width="190" height="94" fill="#f1e9ff" class="box"/>
-  <text x="865" y="198" text-anchor="middle" class="label">起始位置表示</text>
-  <text x="865" y="224" text-anchor="middle" class="small">FFN start</text>
+  <rect x="815" y="98" width="220" height="500" rx="14" class="panel"/>
+  <text x="925" y="128" text-anchor="middle" class="stage">边界表示</text>
+  <rect x="850" y="194" width="150" height="86" rx="8" fill="#f3e8ff" class="box"/>
+  <text x="925" y="226" text-anchor="middle" class="label">起始位置</text>
+  <text x="925" y="252" text-anchor="middle" class="small">FFN start</text>
+  <rect x="850" y="385" width="150" height="86" rx="8" fill="#f3e8ff" class="box"/>
+  <text x="925" y="417" text-anchor="middle" class="label">结束位置</text>
+  <text x="925" y="443" text-anchor="middle" class="small">FFN end</text>
 
-  <rect x="770" y="332" width="190" height="94" fill="#f1e9ff" class="box"/>
-  <text x="865" y="370" text-anchor="middle" class="label">结束位置表示</text>
-  <text x="865" y="396" text-anchor="middle" class="small">FFN end</text>
+  <rect x="1080" y="98" width="165" height="500" rx="14" class="panel"/>
+  <text x="1162" y="128" text-anchor="middle" class="stage">解码与训练</text>
+  <rect x="1100" y="221" width="125" height="116" rx="8" fill="#fee2e2" class="box"/>
+  <text x="1162" y="253" text-anchor="middle" class="label">边界预测</text>
+  <text x="1162" y="278" text-anchor="middle" class="small">Biaffine</text>
+  <text x="1162" y="301" text-anchor="middle" class="small">span scorer</text>
+  <text x="1162" y="324" text-anchor="middle" class="tiny">score(i,j,c)</text>
+  <rect x="1100" y="404" width="125" height="76" rx="8" fill="#f1f5f9" class="box"/>
+  <text x="1162" y="434" text-anchor="middle" class="label">Focal Loss</text>
+  <text x="1162" y="459" text-anchor="middle" class="small">低频类别学习</text>
 
-  <rect x="1010" y="235" width="150" height="110" fill="#ffecec" class="box"/>
-  <text x="1085" y="274" text-anchor="middle" class="label">边界预测</text>
-  <text x="1085" y="299" text-anchor="middle" class="small">双仿射打分</text>
-  <text x="1085" y="322" text-anchor="middle" class="small">Span 分类</text>
+  <path d="M178 210 L273 223" class="line"/>
+  <path d="M178 307 L273 431" class="line"/>
+  <path d="M503 223 C540 235 565 285 610 320" class="line"/>
+  <path d="M503 431 C545 420 565 370 610 344" class="line"/>
+  <path d="M740 331 L850 237" class="line"/>
+  <path d="M740 331 L850 428" class="line"/>
+  <path d="M1000 237 C1040 245 1062 263 1100 279" class="line"/>
+  <path d="M1000 428 C1040 416 1062 352 1100 303" class="line"/>
+  <path d="M1162 337 L1162 404" class="line"/>
 
-  <rect x="1010" y="438" width="150" height="72" fill="#f5f5f5" class="box"/>
-  <text x="1085" y="468" text-anchor="middle" class="label">Focal Loss</text>
-  <text x="1085" y="492" text-anchor="middle" class="small">类别不平衡处理</text>
+  <line x1="388" y1="276" x2="388" y2="365" class="thin" stroke-dasharray="5 4"/>
+  <text x="388" y="323" text-anchor="middle" class="tiny">并行输入同一字符序列</text>
 
-  <path d="M190 284 L245 179" class="line"/>
-  <path d="M190 284 L245 404" class="line"/>
-  <path d="M435 179 C470 190 485 238 510 274" class="line"/>
-  <path d="M435 404 C475 398 488 334 510 305" class="line"/>
-  <path d="M690 286 L770 207" class="line"/>
-  <path d="M690 286 L770 379" class="line"/>
-  <path d="M960 207 C995 218 1005 248 1010 282" class="line"/>
-  <path d="M960 379 C995 368 1005 332 1010 303" class="line"/>
-  <path d="M1085 345 L1085 438" class="line"/>
-
-  <text x="600" y="565" text-anchor="middle" class="small">输出：实体边界与类别，用于红枣栽培知识图谱节点抽取</text>
+  <rect x="330" y="628" width="620" height="42" rx="10" fill="#f8fafc" stroke="#cbd5e1"/>
+  <text x="640" y="655" text-anchor="middle" class="small">输出：实体起止边界与类别，用于红枣栽培知识图谱节点抽取</text>
 </svg>
