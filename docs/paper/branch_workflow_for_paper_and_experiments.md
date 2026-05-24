@@ -76,23 +76,25 @@ cd eznlp
 git checkout experiment/current-rjnd-baselines
 ```
 
-实验端不合并整条 `master`。每次接收论文端新需求时，只从 `origin/master` 同步需求文件：
+实验端不合并整条 `master`。每次接收论文端新需求时，默认只从 `origin/master`
+同步任务要求和分支流程文件：
 
 ```bash
 git fetch origin
 git checkout experiment/current-rjnd-baselines
 git checkout origin/master -- \
   docs/paper/current_rjnd_experiment_requirements.md \
-  docs/paper/needed_experiment_results.md \
   docs/paper/branch_workflow_for_paper_and_experiments.md
 git add docs/paper/current_rjnd_experiment_requirements.md \
-  docs/paper/needed_experiment_results.md \
   docs/paper/branch_workflow_for_paper_and_experiments.md
 git commit -m "docs: sync paper experiment requirements"
 git push origin experiment/current-rjnd-baselines
 ```
 
 如果同步后没有差异，`git commit` 会提示 nothing to commit，可直接继续实验。
+`docs/paper/needed_experiment_results.md` 在实验分支会记录已返回结果，不要用
+`origin/master` 直接覆盖；如论文端确实更新了该文件，只挑选新增需求段落，保留服务器
+已有结果登记。
 
 实验端优先读取任务清单：
 
