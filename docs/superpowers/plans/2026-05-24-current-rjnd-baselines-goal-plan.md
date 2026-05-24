@@ -81,7 +81,7 @@
 
 - [x] If `Boundary Smoothing` is absent under current口径, adapt the closest existing script/config and run it first (`BS_nodict_seed42_current/bert_bs_pure_20260524-164044`).
 - [x] If `BERT+SoftLexicon` is absent or uses a non-RJND lexicon, run or clearly mark the lexicon-source limitation.
-- [ ] If MRC baselines are required, generate MRC-format data from current RJND before training and commit the conversion script/config, not generated bulky caches.
+- [x] If MRC baselines are required, generate MRC-format data from current RJND before training and commit the conversion script/config, not generated bulky caches. Existing MRC attempt failed (`_9LOGS/dice_loss_redjujube_train.log`), current `_5TRAIN/tasks/mrc_ner/train.py` is not present in this worktree, and no bulky generated caches were committed; blocker recorded instead.
 - [x] Use tmux for long-running jobs and name sessions with model, seed, and date (`rjnd-bs-nodict-20260524`).
 - [x] Save each run under a unique dated output directory to avoid overwriting older evidence.
 - [x] After each run, immediately复评 or parse test P/R/F1 and update the evidence table before starting lower-priority jobs.
@@ -126,10 +126,10 @@
 **Files:**
 - Commit: docs and small evidence files only
 
-- [ ] Stage only result registries, compact configs, compact result JSON/CSV, and short summaries.
-- [ ] Commit with a message like `experiments: register current RJND baseline results`.
-- [ ] Push with `git push origin experiment/current-rjnd-baselines`.
-- [ ] If push is rejected, run `git pull --rebase origin experiment/current-rjnd-baselines`, resolve only relevant conflicts, then push again.
+- [x] Stage only result registries, compact configs, compact result JSON/CSV, and short summaries.
+- [x] Commit with a message like `experiments: register current RJND baseline results` (`c19341b`).
+- [x] Push with `git push origin experiment/current-rjnd-baselines` (`ecbb9f8..c19341b` pushed).
+- [x] If push is rejected, run `git pull --rebase origin experiment/current-rjnd-baselines`, resolve only relevant conflicts, then push again (not needed; push succeeded).
 
 ### Task 10: Prepare Paper-Side Handoff
 
@@ -143,8 +143,8 @@
 
 ## Definition Of Done
 
-- [ ] Experiment branch is up to date and pushed.
-- [ ] Every newly adopted result has reproducible path, config, evaluation script, and口径 note.
-- [ ] No bulky training artifacts are staged or committed.
-- [ ] `docs/paper/needed_experiment_results.md` and `docs/paper/paper_result_registry.md` agree on adopted values.
-- [ ] The handoff summary is sufficient for `master` to pick files without merging the whole experiment branch.
+- [x] Experiment branch is up to date and pushed.
+- [x] Every newly adopted result has reproducible path, config, evaluation script, and口径 note.
+- [x] No bulky training artifacts are staged or committed.
+- [x] `docs/paper/needed_experiment_results.md` and `docs/paper/paper_result_registry.md` agree on adopted values.
+- [x] The handoff summary is sufficient for `master` to pick files without merging the whole experiment branch.
