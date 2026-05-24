@@ -76,6 +76,24 @@ cd eznlp
 git checkout experiment/current-rjnd-baselines
 ```
 
+实验端不合并整条 `master`。每次接收论文端新需求时，只从 `origin/master` 同步需求文件：
+
+```bash
+git fetch origin
+git checkout experiment/current-rjnd-baselines
+git checkout origin/master -- \
+  docs/paper/current_rjnd_experiment_requirements.md \
+  docs/paper/needed_experiment_results.md \
+  docs/paper/branch_workflow_for_paper_and_experiments.md
+git add docs/paper/current_rjnd_experiment_requirements.md \
+  docs/paper/needed_experiment_results.md \
+  docs/paper/branch_workflow_for_paper_and_experiments.md
+git commit -m "docs: sync paper experiment requirements"
+git push origin experiment/current-rjnd-baselines
+```
+
+如果同步后没有差异，`git commit` 会提示 nothing to commit，可直接继续实验。
+
 实验端优先读取任务清单：
 
 ```bash
@@ -204,11 +222,11 @@ git diff --check
 git status --short
 ```
 
-PDF 生成依赖 LibreOffice。若 `soffice` 不存在，需要先安装：
+PDF 生成依赖 LibreOffice，PDF 质量检查依赖 Poppler。若 `soffice`、`pdfinfo`、`pdftotext` 或 `pdfimages` 不存在，需要先安装：
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y libreoffice-writer libreoffice-java-common
+sudo apt-get install -y libreoffice-writer libreoffice-java-common poppler-utils
 ```
 
 ## 7. 冲突处理

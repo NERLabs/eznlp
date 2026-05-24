@@ -21,23 +21,23 @@
 
 ## 2. 必跑优先级
 
-| 优先级 | 模型 | seed | 数据集 | 需要返回 | 目标用途 | 备注 |
+| 优先级 | 模型 | seed | 数据集 | 需要返回 | 论文用途 | 验收规则 |
 |---:|---|---:|---|---|---|---|
-| 1 | Boundary Smoothing | 42 | 当前 RJND/RedJujube | test P/R/F1、result_path、config_path、eval_script、backbone | 判断是否替换或补强正文表 3 | 与本文边界预测主题最相关，最高优先级 |
-| 2 | BERT+SoftLexicon / SoftLexicon+BERT | 42 | 当前 RJND/RedJujube | test P/R/F1、result_path、config_path、词典来源、词典规模、backbone | 词典增强强基线 | 必须说明词典来自训练集、外部词典还是旧 HZ 词典 |
-| 3 | BERT-MRC | 42 | 当前 RJND/RedJujube | test P/R/F1、result_path、config_path、MRC 转换脚本、query 模板 | 经典 MRC-NER 强基线 | 使用当前 RJND 重新生成 MRC 格式数据 |
-| 4 | BERT-MRC+DSC | 42 | 当前 RJND/RedJujube | test P/R/F1、result_path、config_path、Dice/DSC 参数、query 模板 | 类别不平衡损失强基线 | 可与本文 Focal Loss 讨论关联 |
-| 5 | RA_NER / AdaSeq BERT-CRF | 42 | 当前 RJND/RedJujube | test P/R/F1、result_path、config_path、dataset adapter、backbone | 强 BERT-CRF 或检索增强基线 | 若使用检索增强，必须记录外部数据或检索库来源 |
+| 1 | Boundary Smoothing | 42 | 当前 RJND/RedJujube | test P/R/F1、result_path、config_path、eval_script、backbone、长句切分策略 | 判断是否替换或补强正文表 3；回应边界预测强基线质疑 | 必须确认 test split；不得使用旧版红枣结果；若 F1 高于 EDBP，正文改写为“有竞争力”而非“最优” |
+| 2 | BERT+SoftLexicon / SoftLexicon+BERT | 42 | 当前 RJND/RedJujube | test P/R/F1、result_path、config_path、词典来源、词典规模、backbone | 词典增强强基线；判断 EDBP 词典编码是否优于经典 SoftLexicon | 必须说明词典来自训练集、外部词典还是旧 HZ 词典；若用旧 HZ 词典，只能在表注说明差异 |
+| 3 | BERT-MRC | 42 | 当前 RJND/RedJujube | test P/R/F1、result_path、config_path、MRC 转换脚本、query 模板 | 经典 MRC-NER 强基线 | 必须用当前 RJND 重新生成 MRC 格式数据；不能复用旧版红枣 MRC 结果 |
+| 4 | BERT-MRC+DSC | 42 | 当前 RJND/RedJujube | test P/R/F1、result_path、config_path、Dice/DSC 参数、query 模板 | 类别不平衡损失强基线；支撑 Focal Loss 讨论 | 必须与 BERT-MRC 使用同一 MRC 数据转换和同一评估脚本 |
+| 5 | RA_NER / AdaSeq BERT-CRF | 42 | 当前 RJND/RedJujube | test P/R/F1、result_path、config_path、dataset adapter、backbone、检索库来源 | 强 BERT-CRF 或检索增强基线 | 若使用检索增强，必须记录外部数据或检索库来源；无法确认来源时不进入正文主表 |
 
 ## 3. 可选补跑
 
-| 优先级 | 模型 | seed | 数据集 | 需要返回 | 目标用途 | 备注 |
+| 优先级 | 模型 | seed | 数据集 | 需要返回 | 目标用途 | 验收规则 |
 |---:|---|---:|---|---|---|---|
-| 6 | W2NER | 42 | 当前 RJND/RedJujube | test P/R/F1、result_path、config_path | 现代统一 NER 建模补充对比 | 工作量较高，非当前最急 |
-| 7 | DiffusionNER | 42 | 当前 RJND/RedJujube | test P/R/F1、result_path、config_path | 新模型补充对比 | 与本文机制距离较远 |
-| 8 | PIQN | 42 | 当前 RJND/RedJujube | test P/R/F1、result_path、config_path | query/span 类补充对比 | 非当前最急 |
-| 9 | LatticeLSTM | 42 | 当前 RJND/RedJujube | test P/R/F1、result_path、config_path、词典来源 | 经典 lattice 对比 | 本地旧环境阻塞，若服务器已有环境可跑 |
-| 10 | NFLAT | 42 | 当前 RJND/RedJujube | test P/R/F1、result_path、config_path、词典来源 | 新 lattice 对比 | 本地旧环境阻塞，若服务器已有环境可跑 |
+| 6 | W2NER | 42 | 当前 RJND/RedJujube | test P/R/F1、result_path、config_path、数据转换脚本 | 现代统一 NER 建模补充对比 | 工作量较高，非当前最急；若转换为 word-word relation 格式，需保留转换脚本 |
+| 7 | DiffusionNER | 42 | 当前 RJND/RedJujube | test P/R/F1、result_path、config_path | 新模型补充对比 | 与本文机制距离较远；可放补充对比，不作为最小必需 |
+| 8 | PIQN | 42 | 当前 RJND/RedJujube | test P/R/F1、result_path、config_path | query/span 类补充对比 | 非当前最急；需要说明 query/span 任务构造 |
+| 9 | LatticeLSTM | 42 | 当前 RJND/RedJujube | test P/R/F1、result_path、config_path、词典来源 | 经典 lattice 对比 | 本地旧环境阻塞，若服务器已有环境可跑；不得使用 Resume/MSRA 结果 |
+| 10 | NFLAT | 42 | 当前 RJND/RedJujube | test P/R/F1、result_path、config_path、词典来源 | 新 lattice 对比 | 本地旧环境阻塞，若服务器已有环境可跑；不得使用 MSRA 结果 |
 
 ## 4. 已有当前口径结果
 
@@ -74,6 +74,20 @@
 | lexicon | 是否使用词典；词典来源；词典规模 |
 | data_process | 是否转换数据格式，如 MRC 格式、span 格式、word-word relation 格式 |
 | note | 口径差异、环境限制、异常现象 |
+| acceptance_rule | 是否允许进入正文主表，以及原因 |
+| paper_update_rule | 若结果高于/低于 EDBP，摘要、表 3、结论应如何改写 |
+
+## 5.1 论文端自动更新规则
+
+实验端返回结果后，论文端按以下规则处理：
+
+| 情况 | 论文处理 |
+|---|---|
+| 新基线低于 EDBP，且口径完全一致 | 可进入表 3；摘要和结论补充对应提升值 |
+| 新基线高于 EDBP，且口径完全一致 | 可进入表 3；摘要和结论不得再暗示 EDBP 最优，改写为“取得有竞争力结果” |
+| 新基线口径不一致但可解释 | 不进入正文主表，可进入结果登记表或补充说明 |
+| 只报告 dev F1 或缺 result/config/eval 路径 | 不进入正文主表 |
+| 使用旧版红枣、HZ 或公开数据集结果 | 不进入当前 RJND 主表 |
 
 ## 6. 不要进入当前正文主表的结果
 
