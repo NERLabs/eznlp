@@ -446,7 +446,7 @@ Table 4 Ablation results</p>
 </table>
 <p>专家词典单独使 F1 从 85.57% 提升至 86.71%，提升 1.14 个百分点，说明训练集自动抽取的领域实体能够为专业术语识别提供有效先验。边界预测单独使 F1 提升至 86.68%，较 CRF 基线提升 1.11 个百分点，说明 span 分类方式能够缓解逐字符标注的边界误差。专家词典与边界预测同时使用时，F1 达到 87.66%，体现了词典位置先验与边界级解码的协同作用。在此基础上引入 Focal Loss 后，F1 进一步提升至 88.28%，表明类别不平衡处理对红枣栽培低频实体具有积极作用。</p>
 <h3>2.3 词典构建策略对比</h3>
-<p>专家词典由训练集实体自动抽取得到，主模型采用最小词频阈值 2，对应词典规模为 1 842。为分析词典规模与匹配覆盖之间的关系，比较最小词频阈值为 1、2、3 时的词典构建策略，结果见表 5。其中，短实体和长实体分别用于反映普通术语与复合术语的覆盖情况，平衡 F1 为训练集词典匹配质量的代理指标，用于辅助解释词典阈值选择。</p>
+<p>专家词典由训练集实体自动抽取得到，主模型采用最小词频阈值 2，对应词典规模为 1 842。为分析词典规模、匹配覆盖与最终识别性能之间的关系，比较最小词频阈值为 1、2、3、4 时的词典构建策略，结果见表 5。其中，短实体和长实体覆盖率用于反映普通术语与复合术语的覆盖情况，平衡 F1 为训练集词典匹配质量的代理指标，测试 F1 为 RJND 测试集上 seed=42 的真实 NER 结果。</p>
 <p>表 5 词典构建策略对比<br>
 Table 5 Comparison of lexicon construction strategies</p>
 <table>
@@ -456,9 +456,8 @@ Table 5 Comparison of lexicon construction strategies</p>
 <th style="text-align: right;">词典规模</th>
 <th style="text-align: right;">短实体覆盖率/%</th>
 <th style="text-align: right;">长实体覆盖率/%</th>
-<th style="text-align: right;">短实体匹配 F1/%</th>
-<th style="text-align: right;">长实体匹配 F1/%</th>
-<th style="text-align: right;">平衡 F1/%</th>
+<th style="text-align: right;">训练集匹配平衡 F1/%</th>
+<th style="text-align: right;">测试 F1/%</th>
 </tr>
 </thead>
 <tbody>
@@ -467,31 +466,36 @@ Table 5 Comparison of lexicon construction strategies</p>
 <td style="text-align: right;">5 317</td>
 <td style="text-align: right;">100.00</td>
 <td style="text-align: right;">77.75</td>
-<td style="text-align: right;">61.69</td>
-<td style="text-align: right;">81.67</td>
 <td style="text-align: right;">62.76</td>
+<td style="text-align: right;">84.36</td>
 </tr>
 <tr>
 <td style="text-align: right;">2</td>
 <td style="text-align: right;">1 842</td>
 <td style="text-align: right;">85.45</td>
 <td style="text-align: right;">31.04</td>
-<td style="text-align: right;">58.51</td>
-<td style="text-align: right;">45.11</td>
 <td style="text-align: right;">57.79</td>
+<td style="text-align: right;">88.16</td>
 </tr>
 <tr>
 <td style="text-align: right;">3</td>
 <td style="text-align: right;">1 087</td>
 <td style="text-align: right;">78.61</td>
 <td style="text-align: right;">16.94</td>
-<td style="text-align: right;">56.73</td>
-<td style="text-align: right;">28.14</td>
 <td style="text-align: right;">55.19</td>
+<td style="text-align: right;">87.51</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">786</td>
+<td style="text-align: right;">-</td>
+<td style="text-align: right;">-</td>
+<td style="text-align: right;">-</td>
+<td style="text-align: right;">86.95</td>
 </tr>
 </tbody>
 </table>
-<p>由表 5 可知，随着最小词频阈值提高，词典规模明显缩小，但长实体覆盖率下降更快。当阈值由 1 提高到 2 时，词典规模由 5 317 降至 1 842，长实体覆盖率由 77.75% 降至 31.04%，说明低频复合术语在红枣栽培文本中占有较高比例。考虑到最小词频 1 会引入大量仅出现一次的实体，词典规模较大且可能增加噪声；最小词频 3 又会明显降低长实体覆盖，本文主模型采用最小词频阈值 2，以在词典覆盖和低频噪声控制之间取得折中。</p>
+<p>由表 5 可知，随着最小词频阈值提高，词典规模明显缩小，但长实体覆盖率下降更快。当阈值由 1 提高到 2 时，词典规模由 5 317 降至 1 842，长实体覆盖率由 77.75% 降至 31.04%，说明低频复合术语在红枣栽培文本中占有较高比例。然而，最小词频 1 虽然覆盖率最高，但测试 F1 仅为 84.36%，说明大量仅出现一次的实体会引入噪声并削弱模型泛化能力；最小词频 3 和 4 的测试 F1 分别为 87.51% 和 86.95%，均低于最小词频 2。综合词典规模、覆盖质量和测试集识别性能，本文主模型采用最小词频阈值 2，以在词典覆盖和低频噪声控制之间取得较优折中。</p>
 <h3>2.4 解码器和损失函数对比</h3>
 <p>表 6 给出相同专家词典特征条件下，不同解码器和损失函数的代表性运行结果。该表用于分析解码器和损失函数的行为差异，统计口径与表 3 的 seed=42 扩展主对比不同。</p>
 <p>表 6 解码器和损失函数对比<br>
