@@ -11,17 +11,20 @@ from utils.tools import Trie
 
 
 def load_data(dataset_name, index_token=False, char_min_freq=1, bigram_min_freq=1, only_train_min_freq=True,
-              char_dropout=0.01, bigram_dropout=0.01, dropout=0, label_type='ALL', refresh_data=False):
+              char_dropout=0.01, bigram_dropout=0.01, dropout=0, label_type='ALL', refresh_data=False,
+              smoke_samples=None):
         type = label_type if label_type!='ALL' else ''
-        cache_name = ('cache/NER_dataset_{}{}'.format(dataset_name, type))
+        smoke_suffix = '' if smoke_samples is None else '_smoke{}'.format(smoke_samples)
+        cache_name = ('cache/NER_dataset_{}{}{}'.format(dataset_name, type, smoke_suffix))
 
         return load_ner(data_filename[dataset_name], yangjie_rich_pretrain_unigram_path, yangjie_rich_pretrain_bigram_path,
                  index_token, char_min_freq, bigram_min_freq, only_train_min_freq, char_dropout, bigram_dropout, dropout,
-                 label_type, _cache_fp=cache_name, _refresh=refresh_data)
+                 label_type, smoke_samples, _cache_fp=cache_name, _refresh=refresh_data)
 
 @cache_results(_cache_fp='cache/datasets', _refresh=False)
 def load_ner(data_path, unigram_embedding_path, bigram_embedding_path, index_token, char_min_freq,
-                   bigram_min_freq, only_train_min_freq, char_dropout, bigram_dropout, dropout, label_type='ALL'):
+                   bigram_min_freq, only_train_min_freq, char_dropout, bigram_dropout, dropout, label_type='ALL',
+                   smoke_samples=None):
     loader = ConllLoader(['chars', 'target'])
 
     train_path = os.path.join(data_path['path'], data_path['train'])
@@ -35,6 +38,9 @@ def load_ner(data_path, unigram_embedding_path, bigram_embedding_path, index_tok
     for k, v in paths.items():
         bundle = loader.load(v)
         datasets[k] = bundle.datasets['train']
+        if smoke_samples is not None:
+            limit = max(1, int(smoke_samples))
+            datasets[k] = datasets[k][:min(limit, len(datasets[k]))]
 
     for k, v in datasets.items():
         print('{}:{}'.format(k, len(v)))

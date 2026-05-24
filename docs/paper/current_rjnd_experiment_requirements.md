@@ -37,7 +37,7 @@
 | 7 | DiffusionNER | 42 | 当前 RJND/RedJujube | test P/R/F1、result_path、config_path | 新模型补充对比 | 与本文机制距离较远；可放补充对比，不作为最小必需 |
 | 8 | PIQN | 42 | 当前 RJND/RedJujube | test P/R/F1、result_path、config_path | query/span 类补充对比 | 非当前最急；需要说明 query/span 任务构造 |
 | 9 | LatticeLSTM | 42 | 当前 RJND/RedJujube | test P/R/F1、result_path、config_path、词典来源 | 经典 lattice 对比 | 本地旧环境阻塞，若服务器已有环境可跑；不得使用 Resume/MSRA 结果 |
-| 10 | NFLAT | 42 | 当前 RJND/RedJujube | test P/R/F1、result_path、config_path、词典来源 | 新 lattice 对比 | 本地旧环境阻塞，若服务器已有环境可跑；不得使用 MSRA 结果 |
+| 10 | NFLAT | 42 | 当前 RJND/RedJujube | test P/R/F1、result_path、config_path、词典来源 | 新 lattice 对比 | RedJujube adapter 与 16-sample CPU smoke 已通过；全量训练待 GPU 可用；不得使用 MSRA 结果 |
 
 ## 4. 已有当前口径结果
 
@@ -52,6 +52,7 @@
 | SoftLexicon-TrainLex | 42 | 85.55 | 已补跑；当前路径 `datasets/raw/RedJujube`，训练集词表版 |
 | SoftLexicon-External | 42 | 84.98 | 已补跑；当前路径 `datasets/raw/RedJujube`，`assets/vectors/ctb.50d.vec` 外部词表版 |
 | AdaSeq BERT-CRF | 42 | 85.16 | 已补跑；BMES 转 BIO 后完成 |
+| BERT-MRC+DSC | 42 | 80.33 | 已补跑；当前 RedJujube MRC 数据，Dice loss，OHEM 关闭 |
 | FLAT | 42 | 79.78 | 已登记 |
 | FLAT+BERT | 42 | 79.40 | 已登记 |
 | EDBP | 42 | 88.16 | 已登记，`min_freq=2`，词典规模 1 842 |

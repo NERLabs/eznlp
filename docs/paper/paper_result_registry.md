@@ -58,11 +58,12 @@
 | Boundary Smoothing | 42 | 86.48 | MacBERT-base | 否 | `experiments/EXP-010-optimization/results_needed_20260524/BS_nodict_seed42_current/bert_bs_pure_20260524-164044/results.json` | 表 3 补强候选；当前路径补跑 |
 | SoftLexicon-TrainLex | 42 | 85.55 | MacBERT-base | 当前 RedJujube 训练集词表 + 中文 50d 词向量 | `experiments/EXP-010-optimization/results_needed_20260524/SoftLexicon_trainlex_seed42_current/softlexicon_trainlex_20260524-171342/results.json` | 表 3 候选；当前路径补跑 |
 | AdaSeq BERT-CRF | 42 | 85.16 | MacBERT-base | 否 | `experiments/EXP-010-optimization/results_needed_20260524/AdaSeq_bert_crf_seed42_current/metrics_summary.json` | 表 3 候选；BMES 转 BIO 后补跑 |
+| BERT-MRC+DSC | 42 | 80.33 | MacBERT-base | 否 | `experiments/EXP-010-optimization/results_needed_20260524/MRC_DSC_current_redjujube_status_20260524.json` | 补充证据；当前路径补跑，低于同类 BERT-CRF 基线 |
 | FLAT | 42 | 79.78 | 否 | CTB lattice 词表 | `experiments/baselines/flat_no_bert_v2/.../results.json` | 表 3 采用 |
 | FLAT+BERT | 42 | 79.40 | MacBERT-base | CTB lattice 词表 | `experiments/baselines/flat_bert_fixed/.../results.json` | 表 3 采用 |
 | EDBP | 42 | 88.16 | MacBERT-base | 训练集自动词典，min_freq=2，1842 词 | `experiments/EXP-010-optimization/results_newdata/Q_bs_focal/.../results.json` | 表 3 采用 |
 | LatticeLSTM | 42 | 待补 | 否 | 目标为 gazetteer | 未找到 RJND 结果 | 不进入表 3 |
-| NFLAT | 42 | 待补 | 否 | YangJie/CTB lattice | 未找到 RJND 结果 | 不进入表 3 |
+| NFLAT | 42 | 待补 | 否 | YangJie/CTB lattice | `experiments/EXP-010-optimization/results_needed_20260524/NFLAT_current_redjujube_status_20260524.json` | RedJujube adapter 与 smoke 已通过；全量训练待 GPU 可用 |
 
 主结论计算：
 
@@ -79,6 +80,9 @@
 
 - 投稿稿表 3 使用本节 seed=42 扩展主对比结果，不再在该表中使用 `±` 或配对 t 检验。
 - `Boundary Smoothing` 为 2026-05-24 当前路径补跑结果，可供论文端决定是否补入表 3；若补入，摘要和结论需同步加入相对提升 **+1.68** 个百分点。
+- `BERT-MRC+DSC` 为 2026-05-24 当前路径补跑结果，但 F1=80.33，低于
+  `BERT-wwm-ext+BiLSTM+CRF`、`MacBERT-base+BiLSTM+CRF`、`SoftLexicon-TrainLex`
+  和 `AdaSeq BERT-CRF`，默认只作为补充证据。
 - 三种子结果保留为历史稳定性证据，但不作为扩展表 3 的展示口径。
 
 ### 2.1.2 RJND seed=42 经典词典与 lattice 基线补充检索
@@ -95,19 +99,21 @@
 | SoftLexicon-TrainLex | `datasets/raw/RedJujube` | 42 | 85.55 | `experiments/EXP-010-optimization/results_needed_20260524/SoftLexicon_trainlex_seed42_current/softlexicon_trainlex_20260524-171342/results.json` | 是，`hfl/chinese-macbert-base` | 是，匹配词表 `datasets/raw/RedJujube/softlexicon_train.txt`，嵌入初始化来自中文 50d 词向量 | 当前路径补跑；建议替代旧 HZ 词典 SoftLexicon |
 | SoftLexicon-External | `datasets/raw/RedJujube` | 42 | 84.98 | `experiments/EXP-010-optimization/results_needed_20260524/SoftLexicon_external_seed42_current/softlexicon_20260524-173106/results.json` | 是，`hfl/chinese-macbert-base` | 是，匹配词表来自 `assets/vectors/ctb.50d.vec` | 当前路径补跑；外部词典对照 |
 | AdaSeq BERT-CRF | `datasets/raw/RedJujube` -> BIO | 42 | 85.16 | `experiments/EXP-010-optimization/results_needed_20260524/AdaSeq_bert_crf_seed42_current/metrics_summary.json` | 是，`hfl/chinese-macbert-base` | 否 | 当前路径补跑；BMES 转 BIO 后完成 |
+| BERT-MRC+DSC | `datasets/raw/RedJujube` -> MRC | 42 | 80.33 | `experiments/EXP-010-optimization/results_needed_20260524/MRC_DSC_current_redjujube_status_20260524.json` | 是，`hfl/chinese-macbert-base` | 否 | 当前路径补跑；Dice loss，OHEM 关闭；test P/R/F1=83.06/77.77/80.33 |
 | FLAT | `_2DATA/RedJujube` | 42 | 79.78 | `experiments/baselines/flat_no_bert_v2/flat_20260506-101813/results.json` | 否 | 是，外部 lattice 词表/向量 `assets/vectors/ctb.50d.vec`，698668 词 | 可作为无 BERT FLAT 对照 |
 | BERT-FLAT / FLAT+BERT | `_2DATA/RedJujube` | 42 | 79.40 | `experiments/baselines/flat_bert_fixed/flat_20260423-211828/results.json` | 是，MacBERT-base 本地快照 | 是，外部 lattice 词表/向量 `assets/vectors/ctb.50d.vec`，698668 词 | 可作为 BERT-FLAT 对照 |
 | LatticeLSTM | `_2DATA/RedJujube` | 42 | 待补 | 未找到 RJND 结果文件 | 否 | 目标模型通常使用外部 gazetteer；本地代码默认 `data/ctb.50d.vec` | 仅找到 `projects/LatticeLSTM-master` 代码和 Resume/demo 数据，无 RedJujube 结果 |
-| NFLAT | `_2DATA/RedJujube` | 42 | 待补 | 未找到 RJND 结果文件 | 否 | 目标代码默认使用 YangJie/CTB lattice 词表与词向量 | 仅找到 `projects/NFLAT4CNER-main/nflat_msra_result.txt`，属于 MSRA，已排除 |
+| NFLAT | `datasets/raw/RedJujube` | 42 | 待补 | `experiments/EXP-010-optimization/results_needed_20260524/NFLAT_current_redjujube_status_20260524.json` | 否 | YangJie/CTB lattice 词表与词向量 | RedJujube adapter 与 16-sample CPU smoke 已通过；全量训练待 GPU 可用 |
 
 补实验状态：
 
 - `Boundary Smoothing` 已按当前 `datasets/raw/RedJujube`、seed=42、`hfl/chinese-macbert-base`、无专家词典补跑完成。`results.json` 保存 `test_f1=0.8647850950009224`；`research/evaluation/test_redjujube_baseline.py --model_type baseline` 复评得到 Micro P/R/F1=0.8736/0.8561/0.8648。
-- `BERT-MRC` / `BERT-MRC+DSC` 暂无最终可登记结果，但旧失败已解除：
+- `BERT-MRC` / `BERT-MRC+DSC` 旧失败已解除，`BERT-MRC+DSC`
+  已得到当前路径结果，纯 `BERT-MRC` 尚未单独补跑：
   `span_loss_candidates=pred_and_gold` 已改为 `gold_pred` 默认值，随机矩阵 `.cuda()`
   已改为按目标张量设备迁移。`dice_ohem=0.3` 在当前 PyTorch/CUDA 下触发
-  INT_MAX 或 OOM；`dice_ohem=0`、`train_batch_size=4` 的 20-step GPU smoke
-  已通过，完整 10 epoch 长实验正在 tmux `rjnd-mrc-dsc-20260524` 中运行。
+  INT_MAX 或 OOM；最终使用 `dice_ohem=0`、`train_batch_size=4` 完成 10 epoch，
+  best dev F1=80.19，test P/R/F1=83.06/77.77/80.33。
 - `RA_NER / AdaSeq BERT-CRF` 旧失败已解除：AdaSeq conll builder 不能直接吃 BMES，
   转为 BIO 后 seed=42 test P/R/F1=84.42/85.90/85.16。
 - LatticeLSTM 当前不能直接补跑：源码位于
@@ -116,8 +122,12 @@
   Python 3/PyTorch 当前接口，并将 seed 改为 42。
 - NFLAT 已完成前置适配但尚未完整训练：源码位于
   `references/external_projects/NFLAT4CNER-main`，已补 `redjujube` 数据配置、
-  `seed` 参数、`n_epochs` 参数和当前向量路径；`flat37` 已安装 `prettytable`
-  并可导入 FastNLP。完整训练需等待 GPU 从 MRC/DSC 长实验释放。
+  `seed`、`n_epochs`、`refresh_data`、`smoke_samples`、CPU 设备解析和当前向量路径；
+  `flat37` 已安装 `prettytable` 并可导入 FastNLP。16-sample CPU smoke 已通过
+  `conda run -n flat37 python main.py --dataset redjujube --seed 42 --n_epochs 1 --device cpu --batch_size 4 --num_workers 0 --smoke_samples 16`，
+  退出码 0，覆盖数据读取、词典装备、模型构建、训练和验证/测试回调。该 smoke 不作为
+  论文指标；MRC/DSC 已释放本任务占用，但当前 GPU 仍有其他 resident Python 进程，
+  完整训练需等待 GPU 利用率下降。
 - `cache/redjujube_softlexicon_*` 与 `cache/flat_complete*` 中存在更高 F1 的旧结果，但不属于本次统一的 `results_newdata`/表 3 口径，暂不登记为投稿主证据。
 
 ### 2.2 单次分类分析结果，不进入摘要主结果

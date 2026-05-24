@@ -15,6 +15,15 @@ from utils.paths import *
 
 parser = argparse.ArgumentParser()
 
+
+def parse_device(value):
+    value = str(value).strip().lower()
+    if value in {'cpu', 'none', '-1'}:
+        return torch.device('cpu')
+    if value.startswith('cuda'):
+        return torch.device(value)
+    return int(value)
+
 parser.add_argument(
     '--dataset',
     type=str,
@@ -26,8 +35,11 @@ parser.add_argument('--only_lexicon_in_train', default=False)
 parser.add_argument('--label_type', default='ALL', help='NE|NM|ALL')
 parser.add_argument('--seed', type=int, default=2022)
 parser.add_argument('--n_epochs', type=int, default=None)
-parser.add_argument('--device', type=int, default=0)
+parser.add_argument('--device', type=parse_device, default=0)
 parser.add_argument('--refresh_data', action='store_true')
+parser.add_argument('--smoke_samples', type=int, default=None)
+parser.add_argument('--batch_size', type=int, default=None)
+parser.add_argument('--num_workers', type=int, default=2)
 
 args = parser.parse_args()
 dataset = args.dataset
@@ -137,6 +149,8 @@ elif dataset == 'redjujube':
 
 if args.n_epochs is not None:
     n_epochs = args.n_epochs
+if args.batch_size is not None:
+    batch_size = args.batch_size
 
 args.init = 'uniform'
 
@@ -149,7 +163,7 @@ dim_feedforward = int(2 * d_model)
 
 datasets, vocabs, embeddings = load_data(dataset, index_token=False, char_min_freq=1, bigram_min_freq=1,
                                          only_train_min_freq=1, char_dropout=0.01, label_type=args.label_type,
-                                         refresh_data=refresh_data)
+                                         refresh_data=refresh_data, smoke_samples=args.smoke_samples)
 
 if args.lexicon_name == 'lk':
     word_path = lk_word_path
@@ -169,8 +183,9 @@ w_list = load_yangjie_rich_pretrain_word_list(word_path,
                                               _cache_fp='cache/{}'.format(args.lexicon_name))
 
 type = args.label_type if args.label_type != 'ALL' else ''
-cache_name = os.path.join('cache', ('dataset_{}_lex_{}{}'.format(
-    args.dataset, lex, type)))
+smoke_suffix = '' if args.smoke_samples is None else '_smoke{}'.format(args.smoke_samples)
+cache_name = os.path.join('cache', ('dataset_{}_lex_{}{}{}'.format(
+    args.dataset, lex, type, smoke_suffix)))
 datasets, vocabs, embeddings = equip_chinese_ner_with_lexicon(datasets, vocabs, embeddings,
                                                               w_list, yangjie_rich_pretrain_word_path,
                                                               _refresh=refresh_data, _cache_fp=cache_name,
@@ -269,6 +284,8 @@ print("lr:", lr)
 print("attn_type:", attn_type)
 print("n_epochs:", n_epochs)
 print("batch_size:", batch_size)
+print("smoke_samples:", args.smoke_samples)
+print("device:", device)
 print("warmup_steps:", warmup_steps)
 print("model_type:", model_type)
 print("n_epochs:", n_epochs)
@@ -289,7 +306,7 @@ metrics = [
 ]
 
 trainer = Trainer(datasets['train'], model, optimizer, batch_size=batch_size, sampler=BucketSampler(),
-                  num_workers=2, n_epochs=n_epochs, dev_data=datasets['dev'],
+                  num_workers=args.num_workers, n_epochs=n_epochs, dev_data=datasets['dev'],
                   metrics=metrics,
                   dev_batch_size=batch_size, callbacks=callbacks, device=device, test_use_tqdm=False,
                   use_tqdm=True, print_every=3000, save_path=None)

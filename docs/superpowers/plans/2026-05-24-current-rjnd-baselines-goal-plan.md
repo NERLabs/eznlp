@@ -81,7 +81,7 @@
 
 - [x] If `Boundary Smoothing` is absent under current口径, adapt the closest existing script/config and run it first (`BS_nodict_seed42_current/bert_bs_pure_20260524-164044`).
 - [x] If `BERT+SoftLexicon` is absent or uses a non-RJND lexicon, run or clearly mark the lexicon-source limitation. Current-path `SoftLexicon-TrainLex` and `SoftLexicon-External` seed=42 runs completed on 2026-05-24.
-- [x] If MRC baselines are required, generate MRC-format data from current RJND before training and commit the conversion script/config, not generated bulky caches. The old `ValueError` was fixed in the external `dice_loss_for_NLP` checkout; `BERT-MRC+DSC` full training is running in tmux with `dice_ohem=0`, `train_batch_size=4`, and current RedJujube MRC data.
+- [x] If MRC baselines are required, generate MRC-format data from current RJND before training and commit the conversion script/config, not generated bulky caches. The old `ValueError` was fixed in the external `dice_loss_for_NLP` checkout; `BERT-MRC+DSC` full training completed in tmux with `dice_ohem=0`, `train_batch_size=4`, current RedJujube MRC data, and test P/R/F1=83.06/77.77/80.33.
 - [x] Use tmux for long-running jobs and name sessions with model, seed, and date (`rjnd-bs-nodict-20260524`).
 - [x] Save each run under a unique dated output directory to avoid overwriting older evidence.
 - [x] After each run, immediately复评 or parse test P/R/F1 and update the evidence table before starting lower-priority jobs.
@@ -94,7 +94,7 @@
 - Modify: `docs/paper/needed_experiment_results.md`
 
 - [x] Do not start `LatticeLSTM` until Python 2/PyTorch 0.3 compatibility or a Python 3 migration path is confirmed.
-- [x] Do not start `NFLAT` until RedJujube data adapters, seed control, Python 3.7 dependencies, and GPU availability are confirmed. RedJujube adapter, seed/n_epochs args, vector paths, and `flat37` `prettytable` dependency are now addressed; full training is deferred behind MRC/DSC GPU usage.
+- [x] Do not start full `NFLAT` training until RedJujube data adapters, seed control, Python 3.7 dependencies, and GPU availability are confirmed. RedJujube adapter, seed/n_epochs args, vector paths, `smoke_samples`, CPU device parsing, and `flat37` `prettytable` dependency are now addressed; 16-sample CPU smoke exited 0. Full NFLAT training is now deferred only by current GPU utilization from another resident Python process.
 - [x] Record blocker details as evidence so the论文端 can justify excluding these models from the current正文主表.
 
 ### Task 7: Register Results In Paper Evidence Docs

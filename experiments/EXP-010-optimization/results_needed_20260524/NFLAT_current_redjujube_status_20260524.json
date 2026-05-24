@@ -4,15 +4,27 @@
   "dataset": "datasets/raw/RedJujube",
   "source_path": "references/external_projects/NFLAT4CNER-main",
   "environment": "flat37",
-  "status": "adapter_prepared_not_trained",
+  "status": "smoke_passed_full_training_pending",
   "changes": [
     "added redjujube dataset choice",
     "added seed argument",
     "added n_epochs argument",
     "added refresh_data argument",
-    "pointed vector paths to local assets/vectors and projects/data"
+    "pointed vector paths to local assets/vectors and projects/data",
+    "added smoke_samples argument for tiny adapter/training checks",
+    "added CPU device parsing plus batch_size and num_workers arguments"
   ],
   "dependency_fix": "installed prettytable in flat37 so FastNLP imports",
-  "verification": "py_compile passed for main.py and utils/paths.py",
-  "blocker": "full training deferred while BERT-MRC+DSC occupies GPU"
+  "verification": {
+    "py_compile": "passed for main.py, utils/load_data.py, and utils/paths.py",
+    "cpu_smoke": {
+      "tmux_session": "rjnd-nflat-smoke-keep-20260524",
+      "command": "conda run -n flat37 python main.py --dataset redjujube --seed 42 --n_epochs 1 --device cpu --batch_size 4 --num_workers 0 --smoke_samples 16",
+      "status": "exit_0",
+      "scope": "adapter/data/lexicon/model/trainer chain only; not a paper metric",
+      "observed_metric": "SpanFPreRecMetric f=0.0 on 16-sample smoke"
+    }
+  },
+  "next_full_command": "conda run -n flat37 python main.py --dataset redjujube --seed 42 --n_epochs 100 --device 0 --batch_size 16 --num_workers 2",
+  "blocker": "full training deferred because GPU still has another resident Python process after BERT-MRC+DSC completed"
 }

@@ -39,7 +39,7 @@ Precision 和 Recall 由 `research/evaluation/test_redjujube_baseline.py`
 |---|---:|---|---:|---:|---:|---|---|---|---|
 | Boundary Smoothing | 42 | 否 | 87.36 | 85.61 | 86.48 | `experiments/EXP-010-optimization/results_needed_20260524/BS_nodict_seed42_current/bert_bs_pure_20260524-164044/results.json` | `docs/paper/plans/2026-05-24-needed-experiments-execution.md` | `research/evaluation/test_redjujube_baseline.py --model_type baseline` | 已完成；表 3 补强候选 |
 
-### 1.3 SoftLexicon 与 AdaSeq 当前路径结果（2026-05-24）
+### 1.3 SoftLexicon、AdaSeq 与 MRC/DSC 当前路径结果（2026-05-24）
 
 下表均使用 `datasets/raw/RedJujube`、seed=42 和 test split 实体级严格指标。
 SoftLexicon 两个版本均由
@@ -47,12 +47,17 @@ SoftLexicon 两个版本均由
 其中 `SoftLexicon-TrainLex` 的匹配词表来自
 `datasets/raw/RedJujube/softlexicon_train.txt`，嵌入初始化仍使用中文 50d 词向量。
 AdaSeq 的旧失败由 BMES 标签直接喂入 conll builder 引起，改为 BIO 转换后得到可登记结果。
+BERT-MRC+DSC 使用当前 RedJujube 重新生成的 MRC 格式数据；旧
+`span_loss_candidates` 与随机矩阵设备问题已在外部 `dice_loss_for_NLP`
+工程中修复，最终采用 `dice_ohem=0`、`train_batch_size=4` 规避 OHEM
+非零索引上限和显存问题。
 
 | 模型 | seed | 数据/转换 | P/% | R/% | F1/% | result_path | 状态 |
 |---|---:|---|---:|---:|---:|---|---|
 | SoftLexicon-TrainLex | 42 | 当前 RedJujube + 训练集词表 | 84.42 | 86.71 | 85.55 | `experiments/EXP-010-optimization/results_needed_20260524/SoftLexicon_trainlex_seed42_current/softlexicon_trainlex_20260524-171342/results.json` | 已完成；优先替代旧 HZ 词典 SoftLexicon |
 | SoftLexicon-External | 42 | 当前 RedJujube + `assets/vectors/ctb.50d.vec` 词表 | 84.32 | 85.65 | 84.98 | `experiments/EXP-010-optimization/results_needed_20260524/SoftLexicon_external_seed42_current/softlexicon_20260524-173106/results.json` | 已完成；外部词典对照 |
 | AdaSeq BERT-CRF | 42 | 当前 RedJujube BMES -> BIO | 84.42 | 85.90 | 85.16 | `experiments/EXP-010-optimization/results_needed_20260524/AdaSeq_bert_crf_seed42_current/metrics_summary.json` | 已完成；旧 BMES 断言失败已解除 |
+| BERT-MRC+DSC | 42 | 当前 RedJujube -> MRC | 83.06 | 77.77 | 80.33 | `experiments/EXP-010-optimization/results_needed_20260524/MRC_DSC_current_redjujube_status_20260524.json` | 已完成；Dice loss，OHEM 关闭 |
 
 ### 1.4 优先模型查询结论（2026-05-24）
 
@@ -63,12 +68,12 @@ AdaSeq 的旧失败由 BMES 标签直接喂入 conll builder 引起，改为 BIO
 - `BERT-MRC` / `BERT-MRC+DSC`：旧 `ValueError` 已定位为
   `span_loss_candidates=pred_and_gold` 不被 `compute_loss` 支持，并已在
   `/home/shiwenlong/NERlabs/dice_loss_for_NLP/_5TRAIN/tasks/mrc_ner/train.py`
-  修复为 `gold_pred` 默认值，同时修复随机矩阵 `.cuda()` 的设备问题。完整
-  `BERT-MRC+DSC` 当前路径长实验正在 tmux `rjnd-mrc-dsc-20260524` 中运行：
+  修复为 `gold_pred` 默认值，同时修复随机矩阵 `.cuda()` 的设备问题。
+  `BERT-MRC+DSC` 当前路径长实验已在 tmux `rjnd-mrc-dsc-20260524` 中完成：
   `dice_ohem=0`、`train_batch_size=4`、`accumulate_grad_batches=8`、输出目录
   `/home/shiwenlong/NERlabs/dice_loss_for_NLP/_9LOG/mrc_ner/redjujube_current_dice_noohem_bs4_seed42_20260524`。
-  已验证 batch=4 的 20-step GPU smoke 可完成训练/验证/测试链路；最终 test P/R/F1
-  尚未产生。
+  最终 test P/R/F1=83.06/77.77/80.33，best dev F1=80.19；纯 `BERT-MRC`
+  尚未单独补跑。
 - `RA_NER / AdaSeq BERT-CRF`：旧 BMES 断言失败已通过 BMES->BIO 转换解除；
   当前路径 seed=42 test P/R/F1=84.42/85.90/85.16。
 
@@ -83,7 +88,7 @@ AdaSeq 的旧失败由 BMES 标签直接喂入 conll builder 引起，改为 BIO
 | 7 | DiffusionNER | 42 | RJND/RedJujube 当前投稿稿划分 | 测试集 P/R/F1、结果路径、配置文件路径 | 新模型补充对比 | 与本文机制距离较远 |
 | 8 | PIQN | 42 | RJND/RedJujube 当前投稿稿划分 | 测试集 P/R/F1、结果路径、配置文件路径 | query/span 类补充对比 | 非当前最急 |
 | 9 | LatticeLSTM | 42 | RJND/RedJujube 当前投稿稿划分 | 测试集 P/R/F1、结果路径、配置文件路径、词典来源 | 经典 lattice 对比 | 本地旧环境阻塞，若服务器已有环境可跑 |
-| 10 | NFLAT | 42 | RJND/RedJujube 当前投稿稿划分 | 测试集 P/R/F1、结果路径、配置文件路径、词典来源 | 新 lattice 对比 | 本地旧环境阻塞，若服务器已有环境可跑 |
+| 10 | NFLAT | 42 | RJND/RedJujube 当前投稿稿划分 | 测试集 P/R/F1、结果路径、配置文件路径、词典来源 | 新 lattice 对比 | RedJujube adapter 与 16-sample CPU smoke 已通过；全量训练待 GPU 可用 |
 | 11 | SoftLexicon / BERT-SoftLexicon | 43、44 | RJND/RedJujube 当前投稿稿划分 | 测试集 P/R/F1、结果路径 | 如果后续需要三种子均值主表，可补齐 SoftLexicon 的 43/44 | seed=42 已登记为 84.75 |
 | 12 | FLAT | 43、44 | RJND/RedJujube 当前投稿稿划分 | 测试集 P/R/F1、结果路径 | 如果后续需要三种子均值主表，可补齐 FLAT 的 43/44 | seed=42 已登记为 79.78 |
 | 13 | FLAT+BERT | 43、44 | RJND/RedJujube 当前投稿稿划分 | 测试集 P/R/F1、结果路径 | 如果后续需要三种子均值主表，可补齐 FLAT+BERT 的 43/44 | seed=42 已登记为 79.40 |

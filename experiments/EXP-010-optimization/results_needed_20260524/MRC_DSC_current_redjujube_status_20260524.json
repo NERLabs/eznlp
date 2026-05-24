@@ -34,7 +34,7 @@
     "limit_test_batches": 2,
     "status": "completed train/validation/test chain on GPU"
   },
-  "running_full_experiment": {
+  "completed_full_experiment": {
     "tmux_session": "rjnd-mrc-dsc-20260524",
     "output_dir": "/home/shiwenlong/NERlabs/dice_loss_for_NLP/_9LOG/mrc_ner/redjujube_current_dice_noohem_bs4_seed42_20260524",
     "loss_type": "dice",
@@ -42,7 +42,13 @@
     "train_batch_size": 4,
     "accumulate_grad_batches": 8,
     "max_epochs": 10,
-    "status": "running",
-    "final_metric_source": "eval_result_log.txt after TEST INFO appears"
+    "status": "completed",
+    "best_dev_f1": 0.8018789887428284,
+    "best_epoch": 8,
+    "best_checkpoint": "/home/shiwenlong/NERlabs/dice_loss_for_NLP/_9LOG/mrc_ner/redjujube_current_dice_noohem_bs4_seed42_20260524/epoch=8.ckpt",
+    "test_precision": 0.8305894732475281,
+    "test_recall": 0.7777225375175476,
+    "test_f1": 0.8032870888710022,
+    "final_metric_source": "/home/shiwenlong/NERlabs/dice_loss_for_NLP/_9LOG/mrc_ner/redjujube_current_dice_noohem_bs4_seed42_20260524/eval_result_log.txt"
   }
 }
