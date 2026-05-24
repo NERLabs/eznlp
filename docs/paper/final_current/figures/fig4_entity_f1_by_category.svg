@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="680" viewBox="0 0 1200 680">
+  <defs>
+    <style>
+      .title { font-family: "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", Arial, sans-serif; font-size: 24px; font-weight: 700; fill: #222; }
+      .label { font-family: "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", Arial, sans-serif; font-size: 15px; fill: #222; }
+      .small { font-family: "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", Arial, sans-serif; font-size: 13px; fill: #333; }
+      .axis { stroke: #333; stroke-width: 1.5; }
+      .grid { stroke: #ddd; stroke-width: 1; }
+    </style>
+  </defs>
+  <rect width="1200" height="680" fill="#fff"/>
+  <text x="600" y="42" text-anchor="middle" class="title">不同实体类别识别 F1 值</text>
+  <text x="600" y="68" text-anchor="middle" class="small">F1-score of EDBP for Different Entity Categories</text>
+
+  <!-- chart area: x=90 y=100 width=1040 height=420; y scale 0-100 -->
+  <line x1="90" y1="520" x2="1130" y2="520" class="axis"/>
+  <line x1="90" y1="100" x2="90" y2="520" class="axis"/>
+
+  <g>
+    <line x1="90" y1="436" x2="1130" y2="436" class="grid"/><text x="70" y="441" text-anchor="end" class="small">20</text>
+    <line x1="90" y1="352" x2="1130" y2="352" class="grid"/><text x="70" y="357" text-anchor="end" class="small">40</text>
+    <line x1="90" y1="268" x2="1130" y2="268" class="grid"/><text x="70" y="273" text-anchor="end" class="small">60</text>
+    <line x1="90" y1="184" x2="1130" y2="184" class="grid"/><text x="70" y="189" text-anchor="end" class="small">80</text>
+    <line x1="90" y1="100" x2="1130" y2="100" class="grid"/><text x="70" y="105" text-anchor="end" class="small">100</text>
+  </g>
+
+  <text x="40" y="300" transform="rotate(-90 40 300)" text-anchor="middle" class="label">F1 / %</text>
+
+  <!-- bars, baseline y=520, height=4.2*F1 -->
+  <g>
+    <rect x="116" y="128.56" width="45" height="391.44" fill="#4e79a7"/><text x="138.5" y="122" text-anchor="middle" class="small">93.20</text><text x="138.5" y="548" text-anchor="middle" class="small">PAR</text>
+    <rect x="187" y="166.70" width="45" height="353.30" fill="#59a14f"/><text x="209.5" y="160" text-anchor="middle" class="small">84.12</text><text x="209.5" y="548" text-anchor="middle" class="small">AGR</text>
+    <rect x="258" y="134.86" width="45" height="385.14" fill="#4e79a7"/><text x="280.5" y="128" text-anchor="middle" class="small">91.70</text><text x="280.5" y="548" text-anchor="middle" class="small">CUL</text>
+    <rect x="329" y="136.46" width="45" height="383.54" fill="#4e79a7"/><text x="351.5" y="130" text-anchor="middle" class="small">91.32</text><text x="351.5" y="548" text-anchor="middle" class="small">PER</text>
+    <rect x="400" y="190.08" width="45" height="329.92" fill="#f28e2b"/><text x="422.5" y="184" text-anchor="middle" class="small">78.41</text><text x="422.5" y="548" text-anchor="middle" class="small">EQU</text>
+    <rect x="471" y="181.86" width="45" height="338.14" fill="#f28e2b"/><text x="493.5" y="176" text-anchor="middle" class="small">80.51</text><text x="493.5" y="548" text-anchor="middle" class="small">LOC</text>
+    <rect x="542" y="132.76" width="45" height="387.24" fill="#4e79a7"/><text x="564.5" y="126" text-anchor="middle" class="small">92.20</text><text x="564.5" y="548" text-anchor="middle" class="small">DIS</text>
+    <rect x="613" y="145.91" width="45" height="374.09" fill="#4e79a7"/><text x="635.5" y="139" text-anchor="middle" class="small">89.07</text><text x="635.5" y="548" text-anchor="middle" class="small">DRU</text>
+    <rect x="684" y="172.81" width="45" height="347.19" fill="#59a14f"/><text x="706.5" y="166" text-anchor="middle" class="small">82.76</text><text x="706.5" y="548" text-anchor="middle" class="small">PRO</text>
+    <rect x="755" y="114.69" width="45" height="405.31" fill="#4e79a7"/><text x="777.5" y="108" text-anchor="middle" class="small">96.55</text><text x="777.5" y="548" text-anchor="middle" class="small">PES</text>
+    <rect x="826" y="143.56" width="45" height="376.44" fill="#4e79a7"/><text x="848.5" y="137" text-anchor="middle" class="small">89.58</text><text x="848.5" y="548" text-anchor="middle" class="small">NUT</text>
+    <rect x="897" y="234.40" width="45" height="285.60" fill="#e15759"/><text x="919.5" y="228" text-anchor="middle" class="small">68.00</text><text x="919.5" y="548" text-anchor="middle" class="small">FER</text>
+    <rect x="968" y="129.99" width="45" height="390.01" fill="#4e79a7"/><text x="990.5" y="123" text-anchor="middle" class="small">92.86</text><text x="990.5" y="548" text-anchor="middle" class="small">WED</text>
+    <rect x="1039" y="223.52" width="45" height="296.48" fill="#e15759"/><text x="1061.5" y="217" text-anchor="middle" class="small">70.59</text><text x="1061.5" y="548" text-anchor="middle" class="small">TAX</text>
+  </g>
+
+  <g>
+    <rect x="385" y="600" width="18" height="18" fill="#4e79a7"/><text x="410" y="614" class="small">F1 ≥ 88%</text>
+    <rect x="505" y="600" width="18" height="18" fill="#59a14f"/><text x="530" y="614" class="small">80% ≤ F1 &lt; 88%</text>
+    <rect x="675" y="600" width="18" height="18" fill="#f28e2b"/><text x="700" y="614" class="small">75% ≤ F1 &lt; 80%</text>
+    <rect x="845" y="600" width="18" height="18" fill="#e15759"/><text x="870" y="614" class="small">F1 &lt; 75%</text>
+  </g>
+</svg>
