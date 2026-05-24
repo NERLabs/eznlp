@@ -140,10 +140,27 @@
 | 2 | 1 842 | 85.45 | 31.04 | 58.51 | 45.11 | 57.79 | 主模型采用 |
 | 3 | 1 087 | 78.61 | 16.94 | 56.73 | 28.14 | 55.19 | 对比 |
 
+2026-05-24 按当前 `datasets/raw/RedJujube`、seed=42、同一 EDBP 训练脚本补跑
+`min_freq=1`、`min_freq=3` 和 `min_freq=4`，将词典阈值对比从代理指标补充为真实测试集 NER 指标。
+`min_freq=2` 主模型结果仍采用 2.1.2 登记的表 3 口径。
+
+| 最小词频阈值 | seed | 词典规模 | P/% | R/% | F1/% | 结果路径 | 采用状态 |
+|---:|---:|---:|---:|---:|---:|---|---|
+| 1 | 42 | 5 317 | 86.94 | 81.92 | 84.36 | `experiments/EXP-010-optimization/results_needed_20260524/Q_bs_focal_minfreq1_seed42_current/expert_boundary_20260524-124317/results.json` | 词典阈值真实 NER 对照 |
+| 2 | 42 | 1 842 | - | - | 88.16 | `experiments/EXP-010-optimization/results_newdata/Q_bs_focal/expert_boundary_20260319-182029/results.json` | 表 3 主模型采用 |
+| 3 | 42 | 1 087 | 88.56 | 86.49 | 87.51 | `experiments/EXP-010-optimization/results_needed_20260524/Q_bs_focal_minfreq3_seed42_current/expert_boundary_20260524-125722/results.json` | 词典阈值真实 NER 对照 |
+| 4 | 42 | 786 | 87.79 | 86.12 | 86.95 | `experiments/EXP-010-optimization/results_needed_20260524/Q_bs_focal_minfreq4_seed42_current/expert_boundary_20260524-132104/results.json` | 词典阈值真实 NER 对照 |
+
+复评说明：补跑结果的 `results.json` 只保存 loss/F1；P/R 由
+`research/evaluation/test_redjujube_baseline.py` 加载同一最佳模型和 `auto_lexicon.txt`
+复评得到。执行命令和 tmux 查询方式见
+`docs/paper/plans/2026-05-24-needed-experiments-execution.md`。
+
 处理决策：
 
 - 投稿稿新增词典构建策略对比表，说明低频复合术语对词典覆盖的影响，并明确主模型采用 min_freq=2。
-- 表中数值只用于词典阈值选择解释，不与表 3 的测试集 F1 直接比较。
+- 代理指标表只用于词典阈值选择解释；真实 NER 指标表可用于说明 `min_freq=2`
+  相比 `min_freq=1/3/4` 的测试集 F1 更优。
 
 ## 5. 解码器与损失函数对比
 

@@ -8,8 +8,24 @@
 |---:|---|---:|---|---|---|---|
 | 1 | LatticeLSTM | 42 | RJND/RedJujube | 测试集 P/R/F1、结果路径、配置文件路径 | 判断是否纳入正文表 3 | 当前 registry 只登记为“待补”，未找到 RJND 同口径结果 |
 | 2 | NFLAT | 42 | RJND/RedJujube | 测试集 P/R/F1、结果路径、配置文件路径 | 判断是否纳入正文表 3 | 当前 registry 只找到 MSRA 相关结果，未找到 RJND 同口径结果 |
-| 3 | EDBP min_freq=1 | 42 | RJND/RedJujube | 测试集 P/R/F1、词典规模、结果路径 | 支撑表 5 “不同词频”从代理指标升级为真实 NER 指标 | 当前只有词典覆盖/匹配代理指标，缺测试 F1 |
-| 4 | EDBP min_freq=3 | 42 | RJND/RedJujube | 测试集 P/R/F1、词典规模、结果路径 | 支撑表 5 “不同词频”从代理指标升级为真实 NER 指标 | 当前只有词典覆盖/匹配代理指标，缺测试 F1 |
+| 3 | EDBP min_freq=1 | 42 | RJND/RedJujube | 测试集 P/R/F1、词典规模、结果路径 | 支撑表 5 “不同词频”从代理指标升级为真实 NER 指标 | 2026-05-24 已补跑，见 1.1 |
+| 4 | EDBP min_freq=3 | 42 | RJND/RedJujube | 测试集 P/R/F1、词典规模、结果路径 | 支撑表 5 “不同词频”从代理指标升级为真实 NER 指标 | 2026-05-24 已补跑，见 1.1 |
+
+### 1.1 已补跑结果（2026-05-24）
+
+下表使用 `datasets/raw/RedJujube`、seed=42、`hfl/chinese-macbert-base`、
+`sb_epsilon=0.1`、`sb_size=2`、`fl_gamma=2.0`、`no_fgm`、`no_ema`。
+F1 来自训练脚本保存的最佳模型测试结果；Precision 和 Recall 由
+`research/evaluation/test_redjujube_baseline.py` 加载同一最佳模型复评得到。
+
+| 模型 | seed | 词典规模 | P/% | R/% | F1/% | result_path | config_path | 状态 |
+|---|---:|---:|---:|---:|---:|---|---|---|
+| EDBP min_freq=1 | 42 | 5 317 | 86.94 | 81.92 | 84.36 | `experiments/EXP-010-optimization/results_needed_20260524/Q_bs_focal_minfreq1_seed42_current/expert_boundary_20260524-124317/results.json` | `docs/paper/plans/2026-05-24-needed-experiments-execution.md` | 已完成 |
+| EDBP min_freq=3 | 42 | 1 087 | 88.56 | 86.49 | 87.51 | `experiments/EXP-010-optimization/results_needed_20260524/Q_bs_focal_minfreq3_seed42_current/expert_boundary_20260524-125722/results.json` | `docs/paper/plans/2026-05-24-needed-experiments-execution.md` | 已完成 |
+| EDBP min_freq=4 | 42 | 786 | 87.79 | 86.12 | 86.95 | `experiments/EXP-010-optimization/results_needed_20260524/Q_bs_focal_minfreq4_seed42_current/expert_boundary_20260524-132104/results.json` | `docs/paper/plans/2026-05-24-needed-experiments-execution.md` | 已完成 |
+
+执行约定：后续长实验统一使用 tmux 后台会话，查询使用 `tmux ls`、
+`tmux capture-pane -pt <session> -S -80` 和对应 `training.log`。
 
 ## 2. 建议补充查询
 
