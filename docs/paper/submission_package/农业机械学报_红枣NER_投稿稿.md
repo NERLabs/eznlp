@@ -2,13 +2,13 @@
 
 ## 摘要
 
-针对红枣栽培技术文本中领域术语密集、实体类别分布不均衡和传统序列标注解码器难以全局判断实体边界等问题，提出一种基于专家词典与边界预测的红枣栽培命名实体识别方法（Expert Dictionary and Boundary Prediction，EDBP）。围绕红枣栽培品种、部位、病虫害、药剂、农事操作等关键知识单元，构建涵盖 14 个实体类别的红枣栽培命名实体识别数据集 RJND；从训练集自动抽取领域实体构建专家词典，采用 BMES 四通道结构编码词典匹配位置，将领域词典先验融合到字符语义表示中；将命名实体识别建模为片段分类任务，采用边界预测解码器对候选实体起止位置进行联合打分，并引入 Focal Loss 缓解类别不平衡对低频实体识别的影响。结果表明，EDBP 在 RJND 数据集上的 F1 值达到 88.28%±0.22%，较 BiLSTM-CRF、BERT-wwm-ext+BiLSTM+CRF 和 MacBERT-base+BiLSTM+CRF 分别提升 9.59、2.80 和 2.71 个百分点；在 MSRA、WeiboNER、ResumeNER、Boson 和 CLUENER 公开数据集上的 F1 值分别为 95.19%±0.22%、72.27%±1.03%、96.13%±0.29%、85.60%±0.12% 和 80.06%±0.38%。研究表明，专家词典特征与边界预测解码器能够有效提升红枣栽培领域实体识别精度，可为红枣栽培知识图谱构建、农业技术智能检索和问答系统提供基础支撑。
+针对红枣栽培技术文本中领域术语密集、实体类别分布不均衡和传统序列标注解码器难以全局判断实体边界等问题，提出一种基于专家词典与边界预测的红枣栽培命名实体识别方法（Expert Dictionary and Boundary Prediction，EDBP）。围绕红枣栽培品种、部位、病虫害、药剂、农事操作等关键知识单元，构建涵盖 14 个实体类别的红枣栽培命名实体识别数据集 RJND；从训练集自动抽取领域实体构建专家词典，采用 BMES 四通道结构编码词典匹配位置，将领域词典先验融合到字符语义表示中；将命名实体识别建模为片段分类任务，采用边界预测解码器对候选实体起止位置进行联合打分，并引入 Focal Loss 缓解类别不平衡对低频实体识别的影响。结果表明，EDBP 在 RJND 数据集上的 F1 值达到 88.16%，较 BiLSTM-CRF、BERT-wwm-ext+BiLSTM+CRF、MacBERT-base+BiLSTM+CRF、SoftLexicon、FLAT 和 FLAT+BERT 分别提升 9.86、2.95、2.80、3.41、8.38 和 8.76 个百分点；在 MSRA、WeiboNER、ResumeNER、Boson 和 CLUENER 公开数据集上的 F1 值分别为 95.19%±0.22%、72.27%±1.03%、96.13%±0.29%、85.60%±0.12% 和 80.06%±0.38%。研究表明，专家词典特征与边界预测解码器能够有效提升红枣栽培领域实体识别精度，可为红枣栽培知识图谱构建、农业技术智能检索和问答系统提供基础支撑。
 
 关键词：红枣栽培；命名实体识别；专家词典；边界预测；Focal Loss；农业知识图谱
 
 ## Abstract
 
-To address the problems of dense domain-specific terminology, imbalanced entity categories, and insufficient global boundary modeling in named entity recognition for red jujube cultivation texts, an Expert Dictionary and Boundary Prediction method, named EDBP, was proposed. First, a red jujube cultivation named entity recognition dataset, RJND, was constructed around key knowledge units such as cultivars, plant parts, diseases, pests, pesticides, and cultivation operations. The dataset contains 14 entity categories. Second, domain entities were automatically extracted from the training set to build an expert dictionary. A BMES four-channel structure was used to encode the matched positions of dictionary entries, and the resulting domain priors were fused with contextual character representations. Third, named entity recognition was formulated as a span classification task. A boundary prediction decoder was used to jointly score candidate start and end positions, and Focal Loss was introduced to reduce the influence of category imbalance on low-frequency entities. The results showed that EDBP achieved an F1 score of 88.28%±0.22% on RJND, outperforming BiLSTM-CRF, BERT-wwm-ext+BiLSTM+CRF, and MacBERT-base+BiLSTM+CRF by 9.59, 2.80, and 2.71 percentage points, respectively. On the public datasets MSRA, WeiboNER, ResumeNER, Boson, and CLUENER, EDBP achieved F1 scores of 95.19%±0.22%, 72.27%±1.03%, 96.13%±0.29%, 85.60%±0.12%, and 80.06%±0.38%, respectively. The results indicate that expert dictionary features and boundary prediction can effectively improve entity recognition accuracy in red jujube cultivation texts, providing technical support for red jujube cultivation knowledge graph construction, agricultural technology retrieval, and intelligent question answering.
+To address the problems of dense domain-specific terminology, imbalanced entity categories, and insufficient global boundary modeling in named entity recognition for red jujube cultivation texts, an Expert Dictionary and Boundary Prediction method, named EDBP, was proposed. First, a red jujube cultivation named entity recognition dataset, RJND, was constructed around key knowledge units such as cultivars, plant parts, diseases, pests, pesticides, and cultivation operations. The dataset contains 14 entity categories. Second, domain entities were automatically extracted from the training set to build an expert dictionary. A BMES four-channel structure was used to encode the matched positions of dictionary entries, and the resulting domain priors were fused with contextual character representations. Third, named entity recognition was formulated as a span classification task. A boundary prediction decoder was used to jointly score candidate start and end positions, and Focal Loss was introduced to reduce the influence of category imbalance on low-frequency entities. The results showed that EDBP achieved an F1 score of 88.16% on RJND, outperforming BiLSTM-CRF, BERT-wwm-ext+BiLSTM+CRF, MacBERT-base+BiLSTM+CRF, SoftLexicon, FLAT, and FLAT+BERT by 9.86, 2.95, 2.80, 3.41, 8.38, and 8.76 percentage points, respectively. On the public datasets MSRA, WeiboNER, ResumeNER, Boson, and CLUENER, EDBP achieved F1 scores of 95.19%±0.22%, 72.27%±1.03%, 96.13%±0.29%, 85.60%±0.12%, and 80.06%±0.38%, respectively. The results indicate that expert dictionary features and boundary prediction can effectively improve entity recognition accuracy in red jujube cultivation texts, providing technical support for red jujube cultivation knowledge graph construction, agricultural technology retrieval, and intelligent question answering.
 
 Keywords: red jujube cultivation; named entity recognition; expert dictionary; boundary prediction; Focal Loss; agricultural knowledge graph
 
@@ -173,7 +173,7 @@ $$
 
 ### 1.6 实验设置与评价指标
 
-预训练模型采用 `hfl/chinese-macbert-base`。主要参数设置见表 2。所有主实验采用随机种子 42、43、44 重复运行 3 次，报告均值和标准差。评价指标采用精确率（Precision，P）、召回率（Recall，R）和 F1 值，只有实体边界和类别均正确时才判定为正确识别。
+预训练模型采用 `hfl/chinese-macbert-base`。主要参数设置见表 2。主模型与基线模型对比采用随机种子 42 的同口径实验结果，消融实验和公开数据集泛化实验沿用对应实验表中的统计口径。评价指标采用精确率（Precision，P）、召回率（Recall，R）和 F1 值，只有实体边界和类别均正确时才判定为正确识别。
 
 表 2 实验参数设置  
 Table 2 Experimental parameter settings
@@ -192,29 +192,32 @@ Table 2 Experimental parameter settings
 | 边界平滑系数 | 0.1 |
 | 边界平滑邻域大小 | 2 |
 | Focal Loss 聚焦因子 | 2.0 |
-| 随机种子 | 42、43、44 |
+| 随机种子 | 42 |
 
 ## 2 结果与分析
 
 ### 2.1 主模型与基线模型对比
 
-表 3 给出 EDBP 与基线模型的对比结果。EDBP 在 RJND 上取得 88.28%±0.22% 的 F1 值，高于无预训练 BiLSTM-CRF 和两个预训练强基线。
+表 3 给出 EDBP 与基线模型的对比结果。为扩大对比范围，表中除 BiLSTM-CRF 和预训练 BiLSTM-CRF 强基线外，还加入 SoftLexicon、FLAT 和 FLAT+BERT 等典型词典增强模型。所有模型均采用 RJND 数据集上随机种子 42 的测试集 F1 值。
 
 表 3 主模型与基线模型对比  
 Table 3 Comparison between EDBP and baseline models
 
 | 模型 | 主要技术 | F1/% |
 |---|---|---:|
-| BiLSTM-CRF | BiLSTM 编码 + CRF 解码 | 78.69 |
-| BERT-wwm-ext+BiLSTM+CRF | BERT-wwm-ext + BiLSTM + CRF | 85.48±0.25 |
-| MacBERT-base+BiLSTM+CRF | MacBERT-base + BiLSTM + CRF | 85.57±0.29 |
-| EDBP | 专家词典 + 边界预测 + Focal Loss | 88.28±0.22 |
+| BiLSTM-CRF | BiLSTM 编码 + CRF 解码 | 78.30 |
+| BERT-wwm-ext+BiLSTM+CRF | BERT-wwm-ext + BiLSTM + CRF | 85.21 |
+| MacBERT-base+BiLSTM+CRF | MacBERT-base + BiLSTM + CRF | 85.36 |
+| SoftLexicon | MacBERT-base + BiLSTM + CRF + SoftLexicon | 84.75 |
+| FLAT | CTB lattice 词表 + Flat-Lattice Transformer | 79.78 |
+| FLAT+BERT | MacBERT-base + CTB lattice 词表 + Flat-Lattice Transformer | 79.40 |
+| EDBP | 训练集自动词典（最小词频 2）+ 边界预测 + Focal Loss | 88.16 |
 
-由表 3 可知，EDBP 相比 BiLSTM-CRF、BERT-wwm-ext+BiLSTM+CRF 和 MacBERT-base+BiLSTM+CRF 分别提升 9.59、2.80 和 2.71 个百分点。以随机种子 42、43、44 的 F1 值进行配对 t 检验，EDBP 相对 BiLSTM-CRF、BERT-wwm-ext+BiLSTM+CRF 和 MacBERT-base+BiLSTM+CRF 的提升均达到显著水平，p 值分别为 0.0004、0.0036 和 0.0003。说明在红枣栽培领域，通用预训练模型虽然能提供较强语义表示，但仍需要领域词典先验和边界级解码机制进一步提升专业实体识别能力。
+由表 3 可知，EDBP 相比 BiLSTM-CRF、BERT-wwm-ext+BiLSTM+CRF、MacBERT-base+BiLSTM+CRF、SoftLexicon、FLAT 和 FLAT+BERT 分别提升 9.86、2.95、2.80、3.41、8.38 和 8.76 个百分点。SoftLexicon 和 FLAT 类模型均引入词典或 lattice 结构，但其词典特征主要通过序列编码或 lattice 注意力间接影响实体边界；EDBP 将训练集自动词典编码为 BMES 四通道特征，并通过边界预测解码器直接建模候选片段的起止位置，因此在红枣栽培专业术语识别中取得更高 F1 值。当前未取得 LatticeLSTM 和 NFLAT 在 RJND 上同一 seed 与同一评估脚本下的结果，因此未将其纳入表 3。
 
 ### 2.2 消融实验
 
-为验证专家词典、边界预测和 Focal Loss 的作用，设计消融实验，结果见表 4。
+为验证专家词典、边界预测和 Focal Loss 的作用，设计消融实验，结果见表 4。表 4 采用既有消融实验登记结果，用于分析模块贡献，统计口径与表 3 的 seed=42 扩展主对比不同。
 
 表 4 消融实验结果  
 Table 4 Ablation results
@@ -232,7 +235,7 @@ Table 4 Ablation results
 
 ### 2.3 词典构建策略对比
 
-专家词典由训练集实体自动抽取得到。为分析词典规模与匹配覆盖之间的关系，比较最小词频阈值为 1、2、3 时的词典构建策略，结果见表 5。其中，短实体和长实体分别用于反映普通术语与复合术语的覆盖情况，平衡 F1 为训练集词典匹配质量的代理指标，用于辅助选择词典阈值。
+专家词典由训练集实体自动抽取得到，主模型采用最小词频阈值 2，对应词典规模为 1 842。为分析词典规模与匹配覆盖之间的关系，比较最小词频阈值为 1、2、3 时的词典构建策略，结果见表 5。其中，短实体和长实体分别用于反映普通术语与复合术语的覆盖情况，平衡 F1 为训练集词典匹配质量的代理指标，用于辅助解释词典阈值选择。
 
 表 5 词典构建策略对比  
 Table 5 Comparison of lexicon construction strategies
@@ -243,11 +246,11 @@ Table 5 Comparison of lexicon construction strategies
 | 2 | 1 842 | 85.45 | 31.04 | 58.51 | 45.11 | 57.79 |
 | 3 | 1 087 | 78.61 | 16.94 | 56.73 | 28.14 | 55.19 |
 
-由表 5 可知，随着最小词频阈值提高，词典规模明显缩小，但长实体覆盖率下降更快。当阈值由 1 提高到 2 时，长实体覆盖率由 77.75% 降至 31.04%，说明低频复合术语在红枣栽培文本中占有较高比例。综合覆盖率和匹配质量，本文采用最小词频阈值 1 构建专家词典，以尽量保留肥料、药剂、设备和分类等长尾术语。
+由表 5 可知，随着最小词频阈值提高，词典规模明显缩小，但长实体覆盖率下降更快。当阈值由 1 提高到 2 时，词典规模由 5 317 降至 1 842，长实体覆盖率由 77.75% 降至 31.04%，说明低频复合术语在红枣栽培文本中占有较高比例。考虑到最小词频 1 会引入大量仅出现一次的实体，词典规模较大且可能增加噪声；最小词频 3 又会明显降低长实体覆盖，本文主模型采用最小词频阈值 2，以在词典覆盖和低频噪声控制之间取得折中。
 
 ### 2.4 解码器和损失函数对比
 
-表 6 给出相同专家词典特征条件下，不同解码器和损失函数的代表性运行结果。该表用于分析解码器和损失函数的行为差异，统计口径与表 3 的三种子均值不同。
+表 6 给出相同专家词典特征条件下，不同解码器和损失函数的代表性运行结果。该表用于分析解码器和损失函数的行为差异，统计口径与表 3 的 seed=42 扩展主对比不同。
 
 表 6 解码器和损失函数对比  
 Table 6 Comparison of decoders and loss functions
@@ -315,7 +318,7 @@ Table 8 Generalization results on public datasets
 | ResumeNER | 96.32 | 96.13±0.29 | -0.19 |
 | Boson | 85.35±0.16 | 85.60±0.12 | +0.25 |
 | CLUENER | 79.90±0.18 | 80.06±0.38 | +0.16 |
-| RedJujube | 85.57±0.29 | 88.28±0.22 | +2.71 |
+| RedJujube | 85.36 | 88.16 | +2.80 |
 
 公开数据集上的提升幅度总体小于 RJND，其中 ResumeNER 的 F1 值较基线低 0.19 个百分点。原因在于 MSRA、Boson、CLUENER 和 ResumeNER 等数据集中实体多为通用人名、地名、机构名或简历领域常见类型，预训练模型已有较充分语义先验，专家词典带来的边际增益较小。RedJujube 中大量实体属于农业专业术语，预训练语料覆盖不足，因此领域词典特征和边界预测机制能够发挥更明显作用。
 
@@ -345,7 +348,7 @@ EDBP 输出的实体可作为红枣栽培知识图谱的节点基础，为后续
 
 本文面向红枣栽培技术文本知识结构化需求，构建了包含 14 个实体类别的 RJND 数据集，提出了基于专家词典与边界预测的命名实体识别方法 EDBP。主要结论如下：
 
-1. EDBP 在 RJND 数据集上取得 88.28%±0.22% 的 F1 值，较 MacBERT-base+BiLSTM+CRF 强基线提升 2.71 个百分点，说明专家词典先验和边界预测机制能够有效提升红枣栽培实体识别精度。
+1. EDBP 在 RJND 数据集上取得 88.16% 的 F1 值，较 MacBERT-base+BiLSTM+CRF 强基线提升 2.80 个百分点，说明专家词典先验和边界预测机制能够有效提升红枣栽培实体识别精度。
 2. 消融实验表明，专家词典、边界预测和 Focal Loss 均对模型性能有贡献，其中专家词典与边界预测具有协同作用，Focal Loss 在二者基础上进一步提升模型对困难样本的识别能力。
 3. 类别分析表明，模型对部位、品种、病害、虫害等类别识别效果较好，对肥料、分类等低频类别仍存在召回不足问题。
 4. 公开数据集泛化实验表明，EDBP 在通用中文 NER 数据集上具有一定泛化能力，但在红枣栽培等专业农业文本中的增益更明显。

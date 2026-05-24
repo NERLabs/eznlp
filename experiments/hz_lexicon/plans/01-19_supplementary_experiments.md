@@ -36,8 +36,8 @@
 
 ```bash
 # 实验 1.1: min_freq=3
-nohup python _5TRAIN/train_redjujube_expert_boundary.py \
-    --data_dir _2DATA/RedJujube \
+nohup python research/training/train_redjujube_expert_boundary.py \
+    --data_dir datasets/raw/RedJujube \
     --save_dir cache/hz_freq3 \
     --min_freq 3 \
     --sb_epsilon 0.1 \
@@ -47,8 +47,8 @@ nohup python _5TRAIN/train_redjujube_expert_boundary.py \
     > train_hz_freq3.log 2>&1 &
 
 # 实验 1.2: min_freq=5
-nohup python _5TRAIN/train_redjujube_expert_boundary.py \
-    --data_dir _2DATA/RedJujube \
+nohup python research/training/train_redjujube_expert_boundary.py \
+    --data_dir datasets/raw/RedJujube \
     --save_dir cache/hz_freq5 \
     --min_freq 5 \
     --sb_epsilon 0.1 \
@@ -73,9 +73,9 @@ nohup python _5TRAIN/train_redjujube_expert_boundary.py \
 
 ```bash
 # 从训练集提取带类型词典
-python _3DATA_PROCESS/extract_typed_lexicon.py \
-    --input _2DATA/RedJujube/redjujube_train.bmes \
-    --output _2DATA/RedJujube/expert_lexicon_typed.txt \
+python research/data_processing/extract_typed_lexicon.py \
+    --input datasets/raw/RedJujube/redjujube_train.bmes \
+    --output datasets/raw/RedJujube/expert_lexicon_typed.txt \
     --min_freq 2
 ```
 
@@ -83,10 +83,10 @@ python _3DATA_PROCESS/extract_typed_lexicon.py \
 
 ```bash
 # 实验 2.1: 类型词典 + 边界选择
-nohup python _5TRAIN/train_redjujube_expert_boundary.py \
-    --data_dir _2DATA/RedJujube \
+nohup python research/training/train_redjujube_expert_boundary.py \
+    --data_dir datasets/raw/RedJujube \
     --save_dir cache/hz_typed_bs \
-    --expert_dict_path _2DATA/RedJujube/expert_lexicon_typed.txt \
+    --expert_dict_path datasets/raw/RedJujube/expert_lexicon_typed.txt \
     --sb_epsilon 0.1 \
     --sb_size 2 \
     --num_epochs 30 \
@@ -94,10 +94,10 @@ nohup python _5TRAIN/train_redjujube_expert_boundary.py \
     > train_hz_typed_bs.log 2>&1 &
 
 # 实验 2.2: 类型词典 + CRF (序列标注)
-nohup python _5TRAIN/train_redjujube_ner.py \
-    --data_dir _2DATA/RedJujube \
+nohup python research/training/train_redjujube_ner.py \
+    --data_dir datasets/raw/RedJujube \
     --save_dir cache/hz_typed_crf \
-    --expert_dict_path _2DATA/RedJujube/expert_lexicon_typed.txt \
+    --expert_dict_path datasets/raw/RedJujube/expert_lexicon_typed.txt \
     --with_type \
     --num_epochs 30 \
     --batch_size 16 \
@@ -121,8 +121,8 @@ nohup python _5TRAIN/train_redjujube_ner.py \
 ```bash
 # 实验 3.1: 通道注意力 v1 (freq=2词典)
 # 注意: expert_dict_dim 必须能被 channel_attn_heads 整除
-nohup python _5TRAIN/train_redjujube_expert_boundary.py \
-    --data_dir _2DATA/RedJujube \
+nohup python research/training/train_redjujube_expert_boundary.py \
+    --data_dir datasets/raw/RedJujube \
     --save_dir cache/hz_channel_attn_v1 \
     --min_freq 2 \
     --expert_dict_dim 48 \
@@ -135,8 +135,8 @@ nohup python _5TRAIN/train_redjujube_expert_boundary.py \
     > train_hz_channel_attn_v1.log 2>&1 &
 
 # 实验 3.2: 通道注意力 v2 (freq=2词典)
-nohup python _5TRAIN/train_redjujube_expert_boundary.py \
-    --data_dir _2DATA/RedJujube \
+nohup python research/training/train_redjujube_expert_boundary.py \
+    --data_dir datasets/raw/RedJujube \
     --save_dir cache/hz_channel_attn_v2 \
     --min_freq 2 \
     --expert_dict_dim 48 \
@@ -149,8 +149,8 @@ nohup python _5TRAIN/train_redjujube_expert_boundary.py \
     > train_hz_channel_attn_v2.log 2>&1 &
 
 # 实验 3.3: 跨位置LSTM编码器 (freq=2词典)
-nohup python _5TRAIN/train_redjujube_expert_boundary.py \
-    --data_dir _2DATA/RedJujube \
+nohup python research/training/train_redjujube_expert_boundary.py \
+    --data_dir datasets/raw/RedJujube \
     --save_dir cache/hz_cross_encoder \
     --min_freq 2 \
     --use_cross_position_encoder \
@@ -178,8 +178,8 @@ nohup python _5TRAIN/train_redjujube_expert_boundary.py \
 
 ```bash
 # 实验 4.1: sb_epsilon=0.05
-nohup python _5TRAIN/train_redjujube_expert_boundary.py \
-    --data_dir _2DATA/RedJujube \
+nohup python research/training/train_redjujube_expert_boundary.py \
+    --data_dir datasets/raw/RedJujube \
     --save_dir cache/hz_sb_eps005 \
     --min_freq 2 \
     --sb_epsilon 0.05 \
@@ -188,8 +188,8 @@ nohup python _5TRAIN/train_redjujube_expert_boundary.py \
     > train_hz_sb_eps005.log 2>&1 &
 
 # 实验 4.2: sb_epsilon=0.15
-nohup python _5TRAIN/train_redjujube_expert_boundary.py \
-    --data_dir _2DATA/RedJujube \
+nohup python research/training/train_redjujube_expert_boundary.py \
+    --data_dir datasets/raw/RedJujube \
     --save_dir cache/hz_sb_eps015 \
     --min_freq 2 \
     --sb_epsilon 0.15 \
@@ -198,8 +198,8 @@ nohup python _5TRAIN/train_redjujube_expert_boundary.py \
     > train_hz_sb_eps015.log 2>&1 &
 
 # 实验 4.3: sb_size=1
-nohup python _5TRAIN/train_redjujube_expert_boundary.py \
-    --data_dir _2DATA/RedJujube \
+nohup python research/training/train_redjujube_expert_boundary.py \
+    --data_dir datasets/raw/RedJujube \
     --save_dir cache/hz_sb_size1 \
     --min_freq 2 \
     --sb_epsilon 0.1 \
@@ -208,8 +208,8 @@ nohup python _5TRAIN/train_redjujube_expert_boundary.py \
     > train_hz_sb_size1.log 2>&1 &
 
 # 实验 4.4: sb_size=3
-nohup python _5TRAIN/train_redjujube_expert_boundary.py \
-    --data_dir _2DATA/RedJujube \
+nohup python research/training/train_redjujube_expert_boundary.py \
+    --data_dir datasets/raw/RedJujube \
     --save_dir cache/hz_sb_size3 \
     --min_freq 2 \
     --sb_epsilon 0.1 \
@@ -333,15 +333,15 @@ echo "=== 启动补充实验 ==="
 echo "开始时间: $(date)"
 
 # 实验1.1: freq=3
-nohup python _5TRAIN/train_redjujube_expert_boundary.py \
-    --data_dir _2DATA/RedJujube --save_dir cache/hz_freq3 \
+nohup python research/training/train_redjujube_expert_boundary.py \
+    --data_dir datasets/raw/RedJujube --save_dir cache/hz_freq3 \
     --min_freq 3 --sb_epsilon 0.1 --sb_size 2 --num_epochs 30 \
     > train_hz_freq3.log 2>&1 &
 echo "已启动: freq=3 实验"
 
 # 实验1.2: freq=5
-nohup python _5TRAIN/train_redjujube_expert_boundary.py \
-    --data_dir _2DATA/RedJujube --save_dir cache/hz_freq5 \
+nohup python research/training/train_redjujube_expert_boundary.py \
+    --data_dir datasets/raw/RedJujube --save_dir cache/hz_freq5 \
     --min_freq 5 --sb_epsilon 0.1 --sb_size 2 --num_epochs 30 \
     > train_hz_freq5.log 2>&1 &
 echo "已启动: freq=5 实验"
@@ -371,8 +371,8 @@ echo "=== 实验已启动，使用 tail -f train_hz_*.log 查看进度 ==="
 
 ```bash
 # 实验 5.1: freq=3 + 通道注意力v2
-nohup python _5TRAIN/train_redjujube_expert_boundary.py \
-    --data_dir _2DATA/RedJujube \
+nohup python research/training/train_redjujube_expert_boundary.py \
+    --data_dir datasets/raw/RedJujube \
     --save_dir cache/hz_freq3_attn_v2 \
     --min_freq 3 \
     --expert_dict_dim 48 \
@@ -385,10 +385,10 @@ nohup python _5TRAIN/train_redjujube_expert_boundary.py \
     > train_hz_freq3_attn_v2.log 2>&1 &
 
 # 实验 5.2: 类型词典 + 通道注意力v2
-nohup python _5TRAIN/train_redjujube_expert_boundary.py \
-    --data_dir _2DATA/RedJujube \
+nohup python research/training/train_redjujube_expert_boundary.py \
+    --data_dir datasets/raw/RedJujube \
     --save_dir cache/hz_typed_attn_v2 \
-    --expert_dict_path _2DATA/RedJujube/expert_lexicon_typed.txt \
+    --expert_dict_path datasets/raw/RedJujube/expert_lexicon_typed.txt \
     --expert_dict_dim 48 \
     --use_channel_attention \
     --channel_attn_version v2 \
@@ -399,11 +399,11 @@ nohup python _5TRAIN/train_redjujube_expert_boundary.py \
     > train_hz_typed_attn_v2.log 2>&1 &
 
 # 实验 5.3: 类型词典 + freq=3 (需先生成typed词典with freq=3)
-# 前置: python _3DATA_PROCESS/extract_typed_lexicon.py --min_freq 3
-nohup python _5TRAIN/train_redjujube_expert_boundary.py \
-    --data_dir _2DATA/RedJujube \
+# 前置: python research/data_processing/extract_typed_lexicon.py --min_freq 3
+nohup python research/training/train_redjujube_expert_boundary.py \
+    --data_dir datasets/raw/RedJujube \
     --save_dir cache/hz_typed_freq3 \
-    --expert_dict_path _2DATA/RedJujube/expert_lexicon_typed_freq3.txt \
+    --expert_dict_path datasets/raw/RedJujube/expert_lexicon_typed_freq3.txt \
     --sb_epsilon 0.1 \
     --sb_size 2 \
     --num_epochs 30 \
@@ -427,8 +427,8 @@ nohup python _5TRAIN/train_redjujube_expert_boundary.py \
 
 ```bash
 # 实验 6.1: sb_epsilon=0.05 (基于freq=3最优配置)
-nohup python _5TRAIN/train_redjujube_expert_boundary.py \
-    --data_dir _2DATA/RedJujube \
+nohup python research/training/train_redjujube_expert_boundary.py \
+    --data_dir datasets/raw/RedJujube \
     --save_dir cache/hz_freq3_sb_eps005 \
     --min_freq 3 \
     --sb_epsilon 0.05 \
@@ -437,8 +437,8 @@ nohup python _5TRAIN/train_redjujube_expert_boundary.py \
     > train_hz_freq3_sb_eps005.log 2>&1 &
 
 # 实验 6.2: sb_epsilon=0.15
-nohup python _5TRAIN/train_redjujube_expert_boundary.py \
-    --data_dir _2DATA/RedJujube \
+nohup python research/training/train_redjujube_expert_boundary.py \
+    --data_dir datasets/raw/RedJujube \
     --save_dir cache/hz_freq3_sb_eps015 \
     --min_freq 3 \
     --sb_epsilon 0.15 \
@@ -447,8 +447,8 @@ nohup python _5TRAIN/train_redjujube_expert_boundary.py \
     > train_hz_freq3_sb_eps015.log 2>&1 &
 
 # 实验 6.3: sb_size=1
-nohup python _5TRAIN/train_redjujube_expert_boundary.py \
-    --data_dir _2DATA/RedJujube \
+nohup python research/training/train_redjujube_expert_boundary.py \
+    --data_dir datasets/raw/RedJujube \
     --save_dir cache/hz_freq3_sb_size1 \
     --min_freq 3 \
     --sb_epsilon 0.1 \
@@ -457,8 +457,8 @@ nohup python _5TRAIN/train_redjujube_expert_boundary.py \
     > train_hz_freq3_sb_size1.log 2>&1 &
 
 # 实验 6.4: sb_size=3
-nohup python _5TRAIN/train_redjujube_expert_boundary.py \
-    --data_dir _2DATA/RedJujube \
+nohup python research/training/train_redjujube_expert_boundary.py \
+    --data_dir datasets/raw/RedJujube \
     --save_dir cache/hz_freq3_sb_size3 \
     --min_freq 3 \
     --sb_epsilon 0.1 \
@@ -483,8 +483,8 @@ nohup python _5TRAIN/train_redjujube_expert_boundary.py \
 ```bash
 # 多次运行验证
 for seed in 43 44; do
-    nohup python _5TRAIN/train_redjujube_expert_boundary.py \
-        --data_dir _2DATA/RedJujube \
+    nohup python research/training/train_redjujube_expert_boundary.py \
+        --data_dir datasets/raw/RedJujube \
         --save_dir cache/hz_freq3_seed${seed} \
         --min_freq 3 \
         --seed ${seed} \
@@ -634,8 +634,8 @@ done
 对最优配置进行多次运行，验证结果稳定性：
 ```bash
 for seed in 43 44 45; do
-    nohup python _5TRAIN/train_redjujube_expert_boundary.py \
-        --data_dir _2DATA/RedJujube \
+    nohup python research/training/train_redjujube_expert_boundary.py \
+        --data_dir datasets/raw/RedJujube \
         --save_dir cache/hz_freq3_sb015_seed${seed} \
         --min_freq 3 --seed ${seed} \
         --sb_epsilon 0.15 --sb_size 2 --num_epochs 30 \
@@ -651,10 +651,10 @@ done
 ### 10.3 类型词典+边界平滑组合 (可选)
 将类型词典与最优边界平滑参数组合：
 ```bash
-nohup python _5TRAIN/train_redjujube_expert_boundary.py \
-    --data_dir _2DATA/RedJujube \
+nohup python research/training/train_redjujube_expert_boundary.py \
+    --data_dir datasets/raw/RedJujube \
     --save_dir cache/hz_typed_sb015 \
-    --expert_dict_path _2DATA/RedJujube/expert_lexicon_typed.txt \
+    --expert_dict_path datasets/raw/RedJujube/expert_lexicon_typed.txt \
     --sb_epsilon 0.15 --sb_size 2 --num_epochs 30 \
     > train_hz_typed_sb015.log 2>&1 &
 ```

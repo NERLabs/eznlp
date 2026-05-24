@@ -1,0 +1,102 @@
+#!/bin/bash
+# ==============================================================================
+# 公开数据集 BS+Dict+Focal 词典阈值 sweep（仅 min_freq=3）
+# 数据集: Boson / CLUE / MSRA
+# ==============================================================================
+
+set -e
+
+PROJECT_ROOT="/home/shiwenlong/NERlabs/eznlp"
+cd "$PROJECT_ROOT"
+
+RESULTS_DIR="experiments/EXP-010-optimization/results_public"
+mkdir -p "$RESULTS_DIR"
+
+SEEDS=(42 43 44)
+MIN_FREQ=3
+BERT_ARCH="hfl/chinese-macbert-base"
+
+# Boson
+BOSON_TRAIN="$PROJECT_ROOT/datasets/raw/boson/boson.train.bmes"
+BOSON_DEV="$PROJECT_ROOT/datasets/raw/boson/boson.dev.bmes"
+BOSON_TEST="$PROJECT_ROOT/datasets/raw/boson/boson.test.bmes"
+
+# CLUE
+CLUE_TRAIN="$PROJECT_ROOT/datasets/raw/clue/train.char.bmes"
+CLUE_DEV="$PROJECT_ROOT/datasets/raw/clue/dev.char.bmes"
+CLUE_TEST="$PROJECT_ROOT/datasets/raw/clue/test.char.bmes"
+
+# MSRA
+MSRA_TRAIN="$PROJECT_ROOT/datasets/raw/MSRA/train.char.bmes"
+MSRA_DEV="$PROJECT_ROOT/datasets/raw/MSRA/dev.char.bmes"
+MSRA_TEST="$PROJECT_ROOT/datasets/raw/MSRA/test.char.bmes"
+
+run_full_model_with_min_freq() {
+    local dataset_name=$1
+    local train_file=$2
+    local dev_file=$3
+    local test_file=$4
+    local seed=$5
+    local min_freq=$6
+
+    # 用单独目录区分不同阈值，避免覆盖已有结果
+    local save_dir="$RESULTS_DIR/${dataset_name}_bs_dict_focal_mf${min_freq}/seed_${seed}"
+
+    echo ""
+    echo "======================================================================"
+    echo "运行完整模型 (BS+Dict+Focal): $dataset_name (seed=$seed, min_freq=$min_freq)"
+    echo "训练集: $train_file"
+    echo "验证集: $dev_file"
+    echo "测试集: $test_file"
+    echo "保存目录: $save_dir"
+    echo "======================================================================"
+
+    conda run -n eznlp11 python "$PROJECT_ROOT/research/training/train_general_expert_boundary.py" \
+        --train_file "$train_file" \
+        --dev_file "$dev_file" \
+        --test_file "$test_file" \
+        --bert_arch "$BERT_ARCH" \
+        --save_dir "$save_dir" \
+        --seed "$seed" \
+        --num_epochs 30 \
+        --batch_size 16 \
+        --sb_epsilon 0.1 \
+        --sb_size 2 \
+        --no_fgm \
+        --no_ema \
+        --fl_gamma 2.0 \
+        --min_freq "$min_freq"
+
+    echo "✅ $dataset_name BS+Dict+Focal (seed=$seed, min_freq=$min_freq) 完成"
+}
+
+echo ""
+echo "############################################################################"
+echo "#         公开数据集 BS+Dict+Focal min_freq=3 实验开始                    #"
+echo "#  数据集: Boson, CLUE, MSRA                                            #"
+echo "#  min_freq: $MIN_FREQ                                                  #"
+echo "#  种子: ${SEEDS[*]}                                                   #"
+echo "############################################################################"
+echo ""
+
+# Boson
+for seed in "${SEEDS[@]}"; do
+    run_full_model_with_min_freq "boson" "$BOSON_TRAIN" "$BOSON_DEV" "$BOSON_TEST" "$seed" "$MIN_FREQ"
+done
+
+# CLUE
+for seed in "${SEEDS[@]}"; do
+    run_full_model_with_min_freq "clue" "$CLUE_TRAIN" "$CLUE_DEV" "$CLUE_TEST" "$seed" "$MIN_FREQ"
+done
+
+# MSRA
+for seed in "${SEEDS[@]}"; do
+    run_full_model_with_min_freq "msra" "$MSRA_TRAIN" "$MSRA_DEV" "$MSRA_TEST" "$seed" "$MIN_FREQ"
+done
+
+echo ""
+echo "############################################################################"
+echo "#                    min_freq=3 实验完成!                                 #"
+echo "#  结果保存在: $RESULTS_DIR                                             #"
+echo "############################################################################"
+

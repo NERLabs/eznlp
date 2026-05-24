@@ -118,7 +118,7 @@ def validate(package_dir: Path, final: bool) -> tuple[bool, str]:
             for needle in [
                 "基于专家词典与边界预测的红枣栽培命名实体识别方法",
                 "Named Entity Recognition Method for Red Jujube Cultivation",
-                "88.28%±0.22%",
+                "88.16%",
                 "10.6041/j.issn.1000-1298.2025.11.050",
             ]:
                 if needle in xml:
@@ -333,7 +333,7 @@ def validate(package_dir: Path, final: bool) -> tuple[bool, str]:
                 fail(results, "PDF metadata missing page information")
                 success = False
             text = run_cmd(["pdftotext", str(pdf), "-"])
-            for needle in ["88.28%±0.22%", "参考文献", "10.6041/j.issn.1000-1298.2025.11.050"]:
+            for needle in ["88.16%", "参考文献", "10.6041/j.issn.1000-1298.2025.11.050"]:
                 if needle in text:
                     ok(results, f"PDF text contains: {needle}")
                 else:

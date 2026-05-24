@@ -147,7 +147,7 @@ PID: 1332094
 ## 📝 技术细节
 
 ### 自动提取词典
-- **路径**: `_2DATA/MSRA/expert_lexicon_auto.txt`
+- **路径**: `datasets/raw/MSRA/expert_lexicon_auto.txt`
 - **提取方法**: 从MSRA训练集自动提取实体
 - **优势**: 避免跨数据集词典污染(不使用RedJujube手动词典)
 

@@ -39,7 +39,7 @@
 - PASS: DOCX contains 8 tables
 - PASS: DOCX contains: 基于专家词典与边界预测的红枣栽培命名实体识别方法
 - PASS: DOCX contains: Named Entity Recognition Method for Red Jujube Cultivation
-- PASS: DOCX contains: 88.28%±0.22%
+- PASS: DOCX contains: 88.16%
 - PASS: DOCX contains: 10.6041/j.issn.1000-1298.2025.11.050
 - WARN: DOCX draft placeholders remain: 待作者补充, 待作者确认, To be completed
 - PASS: Markdown contains 28 references
@@ -52,9 +52,6 @@
 - PASS: DOCX layout gates pass
 - PASS: Markdown passes manuscript quality gates
 - PASS: submission_info.example.json has the required schema
-- PASS: PDF metadata readable
-- PASS: PDF text contains: 88.28%±0.22%
-- PASS: PDF text contains: 参考文献
-- PASS: PDF text contains: 10.6041/j.issn.1000-1298.2025.11.050
-- PASS: PDF render quality gates pass
+- WARN: PDF validation skipped or failed: [Errno 2] No such file or directory: 'pdfinfo'
+- FAIL: PDF render quality validation failed
 - PASS: handoff zip integrity test passed

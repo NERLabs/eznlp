@@ -101,17 +101,16 @@ celerybeat-schedule
 .env
 
 # Large data files that exceed GitHub's file size limit
-projects/data/yangjie_word_char_mix.txt
-projects/NFLAT4CNER-main/cache/NER_dataset_msra
-projects/NFLAT4CNER-main/cache/dataset_msra_lex_yj
+references/external_projects/data/yangjie_word_char_mix.txt
+references/external_projects/NFLAT4CNER-main/cache/NER_dataset_msra
+references/external_projects/NFLAT4CNER-main/cache/dataset_msra_lex_yj
 
-# _2DATA
+# datasets
 # Ref: https://riptutorial.com/git/example/911/exceptions-in-a--gitignore-file
 /assets/
 /cache/
 
 
-_2DATA/*
 !/publications/
 /publications/*
 !/publications/*/
@@ -122,8 +121,11 @@ _2DATA/*
 !/publications/boundary-smoothing/poster.pdf
 examples/
 data/*
-projects/*
 *.md
+!README.md
+!docs/PROJECT_STRUCTURE.md
+!docs/superpowers/
+!docs/superpowers/**
 *.pth
 */tensorboard/*
 experiments/*
@@ -131,4 +133,6 @@ experiments/*
 experiments/EXP-009-PDA-SLPS-FWV/results/model1_slps_20260317-164253/tensorboard/events.out.tfevents.1773736983.SRJ.780956.0
 *.pdf
 docs/paper/*
+!docs/paper/assets/
+!docs/paper/assets/**
 融合专家词典与边界选择的红枣栽培命名实体识别方法.docx

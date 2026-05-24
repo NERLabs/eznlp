@@ -344,9 +344,9 @@ def evaluate(model, dataloader, device, id2label):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_dir', type=str, default='/home/shiwenlong/NERlabs/eznlp/_2DATA/RedJujube')
+    parser.add_argument('--data_dir', type=str, default='/home/shiwenlong/NERlabs/eznlp/datasets/raw/RedJujube')
     parser.add_argument('--bert_path', type=str, default='/home/shiwenlong/NERlabs/eznlp/assets/transformers/hfl/chinese-macbert-base')
-    parser.add_argument('--dict_path', type=str, default='/home/shiwenlong/NERlabs/eznlp/_2DATA/RedJujube/expert_lexicon_auto.txt')
+    parser.add_argument('--dict_path', type=str, default='/home/shiwenlong/NERlabs/eznlp/datasets/raw/RedJujube/expert_lexicon_auto.txt')
     parser.add_argument('--save_dir', type=str, default='/home/shiwenlong/NERlabs/eznlp/experiments/EXP-006-GTRNNER/results_v2')
     parser.add_argument('--ablation', type=str, default='full', choices=['baseline', 'no_rope', 'no_triaffine', 'full'])
     parser.add_argument('--epochs', type=int, default=30)

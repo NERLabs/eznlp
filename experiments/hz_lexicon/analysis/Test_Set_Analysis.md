@@ -2,7 +2,7 @@
 🔍 RedJujube 测试集详细分析
 ====================================================================================================
 
-📂 加载测试集: _2DATA/RedJujube/redjujube_test.bmes
+📂 加载测试集: datasets/raw/RedJujube/redjujube_test.bmes
   - 样本数: 672
 
 ## 一、基本统计

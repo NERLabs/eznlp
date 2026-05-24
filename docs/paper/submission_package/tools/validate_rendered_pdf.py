@@ -12,7 +12,7 @@ from pathlib import Path
 REQUIRED_TEXT = [
     "基于专家词典与边界预测的红枣栽培命名实体识别方法",
     "Named Entity Recognition Method for Red Jujube Cultivation",
-    "88.28%±0.22%",
+    "88.16%",
     "表 5 词典构建策略对比",
     "表 8 公开数据集泛化实验结果",
     "参考文献",

@@ -410,10 +410,10 @@ def run_experiment(ablation_mode, config, args, bert_model, tokenizer):
 def main():
     parser = argparse.ArgumentParser(description="EXP-006-GTRNNER 训练脚本")
     parser.add_argument("--config", type=str, default="config.yaml", help="配置文件路径")
-    parser.add_argument("--data_dir", type=str, default="/home/shiwenlong/NERlabs/eznlp/_2DATA/RedJujube", help="数据目录")
+    parser.add_argument("--data_dir", type=str, default="/home/shiwenlong/NERlabs/eznlp/datasets/raw/RedJujube", help="数据目录")
     parser.add_argument("--save_dir", type=str, default="/home/shiwenlong/NERlabs/eznlp/experiments/EXP-006-GTRNNER/results", help="保存目录")
     parser.add_argument("--bert_model", type=str, default="/home/shiwenlong/NERlabs/eznlp/assets/transformers/hfl/chinese-macbert-base", help="BERT模型路径")
-    parser.add_argument("--expert_dict_path", type=str, default="/home/shiwenlong/NERlabs/eznlp/_2DATA/RedJujube/expert_lexicon_auto.txt", help="专家词典路径")
+    parser.add_argument("--expert_dict_path", type=str, default="/home/shiwenlong/NERlabs/eznlp/datasets/raw/RedJujube/expert_lexicon_auto.txt", help="专家词典路径")
     parser.add_argument("--ablation", type=str, default="BERT-BiLSTM-RoPE-TriAffine-ExpertDict-CRF", 
                         choices=[
                             # 新命名规范（推荐）

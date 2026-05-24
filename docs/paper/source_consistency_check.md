@@ -7,7 +7,7 @@
 源码位置：
 
 - `eznlp/model/nested_embedder.py`
-- `_5TRAIN/train_redjujube_expert_boundary.py`
+- `research/training/train_redjujube_expert_boundary.py`
 
 核对结果：
 
@@ -24,7 +24,7 @@
 源码位置：
 
 - `eznlp/model/decoder/boundary_selection.py`
-- `_5TRAIN/train_redjujube_expert_boundary.py`
+- `research/training/train_redjujube_expert_boundary.py`
 
 核对结果：
 

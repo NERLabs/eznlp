@@ -147,7 +147,7 @@ class Vectors(object):
 
 class GloVe(Vectors):
     """
-    https://nlp.stanford.edu/projects/glove/
+    https://nlp.stanford.edu/references/external_projects/glove/
     """
 
     def __init__(self, path: str, encoding=None, **kwargs):

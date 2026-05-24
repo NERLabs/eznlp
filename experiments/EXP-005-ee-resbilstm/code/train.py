@@ -327,8 +327,8 @@ def run_experiment(ablation_mode, config, args, bert_model, tokenizer):
 def main():
     parser = argparse.ArgumentParser(description='EXP-005-ee-resbilstm 训练')
     parser.add_argument("--config", type=str, default=None, help="YAML 配置文件路径")
-    parser.add_argument("--data_dir", type=str, default="_2DATA/RedJujube")
-    parser.add_argument("--expert_dict_path", type=str, default="_2DATA/RedJujube/expert_lexicon_auto_min1.txt")
+    parser.add_argument("--data_dir", type=str, default="datasets/raw/RedJujube")
+    parser.add_argument("--expert_dict_path", type=str, default="datasets/raw/RedJujube/expert_lexicon_auto_min1.txt")
     parser.add_argument("--save_dir", type=str, default="cache/exp005_ablation")
     parser.add_argument("--bert_arch", type=str, default="hfl/chinese-macbert-base")
     parser.add_argument("--ablation", type=str, default="full",

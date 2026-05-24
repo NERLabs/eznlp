@@ -24,7 +24,7 @@ echo "" | tee -a ${EXPERIMENT_LOG}
 echo "实验1：Baseline vs ExpertDict 基础对比" | tee -a ${EXPERIMENT_LOG}
 echo "开始时间：$(date)" | tee -a ${EXPERIMENT_LOG}
 
-python _1CONFIG/msra/train_msra_ner_baseline_vs_expert_dict.py \
+python research/configs/msra/train_msra_ner_baseline_vs_expert_dict.py \
     --run_baseline \
     --run_expert_dict \
     --save_dir cache/msra_experiments/exp1_baseline_vs_expert \
@@ -47,7 +47,7 @@ for dim in 50 100 200; do
     echo "  - 测试 emb_dim=${dim}" | tee -a ${EXPERIMENT_LOG}
     echo "    开始时间：$(date)" | tee -a ${EXPERIMENT_LOG}
     
-    python _1CONFIG/msra/train_msra_ner_baseline_vs_expert_dict.py \
+    python research/configs/msra/train_msra_ner_baseline_vs_expert_dict.py \
         --run_expert_dict \
         --save_dir cache/msra_experiments/exp2_emb_dim_${dim} \
         --num_epochs 30 \
@@ -71,7 +71,7 @@ for freq in 2 3 5; do
     echo "  - 测试 min_freq=${freq}" | tee -a ${EXPERIMENT_LOG}
     echo "    开始时间：$(date)" | tee -a ${EXPERIMENT_LOG}
     
-    python _1CONFIG/msra/train_msra_ner_baseline_vs_expert_dict.py \
+    python research/configs/msra/train_msra_ner_baseline_vs_expert_dict.py \
         --run_expert_dict \
         --save_dir cache/msra_experiments/exp3_min_freq_${freq} \
         --num_epochs 30 \
@@ -92,7 +92,7 @@ echo "" | tee -a ${EXPERIMENT_LOG}
 echo "实验4：最优配置验证（emb_dim=100, min_freq=3）" | tee -a ${EXPERIMENT_LOG}
 echo "开始时间：$(date)" | tee -a ${EXPERIMENT_LOG}
 
-python _1CONFIG/msra/train_msra_ner_baseline_vs_expert_dict.py \
+python research/configs/msra/train_msra_ner_baseline_vs_expert_dict.py \
     --run_expert_dict \
     --save_dir cache/msra_experiments/exp4_best_config \
     --num_epochs 30 \

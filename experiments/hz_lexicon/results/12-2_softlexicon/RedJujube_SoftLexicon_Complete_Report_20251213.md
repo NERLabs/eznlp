@@ -223,7 +223,7 @@ SoftLexicon系列          94.63%- ███████████████
 - [词典对比分析](../12-1_baseline_expert_dict/词典对比分析报告.md)
 
 ### 训练脚本
-- 对比实验: `_1CONFIG/redjujube/train_redjujube_ner_comparison.py`
+- 对比实验: `research/configs/redjujube/train_redjujube_ner_comparison.py`
 - 批量运行: `scripts/run_redjujube_all_experiments.sh`
 
 ---

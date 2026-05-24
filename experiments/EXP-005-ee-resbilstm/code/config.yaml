@@ -6,7 +6,7 @@
 # ============================================
 data:
   dataset: redjujube
-  data_dir: /home/shiwenlong/NERlabs/eznlp/_2DATA/RedJujube
+  data_dir: /home/shiwenlong/NERlabs/eznlp/datasets/raw/RedJujube
   train_file: redjujube_train.bmes
   dev_file: redjujube_dev.bmes
   test_file: redjujube_test.bmes
@@ -18,11 +18,11 @@ data:
 # ============================================
 lexicon:
   # 专家词典（含类型）
-  expert_typed: /home/shiwenlong/NERlabs/eznlp/_2DATA/RedJujube/expert_lexicon_typed.txt
+  expert_typed: /home/shiwenlong/NERlabs/eznlp/datasets/raw/RedJujube/expert_lexicon_typed.txt
   # 专家词典（自动扩展）
-  expert_auto: /home/shiwenlong/NERlabs/eznlp/_2DATA/RedJujube/expert_lexicon_auto_min1.txt
+  expert_auto: /home/shiwenlong/NERlabs/eznlp/datasets/raw/RedJujube/expert_lexicon_auto_min1.txt
   # SoftLexicon
-  softlexicon: /home/shiwenlong/NERlabs/eznlp/_2DATA/RedJujube/softlexicon_filtered.txt
+  softlexicon: /home/shiwenlong/NERlabs/eznlp/datasets/raw/RedJujube/softlexicon_filtered.txt
   # 默认使用的词典
   default: expert_auto
 

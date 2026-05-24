@@ -121,7 +121,7 @@ class FusionExtractor(nn.Module):
 #### 2. 创建训练脚本
 
 ```bash
-cd /home/shiwenlong/NERlabs/eznlp/_1CONFIG/redjujube
+cd /home/shiwenlong/NERlabs/eznlp/research/configs/redjujube
 cp run_fusion_gated.sh run_fusion_gated_improved.sh
 ```
 
@@ -141,7 +141,7 @@ python train_redjujube_ner_comparison.py \
     --experiment_name "${EXPERIMENT_NAME}" \
     --model_type "soft_expert_gated_improved" \    # 新增模型类型
     --expert_dict_type "auto" \
-    --softlexicon_path "../../_2DATA/RedJujube/softlexicon_filtered_v2.txt" \    # 使用v2！
+    --softlexicon_path "../../datasets/raw/RedJujube/softlexicon_filtered_v2.txt" \    # 使用v2！
     --bert_model_path "hfl/chinese-macbert-base" \
     --num_epochs 30 \
     --batch_size 16 \
@@ -182,7 +182,7 @@ if args.model_type == 'soft_expert_gated_improved':
 #### 4. 启动训练
 
 ```bash
-cd /home/shiwenlong/NERlabs/eznlp/_1CONFIG/redjujube
+cd /home/shiwenlong/NERlabs/eznlp/research/configs/redjujube
 bash run_fusion_gated_improved.sh
 ```
 
@@ -319,7 +319,7 @@ class FusionExtractor(nn.Module):
 #### 3. 创建训练脚本
 
 ```bash
-cd /home/shiwenlong/NERlabs/eznlp/_1CONFIG/redjujube
+cd /home/shiwenlong/NERlabs/eznlp/research/configs/redjujube
 cat > run_fusion_hierarchical_inter.sh << 'EOF'
 #!/bin/bash
 
@@ -330,7 +330,7 @@ python train_redjujube_ner_comparison.py \
     --experiment_name "${EXPERIMENT_NAME}" \
     --model_type "soft_expert_hierarchical_inter" \
     --expert_dict_type "auto" \
-    --softlexicon_path "../../_2DATA/RedJujube/softlexicon_filtered_v2.txt" \
+    --softlexicon_path "../../datasets/raw/RedJujube/softlexicon_filtered_v2.txt" \
     --bert_model_path "hfl/chinese-macbert-base" \
     --num_epochs 30 \
     --batch_size 16 \

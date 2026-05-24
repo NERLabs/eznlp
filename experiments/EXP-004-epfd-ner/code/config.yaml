@@ -4,7 +4,7 @@
 # 数据配置
 data:
   dataset: redjujube
-  data_dir: /home/shiwenlong/NERlabs/eznlp/_2DATA/RedJujube
+  data_dir: /home/shiwenlong/NERlabs/eznlp/datasets/raw/RedJujube
   train_file: redjujube_train.bmes
   dev_file: redjujube_dev.bmes
   test_file: redjujube_test.bmes

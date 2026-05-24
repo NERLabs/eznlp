@@ -20,7 +20,7 @@ import transformers
 # 添加项目路径
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.insert(0, project_root)
-sys.path.insert(0, os.path.join(project_root, '_8TOOL'))
+sys.path.insert(0, os.path.join(project_root, 'research/tools'))
 
 from eznlp.io import ConllIO
 from eznlp.model import (

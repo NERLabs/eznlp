@@ -10,10 +10,10 @@ Integrate usable content from the user-provided DOCX and local PDF-to-Markdown p
 - `docs/paper/user_draft_融合专家词典与边界选择的红枣栽培NER_抽取稿.md`
 - `docs/paper/农业机械学报_红枣NER_投稿稿.md`
 - `docs/paper/paper_result_registry.md`
-- `_2DATA/papers/李春春 等 - 2025 - 基于BERT-BiLSTM-CRF的茶树病虫害命名实体识别方法/auto/李春春 等 - 2025 - 基于BERT-BiLSTM-CRF的茶树病虫害命名实体识别方法.md`
-- `_2DATA/papers/路阳 等 - 2026 - 基于曼哈顿注意力机制的水稻病虫害命名实体识别/auto/路阳 等 - 2026 - 基于曼哈顿注意力机制的水稻病虫害命名实体识别.md`
-- `_2DATA/papers/蒲攀 等 - 2024 - 融合动态词典特征和CBAM的苹果病虫害命名实体识别方法/auto/蒲攀 等 - 2024 - 融合动态词典特征和CBAM的苹果病虫害命名实体识别方法.md`
-- `_2DATA/papers/吴钊 等 - 2025 - 基于多特征融合的苹果栽培命名实体识别/auto/吴钊 等 - 2025 - 基于多特征融合的苹果栽培命名实体识别.md`
+- `datasets/raw/papers/李春春 等 - 2025 - 基于BERT-BiLSTM-CRF的茶树病虫害命名实体识别方法/auto/李春春 等 - 2025 - 基于BERT-BiLSTM-CRF的茶树病虫害命名实体识别方法.md`
+- `datasets/raw/papers/路阳 等 - 2026 - 基于曼哈顿注意力机制的水稻病虫害命名实体识别/auto/路阳 等 - 2026 - 基于曼哈顿注意力机制的水稻病虫害命名实体识别.md`
+- `datasets/raw/papers/蒲攀 等 - 2024 - 融合动态词典特征和CBAM的苹果病虫害命名实体识别方法/auto/蒲攀 等 - 2024 - 融合动态词典特征和CBAM的苹果病虫害命名实体识别方法.md`
+- `datasets/raw/papers/吴钊 等 - 2025 - 基于多特征融合的苹果栽培命名实体识别/auto/吴钊 等 - 2025 - 基于多特征融合的苹果栽培命名实体识别.md`
 
 ## Files allowed to edit
 

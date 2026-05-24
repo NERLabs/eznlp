@@ -10,7 +10,7 @@
 4. 实验充分性材料：`experiment_sufficiency_analysis_2026-05-23.md`、`experiment_sufficiency_groups_2026-05-23.csv`、`experiment_sufficiency_seeds_2026-05-23.csv`。
 5. 轻量实验结果：`experiments/EXP-010-optimization/results_newdata/**/results.json`、公开数据集 `results_public/**/results.json`、必要 `auto_lexicon.txt`。
 6. 词典策略分析结果：`experiments/EXP-011-lexicon_strategy/analysis/`。
-7. RJND 当前写作所需数据：`_2DATA/RedJujube/redjujube_train.bmes`、`redjujube_dev.bmes`、`redjujube_test.bmes` 和专家词典/SoftLexicon 文本。
+7. RJND 当前写作所需数据：`datasets/raw/RedJujube/redjujube_train.bmes`、`redjujube_dev.bmes`、`redjujube_test.bmes` 和专家词典/SoftLexicon 文本。
 
 ## 未纳入 Git 的材料
 

@@ -5,7 +5,7 @@ set -e
 
 cd /home/shiwenlong/NERlabs/eznlp
 
-SCRIPT=_1CONFIG/msra/train_msra_ner_all_methods.py
+SCRIPT=research/configs/msra/train_msra_ner_all_methods.py
 BASE_DIR=cache/msra_complete_experiments_$(date +%Y%m%d)
 
 echo "=========================================="

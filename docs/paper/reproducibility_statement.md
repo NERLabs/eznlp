@@ -6,33 +6,33 @@
 
 | 数据/资源 | 路径 | 用途 |
 |---|---|---|
-| RJND 训练集 | `_2DATA/RedJujube/redjujube_train.bmes` | 主实验训练数据 |
-| RJND 验证集 | `_2DATA/RedJujube/redjujube_dev.bmes` | 模型选择和调参 |
-| RJND 测试集 | `_2DATA/RedJujube/redjujube_test.bmes` | 主结果测试 |
-| 专家词典 min_freq=1 | `_2DATA/RedJujube/expert_lexicon_auto_min1.txt` | EDBP 专家词典特征 |
-| MSRA | `_2DATA/MSRA/` | 公开数据集泛化实验 |
-| WeiboNER | `_2DATA/WeiboNER/` | 公开数据集泛化实验 |
-| ResumeNER | `_2DATA/ResumeNER/` | 公开数据集泛化实验 |
-| Boson | `_2DATA/boson/` | 公开数据集泛化实验 |
-| CLUENER | `_2DATA/clue/` | 公开数据集泛化实验 |
+| RJND 训练集 | `datasets/raw/RedJujube/redjujube_train.bmes` | 主实验训练数据 |
+| RJND 验证集 | `datasets/raw/RedJujube/redjujube_dev.bmes` | 模型选择和调参 |
+| RJND 测试集 | `datasets/raw/RedJujube/redjujube_test.bmes` | 主结果测试 |
+| 专家词典 min_freq=2 | 训练集自动抽取词典，词典规模 1 842 | EDBP 专家词典特征 |
+| MSRA | `datasets/raw/MSRA/` | 公开数据集泛化实验 |
+| WeiboNER | `datasets/raw/WeiboNER/` | 公开数据集泛化实验 |
+| ResumeNER | `datasets/raw/ResumeNER/` | 公开数据集泛化实验 |
+| Boson | `datasets/raw/boson/` | 公开数据集泛化实验 |
+| CLUENER | `datasets/raw/clue/` | 公开数据集泛化实验 |
 
 ## 2. 代码入口
 
 | 任务 | 入口 |
 |---|---|
 | Taskfile 任务定义 | `Taskfile.yml` |
-| 红枣基础训练脚本 | `_5TRAIN/train_redjujube_ner.py` |
-| 红枣边界预测训练脚本 | `_5TRAIN/train_redjujube_expert_boundary.py` |
-| 通用专家词典边界预测训练脚本 | `_5TRAIN/train_general_expert_boundary.py` |
-| 红枣实验脚本目录 | `_1CONFIG/redjujube/` |
+| 红枣基础训练脚本 | `research/training/train_redjujube_ner.py` |
+| 红枣边界预测训练脚本 | `research/training/train_redjujube_expert_boundary.py` |
+| 通用专家词典边界预测训练脚本 | `research/training/train_general_expert_boundary.py` |
+| 红枣实验脚本目录 | `research/configs/redjujube/` |
 | eznlp 编码器实现 | `eznlp/model/encoder.py` |
 | 专家词典嵌入实现 | `eznlp/model/nested_embedder.py` |
 | 边界选择/边界预测解码器 | `eznlp/model/decoder/boundary_selection.py` |
-| 词典抽取工具 | `_3DATA_PROCESS/extract_lexicon_from_training.py` |
+| 词典抽取工具 | `research/data_processing/extract_lexicon_from_training.py` |
 
 ## 3. 推荐复现实验命令
 
-`Taskfile.yml` 中部分早期任务仍指向旧实验脚本，复现实验前应优先核对 `_5TRAIN/` 和 `_1CONFIG/redjujube/` 中当前实际脚本。基础基线：
+`Taskfile.yml` 中部分早期任务仍指向旧实验脚本，复现实验前应优先核对 `research/training/` 和 `research/configs/redjujube/` 中当前实际脚本。基础基线：
 
 ```bash
 task train:redjujube:baseline
@@ -44,11 +44,11 @@ task train:redjujube:baseline
 task train:redjujube:expert-auto
 ```
 
-公开数据集与边界预测相关实验主要在 `_1CONFIG/redjujube/` 下通过批处理脚本运行，例如：
+公开数据集与边界预测相关实验主要在 `research/configs/redjujube/` 下通过批处理脚本运行，例如：
 
 ```bash
-bash _1CONFIG/redjujube/run_public_all_sequential.sh
-bash _1CONFIG/redjujube/run_bs_optimization_experiments.sh
+bash research/configs/redjujube/run_public_all_sequential.sh
+bash research/configs/redjujube/run_bs_optimization_experiments.sh
 ```
 
 ## 4. 投稿稿采用结果来源
@@ -57,7 +57,7 @@ bash _1CONFIG/redjujube/run_bs_optimization_experiments.sh
 |---|---:|---|
 | RJND 主结果 | 88.28%±0.22% | `docs/paper/基于词典和边界预测的红枣栽培命名实体识别.md` 表 6；`paper_result_registry.md` |
 | 代表性运行 P/R/F1 | 89.51/87.58/88.54 | `docs/paper/基于词典和边界预测的红枣栽培命名实体识别.md` 表 3/表 5 |
-| 词典策略 | min_freq=1，词典规模 5 317 | `experiments/EXP-011-lexicon_strategy/analysis/candidate_proxy_table.csv` |
+| 词典策略 | min_freq=2，词典规模 1 842 | `experiments/EXP-011-lexicon_strategy/analysis/candidate_proxy_table.csv` 与 `results_newdata/Q_bs_focal/.../results.json` |
 | MSRA | 95.19%±0.22% | `paper_result_registry.md`；`experiments/EXP-010-optimization/results_public/msra_bs_dict_focal/` |
 | WeiboNER | 72.27%±1.03% | `paper_result_registry.md`；`experiments/EXP-010-optimization/results_public/weibo_bs_dict_focal/` |
 | ResumeNER | 96.13%±0.29% | `paper_result_registry.md`；`experiments/EXP-010-optimization/results_public/resume_bs_dict_focal/` |

@@ -15,7 +15,7 @@ S1/S2/S5 mixed: evidence-driven revision of Introduction and Materials/Methods, 
 
 - Required skills: paper-orchestration, writing-core, evidence-driven-writing, verification.
 - Skills actually used: paper-orchestration, writing-core, evidence-driven-writing, verification.
-- Inputs consumed: current manuscript, user DOCX extracted text, local Markdown papers under `_2DATA/papers/`, result registry.
+- Inputs consumed: current manuscript, user DOCX extracted text, local Markdown papers under `datasets/raw/papers/`, result registry.
 - Inputs not used and why: no sub-agent output; current available delegation tool requires explicit user request for sub-agents.
 - Artifacts produced: project overview, outline, chapter architecture, progress log, evidence map, section blueprint, task packet.
 - Verification run: pending after manuscript revision.

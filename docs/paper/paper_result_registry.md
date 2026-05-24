@@ -4,7 +4,7 @@
 
 ## 1. 采用原则
 
-1. 摘要、结论和主对比表优先采用 **3 个随机种子均值 ± 标准差**，避免用单次最优结果作为主结论。
+1. 摘要、结论和主对比表采用 **seed=42 单次同口径结果**，以便纳入 SoftLexicon、FLAT 和 FLAT+BERT 等扩展基线；涉及稳定性或泛化性的其他表格可继续沿用各自登记的均值 ± 标准差口径。
 2. 单次实验结果可用于分类分析、案例分析和误差分析，但不能与均值结果混写。
 3. 现有主稿中的 `EDBP/EDBS` 统一为 **EDBP**，中文统一为“专家词典与边界预测模型”。
 4. “边界预测”是论文问题表述；代码实现对应 `BoundarySelectionDecoder`，正文表述为“边界预测模块采用边界选择解码形式”。
@@ -12,16 +12,16 @@
 
 ## 2. RJND 主结果
 
-### 2.1 主对比结果，建议进入摘要和结论
+### 2.1 历史三种子主对比结果，保留为稳定性证据
 
 | 模型 | P/% | R/% | F1/% | 证据来源 | 采用状态 | 说明 |
 |---|---:|---:|---:|---|---|---|
-| BiLSTM-CRF | - | - | 78.69 | `docs/paper/基于词典和边界预测的红枣栽培命名实体识别.md` 表 6 | 采用 | 作为无预训练弱基线 |
-| BERT-wwm-ext+BiLSTM+CRF | - | - | 85.48±0.25 | 同上，表 6 | 采用 | 3 seeds 强基线 |
-| MacBERT-base+BiLSTM+CRF | - | - | 85.57±0.29 | 同上，表 6 | 采用 | 3 seeds 强基线，摘要中的主要对照 |
-| EDBP/EDBS 完整模型 | - | - | 88.28±0.22 | `experiments/EXP-010-optimization/results_newdata/Q_bs_focal/` | **主采用** | 3 seeds 均值，投稿稿主结果 |
+| BiLSTM-CRF | - | - | 78.69 | `docs/paper/基于词典和边界预测的红枣栽培命名实体识别.md` 表 6 | 历史保留 | 3 seeds 无预训练弱基线 |
+| BERT-wwm-ext+BiLSTM+CRF | - | - | 85.48±0.25 | 同上，表 6 | 历史保留 | 3 seeds 强基线 |
+| MacBERT-base+BiLSTM+CRF | - | - | 85.57±0.29 | 同上，表 6 | 历史保留 | 3 seeds 强基线 |
+| EDBP/EDBS 完整模型 | - | - | 88.28±0.22 | `experiments/EXP-010-optimization/results_newdata/Q_bs_focal/` | 历史保留 | 3 seeds 均值，不作为当前扩展表 3 展示口径 |
 
-主结论计算：
+历史三种子计算：
 
 - EDBP 相对 BiLSTM-CRF：88.28 - 78.69 = **+9.59** 个百分点。
 - EDBP 相对 BERT-wwm-ext+BiLSTM+CRF：88.28 - 85.48 = **+2.80** 个百分点。
@@ -29,7 +29,7 @@
 
 ### 2.1.1 主对比三种子原始结果与显著性检验
 
-2026-05-23 重新整理 `results_newdata` 后，定位到投稿稿表 3 对应的三种子原始结果。该组结果与投稿稿当前主表数值一致，可用于支撑配对 t 检验。
+2026-05-23 重新整理 `results_newdata` 后，定位到三种子原始结果。该组结果用于保留稳定性和显著性证据；当前投稿稿表 3 因补入 SoftLexicon、FLAT 和 FLAT+BERT，改用 2.1.2 中 seed=42 单次同口径结果。
 
 | 模型 | seed 42 | seed 43 | seed 44 | 均值±标准差/% | 结果路径 |
 |---|---:|---:|---:|---:|---|
@@ -44,7 +44,37 @@
 - EDBP vs. BERT-wwm-ext+BiLSTM+CRF：均值差 2.80 个百分点，p=0.0036。
 - EDBP vs. MacBERT-base+BiLSTM+CRF：均值差 2.71 个百分点，p=0.0003。
 
-说明：投稿稿表 3 改用 `results_newdata/Q_bs_focal/` 原始三种子重算结果 `88.28±0.22`，以保证主结果、原始结果路径和显著性检验口径一致。
+说明：三种子结果不再作为当前投稿稿表 3 的展示口径，正文表 3 不再写 `±` 或配对 t 检验。
+
+### 2.1.2 RJND seed=42 扩展主对比结果
+
+为回应主模型对比模型数量偏少的问题，投稿稿表 3 改为采用 seed=42 单次同口径结果，并补入 SoftLexicon、FLAT 和 FLAT+BERT 三个词典或 lattice 增强基线。LatticeLSTM 和 NFLAT 暂未找到 RJND 同口径结果，不进入正文主表。
+
+| 模型 | seed | 测试 F1/% | BERT/MacBERT | 词典 | 结果路径 | 采用状态 |
+|---|---:|---:|---|---|---|---|
+| BiLSTM-CRF | 42 | 78.30 | 否 | 否 | `experiments/EXP-010-optimization/results_newdata/G_bilstm_baseline/.../results.json` | 表 3 采用 |
+| BERT-wwm-ext+BiLSTM+CRF | 42 | 85.21 | BERT-wwm-ext | 否 | `experiments/EXP-010-optimization/results_newdata/CRF_nodict_bertwwm/.../results.json` | 表 3 采用 |
+| MacBERT-base+BiLSTM+CRF | 42 | 85.36 | MacBERT-base | 否 | `experiments/EXP-010-optimization/results_newdata/CRF_nodict/.../results.json` | 表 3 采用 |
+| SoftLexicon | 42 | 84.75 | MacBERT-base | HZ SoftLexicon/专家词典 | `experiments/EXP-010-optimization/results_newdata/SoftLexicon_baseline/seed_42/.../results.json` | 表 3 采用 |
+| FLAT | 42 | 79.78 | 否 | CTB lattice 词表 | `experiments/baselines/flat_no_bert_v2/.../results.json` | 表 3 采用 |
+| FLAT+BERT | 42 | 79.40 | MacBERT-base | CTB lattice 词表 | `experiments/baselines/flat_bert_fixed/.../results.json` | 表 3 采用 |
+| EDBP | 42 | 88.16 | MacBERT-base | 训练集自动词典，min_freq=2，1842 词 | `experiments/EXP-010-optimization/results_newdata/Q_bs_focal/.../results.json` | 表 3 采用 |
+| LatticeLSTM | 42 | 待补 | 否 | 目标为 gazetteer | 未找到 RJND 结果 | 不进入表 3 |
+| NFLAT | 42 | 待补 | 否 | YangJie/CTB lattice | 未找到 RJND 结果 | 不进入表 3 |
+
+主结论计算：
+
+- EDBP 相对 BiLSTM-CRF：88.16 - 78.30 = **+9.86** 个百分点。
+- EDBP 相对 BERT-wwm-ext+BiLSTM+CRF：88.16 - 85.21 = **+2.95** 个百分点。
+- EDBP 相对 MacBERT-base+BiLSTM+CRF：88.16 - 85.36 = **+2.80** 个百分点。
+- EDBP 相对 SoftLexicon：88.16 - 84.75 = **+3.41** 个百分点。
+- EDBP 相对 FLAT：88.16 - 79.78 = **+8.38** 个百分点。
+- EDBP 相对 FLAT+BERT：88.16 - 79.40 = **+8.76** 个百分点。
+
+处理决策：
+
+- 投稿稿表 3 使用本节 seed=42 扩展主对比结果，不再在该表中使用 `±` 或配对 t 检验。
+- 三种子结果保留为历史稳定性证据，但不作为扩展表 3 的展示口径。
 
 ### 2.1.2 RJND seed=42 经典词典与 lattice 基线补充检索
 
@@ -74,11 +104,11 @@
 |---|---:|---|---|---|
 | Precision | 89.51 | `docs/paper/基于词典和边界预测的红枣栽培命名实体识别.md` 表 3/表 5 | 限分类分析采用 | 单次或特定实验配置结果 |
 | Recall | 87.58 | 同上 | 限分类分析采用 | 单次或特定实验配置结果 |
-| F1 | 88.54 | 同上 | 限分类分析采用 | 不作为摘要主结果，避免与 88.28±0.22 冲突 |
+| F1 | 88.54 | 同上 | 限分类分析采用 | 不作为摘要主结果，避免与 88.16 冲突 |
 
 处理决策：
 
-- 摘要写：EDBP 在 RJND 上 F1 为 **88.28%±0.22%**。
+- 摘要写：EDBP 在 RJND 上 F1 为 **88.16%**。
 - 分类分析写：在代表性运行中，整体 P/R/F1 为 **89.51%/87.58%/88.54%**。
 - 不再写“摘要 P/R/F1 分别达到 89.51、87.58、88.54”作为全局主结论。
 
@@ -102,17 +132,17 @@
 
 ## 4. 词典构建策略结果
 
-词典构建策略采用 `experiments/EXP-011-lexicon_strategy/analysis/candidate_proxy_table.csv` 中 RedJujube 行。该表为训练集词典匹配代理指标，用于解释为何主模型保留最小词频阈值为 1 的专家词典；不作为测试集 NER 主性能。
+词典构建策略采用 `experiments/EXP-011-lexicon_strategy/analysis/candidate_proxy_table.csv` 中 RedJujube 行。该表为训练集词典匹配代理指标，用于解释主模型采用最小词频阈值为 2 的专家词典；不作为测试集 NER 主性能。主模型结果 JSON 的 `args.min_freq=2`，对应 `results_newdata/Q_bs_focal`。
 
 | 最小词频阈值 | 词典规模 | 短实体覆盖率/% | 长实体覆盖率/% | 短实体匹配 F1/% | 长实体匹配 F1/% | 平衡 F1/% | 采用状态 |
 |---:|---:|---:|---:|---:|---:|---:|---|
-| 1 | 5 317 | 100.00 | 77.75 | 61.69 | 81.67 | 62.76 | 主模型采用 |
-| 2 | 1 842 | 85.45 | 31.04 | 58.51 | 45.11 | 57.79 | 对比 |
+| 1 | 5 317 | 100.00 | 77.75 | 61.69 | 81.67 | 62.76 | 对比 |
+| 2 | 1 842 | 85.45 | 31.04 | 58.51 | 45.11 | 57.79 | 主模型采用 |
 | 3 | 1 087 | 78.61 | 16.94 | 56.73 | 28.14 | 55.19 | 对比 |
 
 处理决策：
 
-- 投稿稿新增词典构建策略对比表，说明低频复合术语对词典覆盖的影响。
+- 投稿稿新增词典构建策略对比表，说明低频复合术语对词典覆盖的影响，并明确主模型采用 min_freq=2。
 - 表中数值只用于词典阈值选择解释，不与表 3 的测试集 F1 直接比较。
 
 ## 5. 解码器与损失函数对比
@@ -177,7 +207,7 @@
 
 推荐摘要结果句：
 
-> 结果表明，EDBP 在 RJND 数据集上的 F1 值达到 88.28%±0.22%，较 BiLSTM-CRF、BERT-wwm-ext+BiLSTM+CRF 和 MacBERT-base+BiLSTM+CRF 分别提升 9.59、2.80 和 2.71 个百分点。
+> 结果表明，EDBP 在 RJND 数据集上的 F1 值达到 88.16%，较 BiLSTM-CRF、BERT-wwm-ext+BiLSTM+CRF、MacBERT-base+BiLSTM+CRF、SoftLexicon、FLAT 和 FLAT+BERT 分别提升 9.86、2.95、2.80、3.41、8.38 和 8.76 个百分点。
 
 推荐结果分析补充句：
 

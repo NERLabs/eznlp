@@ -183,7 +183,7 @@ model = MacBertCRFNER(
 ### 实验5: SoftLexicon-v1 (CTB词典)
 
 **完成时间**: 2024-12-14 05:23  
-**脚本**: `_1CONFIG/msra/train_msra_ner_all_methods.py`
+**脚本**: `research/configs/msra/train_msra_ner_all_methods.py`
 
 **配置**:
 - BERT: hfl/chinese-macbert-base
@@ -206,7 +206,7 @@ model = MacBertCRFNER(
 ### 实验6: Soft+Expert Concat融合
 
 **完成时间**: 2024-12-14 07:00  
-**脚本**: `_1CONFIG/msra/train_msra_ner_all_methods.py`
+**脚本**: `research/configs/msra/train_msra_ner_all_methods.py`
 
 **配置**:
 - BERT: hfl/chinese-macbert-base

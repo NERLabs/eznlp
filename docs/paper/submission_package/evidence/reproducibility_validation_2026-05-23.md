@@ -2,21 +2,21 @@
 
 - PASS: reproducibility statement exists: /home/shiwenlong/NERlabs/eznlp/docs/paper/reproducibility_statement.md
 - PASS: path exists: Taskfile.yml
-- PASS: path exists: _5TRAIN/train_redjujube_ner.py
-- PASS: path exists: _5TRAIN/train_redjujube_expert_boundary.py
-- PASS: path exists: _5TRAIN/train_general_expert_boundary.py
-- PASS: path exists: _1CONFIG/redjujube/run_public_all_sequential.sh
-- PASS: path exists: _1CONFIG/redjujube/run_bs_optimization_experiments.sh
-- PASS: path exists: _2DATA/RedJujube/redjujube_train.bmes
-- PASS: path exists: _2DATA/RedJujube/redjujube_dev.bmes
-- PASS: path exists: _2DATA/RedJujube/redjujube_test.bmes
-- PASS: path exists: _2DATA/RedJujube/expert_lexicon_auto_min1.txt
-- PASS: path exists: _2DATA/MSRA
-- PASS: path exists: _2DATA/WeiboNER
-- PASS: path exists: _2DATA/ResumeNER
-- PASS: path exists: _2DATA/boson
-- PASS: path exists: _2DATA/clue
-- PASS: path exists: _3DATA_PROCESS/extract_lexicon_from_training.py
+- PASS: path exists: research/training/train_redjujube_ner.py
+- PASS: path exists: research/training/train_redjujube_expert_boundary.py
+- PASS: path exists: research/training/train_general_expert_boundary.py
+- PASS: path exists: research/configs/redjujube/run_public_all_sequential.sh
+- PASS: path exists: research/configs/redjujube/run_bs_optimization_experiments.sh
+- PASS: path exists: datasets/raw/RedJujube/redjujube_train.bmes
+- PASS: path exists: datasets/raw/RedJujube/redjujube_dev.bmes
+- PASS: path exists: datasets/raw/RedJujube/redjujube_test.bmes
+- PASS: path exists: datasets/raw/RedJujube/expert_lexicon_auto_min1.txt
+- PASS: path exists: datasets/raw/MSRA
+- PASS: path exists: datasets/raw/WeiboNER
+- PASS: path exists: datasets/raw/ResumeNER
+- PASS: path exists: datasets/raw/boson
+- PASS: path exists: datasets/raw/clue
+- PASS: path exists: research/data_processing/extract_lexicon_from_training.py
 - PASS: path exists: eznlp/model/encoder.py
 - PASS: path exists: eznlp/model/nested_embedder.py
 - PASS: path exists: eznlp/model/decoder/boundary_selection.py

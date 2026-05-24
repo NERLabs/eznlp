@@ -8,11 +8,11 @@ from pathlib import Path
 
 
 EXPECTED = {
-    "main_f1": "88.28%±0.22%",
-    "main_f1_table": "88.28±0.22",
-    "bilstm_gain": "9.59",
-    "bert_wwm_gain": "2.80",
-    "macbert_gain": "2.71",
+    "main_f1": "88.16%",
+    "main_f1_table": "88.16",
+    "bilstm_gain": "9.86",
+    "bert_wwm_gain": "2.95",
+    "macbert_gain": "2.80",
     "representative_prf": ["89.51", "87.58", "88.54"],
     "public": {
         "MSRA": "95.19±0.22",
@@ -84,7 +84,7 @@ def validate(md_path: Path) -> tuple[bool, str]:
             report.append(f"- FAIL: lexicon strategy section missing `{value}`")
             success = False
 
-    if "统计口径与表 3 的三种子均值不同" in results:
+    if "统计口径与表 3 的 seed=42 扩展主对比不同" in results:
         report.append("- PASS: representative-run table states its different statistical scope")
     else:
         report.append("- FAIL: representative-run table does not state different statistical scope")

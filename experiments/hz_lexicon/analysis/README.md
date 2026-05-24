@@ -176,7 +176,7 @@ NFLAT原始代码：
 需要修改的文件：
 /home/shiwenlong/NERlabs/eznlp/
 ├── _6MODEL/extractor.py          # 添加改进融合类
-├── _1CONFIG/redjujube/
+├── research/configs/redjujube/
 │   ├── train_redjujube_ner_comparison.py  # 添加新模型配置
 │   └── run_fusion_gated_improved.sh       # 新训练脚本
 └── experiments/hz_lexicon/results/

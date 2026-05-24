@@ -136,16 +136,16 @@
 
 **1. 代码架构实现** ✅
 - ✅ 核心模块实现（约12小时）
-  - Lattice基础模块: `_4MODELS/block/lattice_modules.py` (500行)
-  - Lattice注意力: `_4MODELS/block/lattice_attention.py` (600行)
-  - FLAT完整模型: `_4MODELS/models/flat_extractor.py` (800行)
+  - Lattice基础模块: `research/model_variants/block/lattice_modules.py` (500行)
+  - Lattice注意力: `research/model_variants/block/lattice_attention.py` (600行)
+  - FLAT完整模型: `research/model_variants/models/flat_extractor.py` (800行)
 - ✅ 数据处理模块（约8小时）
-  - FLAT数据处理器: `_4MODELS/models/flat_data_processor.py` (400行)
+  - FLAT数据处理器: `research/model_variants/models/flat_data_processor.py` (400行)
   - YJ词典准备与格式转换
 - ✅ 模型构建器（约6小时）
-  - 模型工厂类: `_4MODELS/models/flat_model_builder.py` (350行)
-  - 配置文件: `_1CONFIG/redjujube/flat_redjujube_config.json`
-  - 使用文档: `_4MODELS/models/FLAT_MODEL_README.md` (336行)
+  - 模型工厂类: `research/model_variants/models/flat_model_builder.py` (350行)
+  - 配置文件: `research/configs/redjujube/flat_redjujube_config.json`
+  - 使用文档: `research/model_variants/models/FLAT_MODEL_README.md` (336行)
 
 **2. NFLAT深度研究** ✅
 - ✅ 深度代码分析（约10小时）

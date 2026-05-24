@@ -65,10 +65,10 @@
 **执行命令**:
 ```
 # 创建错误分析脚本
-python _3DATA_PROCESS/error_analysis.py \
+python research/data_processing/error_analysis.py \
   --baseline_dir cache/redjujube_baseline \
   --expert_dir cache/redjujube_expert_auto \
-  --data_dir _2DATA/RedJujube \
+  --data_dir datasets/raw/RedJujube \
   --output_dir experiments/hz_lexicon/analysis/error_analysis
 ```
 
@@ -108,7 +108,7 @@ agg_mode: wtd_mean_pooling  # 聚合方式
 **执行命令**:
 ```
 # 批量超参数调优
-cd _1CONFIG/redjujube
+cd research/configs/redjujube
 bash run_expert_emb_dim_tuning.sh    # emb_dim: 25/50/100/150
 bash run_expert_min_freq_tuning.sh   # min_freq: 1/2/3/5
 bash run_expert_agg_mode_tuning.sh   # agg_mode: wtd_mean/mean/max
@@ -141,7 +141,7 @@ class FGM:
 **执行命令**:
 ```
 # 集成FGM对抗训练
-python _1CONFIG/redjujube/train_redjujube_ner_comparison.py \
+python research/configs/redjujube/train_redjujube_ner_comparison.py \
   --run_expert_dict_auto \
   --adversarial_training fgm \
   --adv_epsilon 0.5 \
@@ -442,15 +442,15 @@ python ensemble_predict.py \
 ## 🔗 相关文件
 
 ### 脚本文件
-- `_3DATA_PROCESS/extract_softlexicon_filtered.py` - 过滤版词典提取
-- `_1CONFIG/redjujube/run_softlexicon_filtered.sh` - SoftLex过滤版训练
-- `_1CONFIG/redjujube/run_fusion_improved.sh` - 改进融合训练
-- `_1CONFIG/redjujube/run_hyperparameter_tuning.sh` - 超参数调优
+- `research/data_processing/extract_softlexicon_filtered.py` - 过滤版词典提取
+- `research/configs/redjujube/run_softlexicon_filtered.sh` - SoftLex过滤版训练
+- `research/configs/redjujube/run_fusion_improved.sh` - 改进融合训练
+- `research/configs/redjujube/run_hyperparameter_tuning.sh` - 超参数调优
 
 ### 数据文件
-- `_2DATA/RedJujube/softlexicon_filtered.txt` - 18.6k高质量词典
-- `_2DATA/RedJujube/softlexicon_train.txt` - 198k原版词典
-- `_2DATA/RedJujube/expert_lexicon_auto.txt` - 2k自动专家词典
+- `datasets/raw/RedJujube/softlexicon_filtered.txt` - 18.6k高质量词典
+- `datasets/raw/RedJujube/softlexicon_train.txt` - 198k原版词典
+- `datasets/raw/RedJujube/expert_lexicon_auto.txt` - 2k自动专家词典
 
 ### 结果目录
 - `cache/redjujube_softlexicon_filtered/` - SoftLex过滤版结果

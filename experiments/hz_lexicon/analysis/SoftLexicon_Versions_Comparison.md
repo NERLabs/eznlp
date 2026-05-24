@@ -222,6 +222,6 @@ F1
 
 ---
 
-**生成时间**: 2025-12-13 21:34  
-**数据来源**: `/home/shiwenlong/NERlabs/eznlp/_2DATA/RedJujube/`  
+**生成时间**: 2025-12-13 21:34
+**数据来源**: `/home/shiwenlong/NERlabs/eznlp/datasets/raw/RedJujube/`
 **实验记录**: `experiments/hz_lexicon/results/RedJujube_Complete_Experiments_20251213.md`
